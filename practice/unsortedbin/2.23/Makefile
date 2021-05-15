@@ -1,4 +1,4 @@
-V2.23 = fastbin_dup fastbin_dup_into_stack fastbin_dup_consolidate
+V2.23 = unsorted_bin_attack
 PROGRAMS = $(V2.23)
 CFLAGS += -std=c99 -g
 LDLIBS += -ldl
