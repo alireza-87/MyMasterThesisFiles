@@ -1,4 +1,4 @@
-V2.23 = house_of_spirit
+V2.23 = house_of_spirit house_of_spirit_2
 PROGRAMS = $(V2.23)
 CFLAGS += -std=c99 -g
 LDLIBS += -ldl
