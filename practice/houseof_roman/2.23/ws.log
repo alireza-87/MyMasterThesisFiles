@@ -1,0 +1,22 @@
+INFO:Thread-1
+	Server is ready to accept
+INFO:Thread-1
+	[IN]  CONNECTION: ('127.0.0.1', 9884)
+INFO:Thread-1
+	Server is ready to accept
+INFO:Thread-3
+	[IN]  TEXT: ('127.0.0.1', 9884) - '{"method":"snap"}'
+INFO:Thread-3
+	[IN]  CLOSE: ('127.0.0.1', 9884)
+CRITICAL:Thread-3
+	Received Invalid Data Frame
+INFO:Thread-1
+	[IN]  CONNECTION: ('127.0.0.1', 9884)
+INFO:Thread-1
+	Server is ready to accept
+INFO:Thread-5
+	[IN]  TEXT: ('127.0.0.1', 9884) - '{"method":"snap"}'
+INFO:Thread-5
+	[IN]  CLOSE: ('127.0.0.1', 9884)
+CRITICAL:Thread-5
+	Received Invalid Data Frame

@@ -19,13 +19,4 @@ int main()
 	free(a);
 	free(b);
 	free(c);
-
-	a = malloc(8);
-	b = malloc(8);
-	c = malloc(8);
-
-	printf("1st malloc(8): %p\n", a);
-	printf("2nd malloc(8): %p\n", b);
-	printf("3rd malloc(8): %p\n", c);
-
 }
