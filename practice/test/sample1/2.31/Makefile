@@ -1,4 +1,4 @@
-V2.31 = sample1 sample2 sample3
+V2.31 = sample1
 PROGRAMS = $(V2.31)
 CFLAGS += -std=c99 -g
 LDLIBS += -ldl
