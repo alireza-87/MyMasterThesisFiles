@@ -1,0 +1,24 @@
+\contentsline {chapter}{Chapter\ \numberline {1}Introduction}{5}{chapter.1}%
+\contentsline {chapter}{Chapter\ \numberline {2}Introduction to glibc{} Heap}{6}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Heap}{6}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Chunk}{7}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Memory Allocation}{10}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Allocation from Freed Chunks}{11}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Allocation from Top Chunk}{11}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Ask Kernel for more memory}{11}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}MMAP}{11}{section.2.4}%
+\contentsline {section}{\numberline {2.5}ARENA}{12}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Sub Heap}{12}{section.2.6}%
+\contentsline {section}{\numberline {2.7}free}{13}{section.2.7}%
+\contentsline {section}{\numberline {2.8}Bins}{13}{section.2.8}%
+\contentsline {subsection}{\numberline {2.8.1}Small Bins}{14}{subsection.2.8.1}%
+\contentsline {subsection}{\numberline {2.8.2}Large Bins}{14}{subsection.2.8.2}%
+\contentsline {subsection}{\numberline {2.8.3}unsorted bins{}}{14}{subsection.2.8.3}%
+\contentsline {subsection}{\numberline {2.8.4}fast bins{}}{15}{subsection.2.8.4}%
+\contentsline {subsection}{\numberline {2.8.5}tcache{} bins Bins}{15}{subsection.2.8.5}%
+\contentsline {section}{\numberline {2.9}malloc()}{16}{section.2.9}%
+\contentsline {section}{\numberline {2.10}calloc()}{18}{section.2.10}%
+\contentsline {section}{\numberline {2.11}Alignment()}{19}{section.2.11}%
+\contentsline {section}{\numberline {2.12}malloc\_consolidate()}{20}{section.2.12}%
+\contentsline {chapter}{Chapter\ \numberline {3}Heap Exploitation }{21}{chapter.3}%
+\contentsline {chapter}{Chapter\ \numberline {4}Conclusion}{22}{chapter.4}%
