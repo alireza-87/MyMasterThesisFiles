@@ -62,12 +62,12 @@
 
 \section{Heap}
 
-An application has different types of memory space, two must important are Heap and Stack. Usually, the stack is used to store local variables, also, It may use to pass the function's parameters. Unlike stack, Heap is a portion of memory which use by applications to dynamically allocate memory during run time. This means an application can request memory and freed memory during execution. The data stored in the heap are accessible by all thread, so, It is important to handle it properly. There are some other differences between stack and heap too :
+An application has different types of memory space, two must important are \emph{heap} and \emph{stack}. Usually, the stack is used to store local variables, also, It may use to pass the function's parameters. Unlike stack, heap is a portion of memory which use by applications to dynamically allocate memory during run time. This means an application can request memory and freed memory during execution. The data stored in the heap are accessible by all thread, so, It is important to handle it properly. There are some other differences between stack and heap too :
 \begin{itemize}
-	\item Heap memory can become fragment, but, Stack memory won't
-	\item Heap can access to variable globally, but, the stack can access to a local variable only
-	\item Heap memory allocation perform by developers, but, stack allocation perform by compilers
-	\item Developer have to free heap's memory when they don't need it anymore, but, you would not have to handle stack
+	\item heap memory can become fragment, but, Stack memory won't
+	\item heap can access to variable globally, but, the stack can access to a local variable only
+	\item heap memory allocation perform by developers, but, stack allocation perform by compilers
+	\item developer have to free heap's memory when they don't need it anymore, but, you would not have to handle stack
 \end{itemize}
 Each of mentioned memory spaces has advantages and disadvantages, as the result, which one to use depends on the circumstances. If you need to handle data in LIFO format then the stack is the better choice. As we mentioned, The input parameters of a function may send by stack, in this way compiler does not have to free up memory after return from the function because they remove automatically. Also, Stack memory space is a better solution for local variable access.
 
@@ -99,9 +99,9 @@ The above code is a sample of how the c programming language might allocate and 
 
 \section{Chunk}
 
-Allocation and free are not the only job of the heap manager. The Heap manager needs some mechanism to keep track of the previous allocation and free space. Moreover, the Heap manager needs to align memory in 8 bytes for a 32bit system, and 16Byte in a 64bit system. To achieve this, the heap manager needs to store some metadata.
+Allocation and free are not the only job of the heap manager. The heap manager needs some mechanism to keep track of the previous allocation and free space. Moreover, the heap manager needs to align memory in 8 bytes for a 32bit system, and 16Byte in a 64bit system. To achieve this, the heap manager needs to store some metadata.
 
-This allocation metadata and padding store alongside the allocated memory by \emph{malloc} which returns to the user. For this reason, the Heap manager uses a concept called ‘Chunk’, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk. the below code shows the chunk data structure :
+This allocation metadata and padding store alongside the allocated memory by \emph{malloc} which returns to the user. For this reason, the heap manager uses a concept called \emph{chunk}, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk. the below code shows the chunk data structure :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct malloc_chunk {
@@ -217,40 +217,40 @@ Also take look at inside memory again ,You can see , \libc{} keep pointer inform
 \end{lstlisting}
  
 \section{Memory Allocation}
- First, we discuss the Heap manager in a simple algorithm, then, we discuss each part in detail. The first question is, What is happen when the user requests a memory allocation : 
+ First, we discuss the heap manager in a simple algorithm, then, we discuss each part in detail. The first question is, What is happen when the user requests a memory allocation : 
 \begin{enumerate}
-	\item Heap manager cheek previously freed chunk, if there is a chunk which big enough, then, return it.
-	\item If the Heap manager unable to find a previously freed chunk, then look at the top chunk, If there is available free space, then allocated a new chunk and return it.
-	\item If there is not enough space in Heap anymore, then ask Kernel for new memory allocation to the end of the heap and allocate chunk from this new space.
+	\item heap manager cheek previously freed chunk, if there is a chunk which big enough, then, return it.
+	\item If the heap manager unable to find a previously freed chunk, then look at the top chunk, If there is available free space, then allocated a new chunk and return it.
+	\item If there is not enough space in heap anymore, then ask Kernel for new memory allocation to the end of the heap and allocate chunk from this new space.
 	\item If all the above space failed then malloc returns NULL, which means, we can’t allocate new space.
 \end{enumerate}
 
 \subsection{Allocation from Freed Chunks}
-As we mention, Previously freed chunks are the first place search by the heap manager. Heap manager track of Freed chunks via some linked list call ‘bins’. When a new allocation request arrives, the heap manager looks at bins to find a big enough chunk. If the chunk has the same size, then the heap manager returns it, otherwise, if the chunk is bigger than the request, then, the heap manager split it. There are several different types of bins which we discuss later.
+As we mention, Previously freed chunks are the first place search by the heap manager. heap manager track of Freed chunks via some linked list call ‘bins’. When a new allocation request arrives, the heap manager looks at bins to find a big enough chunk. If the chunk has the same size, then the heap manager returns it, otherwise, if the chunk is bigger than the request, then, the heap manager split it. There are several different types of bins which we discuss later.
 
 \subsection{Allocation from Top Chunk}
-So what’s happen if there were no suitable previously free space? In this situation, the Heap manager checks the remaining space at the end of the heap, if there is enough space to create a chunk then allocate a new chunk from the top of the heap space. 
+So what’s happen if there were no suitable previously free space? In this situation, the heap manager checks the remaining space at the end of the heap, if there is enough space to create a chunk then allocate a new chunk from the top of the heap space. 
 
 \subsection{Ask Kernel for more memory}
-So, Let's check what happens yet. First, the heap manager search through previously free chunk. Assume we don't have any suitable free chunk, as the result, the heap manager performs chunk creation in the top chunk, however, the request is bigger than this space. If there is not enough space at the end of the heap, the heap manager asks Linux Kernel for more memory. Now we have to discuss another system called ‘brk’. When a program has been started, the heap manager calls ‘sbrk’ which used the 'brk' system call. This system call allocates more memory just after where the program gets load which is the end of the heap. 
+So, Let's check what happens yet. First, the heap manager search through previously free chunk. Assume we don't have any suitable free chunk, as the result, the heap manager performs chunk creation in the top chunk, however, the request is bigger than this space. If there is not enough space at the end of the heap, the heap manager asks Linux Kernel for more memory. Now we have to discuss another system called \emph{brk}. When a program has been started, the heap manager calls \emph{sbrk} which used the brk system call. This system call allocates more memory just after where the program gets load which is the end of the heap. 
 After a while, this system call break, Because, the newly allocated region at the end of the program space collides with another thing in the process’s space. Once this situation happens heap manager unable to allocate contiguous memory space, so, by calling mmap try to allocate non-contiguous memory space. 
 
 \section{MMAP}
-As we mentioned, the Heap manager uses MMAP for large memory allocation instead of sbrk. Chunks metadata contain a special flag for these reasons which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are UNMMAP. By default, the MMAP threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
+As we mentioned, the heap manager uses \emph{mmap} for large memory allocation instead of sbrk. Chunks metadata contain a special flag for these reasons which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
 
 \section{ARENA}
-Concurrency is a challenge in multi-thread applications, so, Heap manager is not safe from this issue. There are many solutions to overcome this problem. In the early days' heap managers used a simple global lock before every heap operation to overcome this situation, however, this approach has a great cost. In multi-thread applications with heavy use of heap, this strategy leads to huge performance issues, because, heap needs to lock many times.
+Concurrency is a challenge in multi-thread applications, so, heap manager is not safe from this issue. There are many solutions to overcome this problem. In the early days' heap managers used a simple global lock before every heap operation to overcome this situation, however, this approach has a great cost. In multi-thread applications with heavy use of heap, this strategy leads to huge performance issues, because, heap needs to lock many times.
 
-To improve the performance ptmalloc2 introduces a concept called ‘Arena’. In this approach different thread has their Arena, also, Each arena manages their chunks, as the result, threads can work at the same time on different Arena without altering each other data.
+To improve the performance ptmalloc2 introduces a concept called \emph{arena}. In this approach different thread has their arena, also, Each arena manages their chunks, as the result, threads can work at the same time on different arena without altering each other data.
 
-When the process creates a new thread, the heap manager finds an unused Arena up to the maximum allowed number which is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit. So, what happens when we reach max number? Thread has to share Arena.
+When the process creates a new thread, the heap manager finds an unused arena up to the maximum allowed number which is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit. So, what happens when we reach max number? Thread has to share arena.
 
 As we saw before, the main Areas create and grow by the sbrk system call, however, this is not true for the second heap. The second heap creates via mmap.
 
-\section{Sub Heap}
-As we mentioned subhead works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the ‘sbrk’ system call. Sub heap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the Heap manager expands them by ‘protect.
-How heap manager create and manage the sub heap? In the first step, the heap manager asks the kernel to reserve an area of memory for the subheap by malloc. Reserving does not allocate memory to subheap, it just tells the kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
-On the next step, when the main heap expands by ‘sbrk’, the heap manager allocates the previously reserved area to subheap by calling ‘protect. What mprotect do? It concerts PROT\_NONE to PROT\_READ, PROT\_WRITE . In this way, at least the kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
+\section{Subheap}
+As we mentioned subhead works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Sub heap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
+How heap manager create and manage the sub heap? In the first step, the heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap, it just tells the kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
+On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling ‘protect. What mprotect do? It concerts PROT\_NONE to PROT\_READ, PROT\_WRITE . In this way, at least the kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
 
 \section{free}
 Whats happens when the user does not need allocated space anymore? Simply, calling heap can free up space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. User has a pointer to the user data section of the chunk, but, free() needs the actual address of chunk, so, by subtracting the pointer address from metadata size we can find the chunk address. You may ask what happens if we send an invalid pointer? This may lead to memory corruption, as the result, the heap manager does some security check before free up space :
@@ -258,12 +258,12 @@ Whats happens when the user does not need allocated space anymore? Simply, calli
 \begin{enumerate}
 	\item Is chunk align? 
 	\item Is chunk size valid?
-	\item Is Chunk in the Arena address space?
+	\item Is Chunk in the arena address space?
 	\item Is it already free?
 \end{enumerate}
 
 \section{Bins}
-	Bin is a mechanism that the Heap manager used to manage and organize recently freed chunks, so, they can be reused during the next allocations. The simplest solution to keep track of freed space is to store them in a giant bin, although this could work It is not a good solution. Malloc is very wildly used, so, this approach leads to a performance problem.
+	Bin is a mechanism that the heap manager used to manage and organize recently freed chunks, so, they can be reused during the next allocations. The simplest solution to keep track of freed space is to store them in a giant bin, although this could work It is not a good solution. Malloc is very wildly used, so, this approach leads to a performance problem.
 To improve performance, the heap manager uses different types of bins. There is 5 different type of bins: \emph{\sbs{}}, \emph{\lb{}}, \emph{\fb{}}, \emph{\ub{}}, \emph{\tch{}}. All of the mentioned bins exist in the same area of heap manager source code. This is a list with 127 items, the index 0 is unused. 
 Now, We want to discuss how the heap manager recycles a chunk for a new allocation. First, let's consider a simple schema :
 \begin{enumerate}
@@ -278,7 +278,7 @@ Now, We want to discuss how the heap manager recycles a chunk for a new allocati
 There are 62 \sbs{}, Each of them store the same size of the chunk, as the result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. In the 32-bit system, it stores chunk size below 512 bytes, In the 64-bit system, it stores chunk size below 1024 Byte. 
 
 \subsection{\lb{}}
-For chunks over 512 bytes ( 1024 byte 64-bit ), the Heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed size in \sbs{}, in a way, they do not overlap with each other.
+For chunks over 512 bytes ( 1024 byte 64-bit ), the heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed size in \sbs{}, in a way, they do not overlap with each other.
 The other difference is \lb{} need to manually sort during the insertion of a chunk. As the result \lb{} are slower than \sbs{}, however, \lb{} used less than \sbs{} in a real program, so, this is not a big problem.
 
 \subsection{\ub{}}
@@ -299,7 +299,7 @@ This is the second optimizations on heap manager. These bins keep recently freed
 The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too, the memory of the process becomes full or fragment after a while, to overcome this issue heap manager needs to ‘flush ‘ memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call malloc\_consolidate(). 
 
 \subsection{\tch{} bins Bins}
-\tch{} is the last optimizations in the heap manager which added since \libc{-2.26}. Usually, a process has multiple threads, and a resource-like heap is shared between threats. A shared resource between threads can lead to a problem called ‘race condition’. As we mentioned before, a simple strategy to overcome race conditions is 'lock'. The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost for heap managers which is frequently used by a program. As we talk before, the Heap manager overcomes this problem by using a secondary Arena for each threat until hits the threshold, moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat check for available chunk, If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, you can see chunks added to \tch{} after call free, however, If we execute the same code on \libc{-2.23} we have a different result because it does not support \tch{}
+\tch{} is the last optimizations in the heap manager which added since \libc{-2.26}. Usually, a process has multiple threads, and a resource-like heap is shared between threats. A shared resource between threads can lead to a problem called ‘race condition’. As we mentioned before, a simple strategy to overcome race conditions is 'lock'. The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost for heap managers which is frequently used by a program. As we talk before, the heap manager overcomes this problem by using a secondary arena for each threat until hits the threshold, moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat check for available chunk, If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, you can see chunks added to \tch{} after call free, however, If we execute the same code on \libc{-2.23} we have a different result because it does not support \tch{}
 
 \begin{lstlisting}[frame=tlrb]
 Free chunk (tcache) 
@@ -320,7 +320,7 @@ fd: 0x5555555592c0
 
 \section{malloc()}
 Let's put all it together to find out how malloc works. When a new allocation request arrives, malloc does the following procedure :
-Lets consider \libc{-2.31}, In these particular version \tch{} is the first place . If \tch{} have a chunk with the same size, the heap manager return it immediately. If the chunk is bigger than the request, \tch{} won't split it, instead, the heap manager keep it for future requests. In this case, the Arena does not need to lock because the chunk returns from \tch{} immediately. Consider the following code :
+Lets consider \libc{-2.31}, In these particular version \tch{} is the first place . If \tch{} have a chunk with the same size, the heap manager return it immediately. If the chunk is bigger than the request, \tch{} won't split it, instead, the heap manager keep it for future requests. In this case, the arena does not need to lock because the chunk returns from \tch{} immediately. Consider the following code :
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (tc_idx < mp_.tcache_bins && tcache && tcache->counts[tc_idx] > 0){
@@ -328,7 +328,7 @@ Lets consider \libc{-2.31}, In these particular version \tch{} is the first plac
 }
 \end{lstlisting}
 
-The above code is located at libc\_malloc function, It is responsible to check and returns a chunk from \tch{} before lock the arena and search for a chunk. If the \tch{} fail, In the next step two situations may happen. If we have a single thread application there is no need to lock at Arena because there is no concurrency, instead, in a multi\-thread application heap manager first get the corresponding Arena then lock it at the first. The following code is responsible to check the mentioned situation :
+The above code is located at libc\_malloc function, It is responsible to check and returns a chunk from \tch{} before lock the arena and search for a chunk. If the \tch{} fail, In the next step two situations may happen. If we have a single thread application there is no need to lock at arena because there is no concurrency, instead, in a multi\-thread application heap manager first get the corresponding arena then lock it at the first. The following code is responsible to check the mentioned situation :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (SINGLE_THREAD_P){
@@ -339,13 +339,13 @@ arena_get (ar_ptr, bytes);
 victim = _int_malloc (ar_ptr, bytes);
 \end{lstlisting}
 
-Now we discuss the \_int\_malloc() function . This function gets the request size and Arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast.
+Now we discuss the \_int\_malloc() function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
 \end{lstlisting}
 
-In this step, while the heap manager checks the fast bin for a suitable chunk, It fills \tch{} too, if found a same size chunk in the fast bin. It is a performance improvement, Usually, the following allocation has the same size too, so, the next allocation find in the \tch{} without the needs to Arena lock.
+In this step, while the heap manager checks the fast bin for a suitable chunk, It fills \tch{} too, if found a same size chunk in the fast bin. It is a performance improvement, Usually, the following allocation has the same size too, so, the next allocation find in the \tch{} without the needs to arena lock.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 size_t tc_idx = csize2tidx (nb);
@@ -371,7 +371,7 @@ bin->bk = bck;
 bck->fd = bin;
 \end{lstlisting}
 
-\sbs{} attacks usually abuse this part of code to write data in a location by manipulating the pointer's data. Like what happens in a fast bin, the Heap manager adds the same size chunk to \tch{} too. If the request was not in the range of \sbs{}, heap manager free and merge \fb{} chunk in the first place.
+\sbs{} attacks usually abuse this part of code to write data in a location by manipulating the pointer's data. Like what happens in a fast bin, the heap manager adds the same size chunk to \tch{} too. If the request was not in the range of \sbs{}, heap manager free and merge \fb{} chunk in the first place.
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc_consolidate (av);
 \end{lstlisting}
@@ -680,7 +680,7 @@ The last malloc tries to allocate 400-Byte of memory, so the heap manager checks
 while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
 bck = victim->bk;
 \end{lstlisting}
-‘Av’ is Arena and unsorted\_chunks (av) is the head of the \ub{} and Victim is our current item. You can see, malloc checks items from the head of the \ub{} and removes them one by one. Put it all to gather :
+‘Av’ is arena and unsorted\_chunks (av) is the head of the \ub{} and Victim is our current item. You can see, malloc checks items from the head of the \ub{} and removes them one by one. Put it all to gather :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 victim = unsorted_chunks (av) -> bk = p
@@ -841,7 +841,7 @@ long long* mmap_chunk_2 = malloc(0x100000);
 long long* mmap_chunk_3 = malloc(0x100000);
  \end{lstlisting}
  
-Heap layout after allocation 
+heap layout after allocation 
 
 \begin{lstlisting}[frame=tlrb]
 Chunk(addr=0x555555559010, size=0x20, flags=PREV_INUSE)
@@ -897,7 +897,7 @@ As we mentioned, when the user requests a memory allocation \libc{} returns a po
 (chunk_non_main_arena(ptr)?heap_for_ptr(ptr)->ar_ptr : &main_arena)
  \end{lstlisting}
  
-When a non\_main arena heap creates, the first thing that goes into this heap is heap\_stricture, this structure contains a field call ar\_ptr, In the above code ar\_ptr stands for Arena for this heap, Also, as you remember there is a bit in the size field which stands for non\_main\_arena. Since the attacker has control of the size field, can control chunk threats as the main arena or non\_main arena. We can conclude , if the non\_main\_arena is set , then chunk\_non\_main\_arena() return true ,as the result ar\_ptr in free() function is set to heap\_for\_ptr(ptr)->ar\_ptr .
+When a non\_main arena heap creates, the first thing that goes into this heap is heap\_stricture, this structure contains a field call ar\_ptr, In the above code ar\_ptr stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for non\_main\_arena. Since the attacker has control of the size field, can control chunk threats as the main arena or non\_main arena. We can conclude , if the non\_main\_arena is set , then chunk\_non\_main\_arena() return true ,as the result ar\_ptr in free() function is set to heap\_for\_ptr(ptr)->ar\_ptr .
 This attack works by manipulating the heap in a way a fake ar\_ptr supply to \_init\_free(), as the result, an arbitrary overwrite be happen. The Attacker has to allocate enough memory until reaches non\_main\_arena where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so, max allocation never is more than 1MB.
 We saw It possible to hijack the heap\_info and supply an arbitrary ar\_ptr value, so, what value should we use for ar\_ptr? We have two option on that :
 
@@ -1598,7 +1598,7 @@ long long* mmap_chunk_2 = malloc(0x100000);
 long long* mmap_chunk_3 = malloc(0x100000);
 \end{lstlisting}
 
-Heap layout after allocation 
+heap layout after allocation 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Chunk(addr=0x555555559010, size=0x20, flags=PREV_INUSE)
