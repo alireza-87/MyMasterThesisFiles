@@ -288,6 +288,7 @@ Usually free() follow by an allocation of the same size in a real program. The h
 for (;; ){
   int iters = 0;
   while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
+   /* ... */ 
   }
 }
 \end{lstlisting}
@@ -323,6 +324,7 @@ Let's put all it together to find out how malloc works. When a new allocation re
 Lets consider \libc{-2.31}, In these particular version \tch{} is the first place . If \tch{} have a chunk with the same size, the heap manager return it immediately. If the chunk is bigger than the request, \tch{} won't split it, instead, the heap manager keep it for future requests. In this case, the arena does not need to lock because the chunk returns from \tch{} immediately. Consider the following code :
 
 \begin{lstlisting}[language=c,frame=tlrb]
+ /* ... */ 
  if (tc_idx < mp_.tcache_bins && tcache && tcache->counts[tc_idx] > 0){
   return tcache_get (tc_idx);
 }
@@ -331,12 +333,14 @@ Lets consider \libc{-2.31}, In these particular version \tch{} is the first plac
 The above code is located at libc\_malloc function, It is responsible to check and returns a chunk from \tch{} before lock the arena and search for a chunk. If the \tch{} fail, In the next step two situations may happen. If we have a single thread application there is no need to lock at arena because there is no concurrency, instead, in a multi\-thread application heap manager first get the corresponding arena then lock it at the first. The following code is responsible to check the mentioned situation :
 
 \begin{lstlisting}[language=c,frame=tlrb]
+ /* ... */ 
 if (SINGLE_THREAD_P){
   victim = _int_malloc (&main_arena, bytes);
   return victim;
 }
 arena_get (ar_ptr, bytes);
 victim = _int_malloc (ar_ptr, bytes);
+ /* ... */ 
 \end{lstlisting}
 
 Now we discuss the \_int\_malloc() function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast.
@@ -349,16 +353,20 @@ In this step, while the heap manager checks the fast bin for a suitable chunk, I
 
 \begin{lstlisting}[language=c,frame=tlrb]
 size_t tc_idx = csize2tidx (nb);
-if (tcache && tc_idx < mp_.tcache_bins)
+if (tcache && tc_idx < mp_.tcache_bins){
+ /* ... */ 
+ }
 \end{lstlisting}
 
 In the following step, the heap manager checks the \sbs{} If the request is in the range of \sbs{} chunk size. Like \fb{}, each \sbs{} keep one chunk size, so, there is no search too.
 
 \begin{lstlisting}[language=c,frame=tlrb]
+ /* ... */ 
 if (in_smallbin_range (nb)){
-idx = smallbin_index (nb);
-bin = bin_at (av, idx);
-if ((victim = last (bin)) != bin)
+	idx = smallbin_index (nb);
+	bin = bin_at (av, idx);
+	if ((victim = last (bin)) != bin)
+	 /* ... */ 
 \end{lstlisting}
 
 Unlike \fb{}, chunks in \sbs{} use a double link list, so, when you remove one chunk you have to fix the forward and backward pointers for previous and next chunks. 
@@ -379,9 +387,10 @@ malloc_consolidate (av);
 Now it is time to check \ub{} chunks. As we mention, the heap manager examines all of the \ub{} chunks to find a suitable chunk. If the chunk is the same size then the heap manages to return it, if it is bigger than the requested size heap manager split the chunk return a chunk to the user, and put the remaining chunks to corresponding bins too, and remove them from the \ub{}.
 
 \begin{lstlisting}[language=c]
-for (;; )  
+for (;; )  {
   int iters = 0;
   while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av))
+   /* ... */ 
 \end{lstlisting}
 This adds and removes chunks that need to alter the forward and backward pointer of chunks which some times abused by an attacker to write data in a location. this part of code has some security check to find if the chunk and heap corrupted or not by checking the pointers and chunk size :
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -403,11 +412,13 @@ This adds and removes chunks that need to alter the forward and backward pointer
 If all of above strategy fails, the heap manager tries to allocate chunk from free space at top chunk :
 
 \begin{lstlisting}[language=c,frame=tlrb]
+ /* ... */ 
 use_top:
 	victim = av->top;
 	size = chunksize (victim);
 	if (__glibc_unlikely (size > av->system_mem))
 		malloc_printerr ("malloc(): corrupted top size");
+ /* ... */ 
 \end{lstlisting}
 
 You can see, this part starts with a security check. In this case, the request size is bigger than the top chunk, the heap manager calls sysmalloc as the last.
@@ -463,9 +474,13 @@ To find when malloc\_consolidate() calls, we invest two different versions of \l
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
+	  /* ... */ 
  	malloc_consolidate (av);
+	 /* ... */ 
  }else{
+	  /* ... */ 
 	 malloc_consolidate (av);
+	  /* ... */ 
  }
 \end{lstlisting}
 
@@ -473,16 +488,20 @@ As we tell, small/\lb{} are one of the places which malloc search to find free c
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
- 	 
+ 	  /* ... */ 
  }else{
+	  /* ... */ 
 	 malloc_consolidate (av);
+	  /* ... */ 
  }
 \end{lstlisting}
 
 The second usage is when the heap manager wants to use the top chunk in malloc. consider the following code in malloc :
 
 \begin{lstlisting}[language=c,frame=tlrb]
+ /* ... */ 
 use_top:
+	 /* ... */ 
 	else if (have_fastchunks (av)){
 	   malloc_consolidate (av);
 	}
@@ -878,11 +897,11 @@ The goal of this attack is to overwrite a memory location by abusing the free() 
 public free(Void_t* mem){
   mstate ar_ptr;
   mchunkptr p;    
-  ...
+   /* ... */ 
   p = mem2chunk(mem);
-  ...
+   /* ... */ 
   ar_ptr = arena_for_chunk(p);
-  ...
+   /* ... */ 
   _int_free(ar_ptr, mem);
 }
  \end{lstlisting}
@@ -924,7 +943,7 @@ if ((unsigned long)(size) <= (unsigned long)(av->max_fast)){
 }
 set_fastchunks(av);
 fb = &(av->fastbins[fastbin_index(size)]);
-...
+ /* ... */ 
 p->fd = *fb;
 *fb = p;
 }
@@ -960,6 +979,7 @@ The next step as we told, The location of fake arena is located at an offset of 
 \begin{lstlisting}[language=c,frame=tlrb]
 uint64_t* user_mem = malloc(MAX_SIZE);
 while((long long)user_mem < new_arena_value){
+	 /* ... */ 
 	user_mem = malloc(MAX_SIZE);
 }
 \end{lstlisting}
@@ -1008,6 +1028,7 @@ free(fastbin_chunk);
 \subsection{The house of Force}
 The house of Force is the first attack of House of X which we want to discuss. We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, Glib uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size? The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} :
 \begin{lstlisting}[language=c,frame=tlrb]
+ /* ... */ 
 use_top:
 	victim = av->top;
 	size = chunksize (victim);
@@ -1064,8 +1085,8 @@ strcpy(ctr_chunk, "YEAH!!!");
 
 Unfortunate this attack does not work on current \libc{} version because of below patch:
 \begin{lstlisting}[language=c,frame=tlrb]
-+   if (__glibc_unlikely (size > av->system_mem))
-+    malloc_printerr ("malloc(): corrupted top size");
+if (__glibc_unlikely (size > av->system_mem))
+    malloc_printerr ("malloc(): corrupted top size");
 \end{lstlisting}
 
 \subsection{The House of Lore}
@@ -1377,7 +1398,7 @@ if (!prev_inuse(p)) {
     size += prevsize;
     p = chunk_at_offset(p, -((long) prevsize));
 	unlink (off, p, bck, fwd);
-	} 
+} 
  \end{lstlisting}
 When a free function calls, it tries to merge the current chunk with the previous chunk if the prev\_inuse flag is not set. The merged chunk size is calculated by the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned in \libc{} the metadata at the end of the heap is in share with metadata at the beginning of the next chunk: 
 
