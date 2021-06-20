@@ -1137,7 +1137,7 @@ char *p4 = malloc(0x100);
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb4}}
-  \caption{Heap layout}
+  \caption{The victime and p3 pointer}
 \end{figure}
 
 Now we overwrite the victim bck pointer also put the victim in the \sbs{}. The next allocation returns the victim from the \sbs{}, moreover, it out bck pointer of the bin in libc to our controller address which is written in the bck pointer of the victim.
@@ -1152,7 +1152,7 @@ Now the last allocation returns a chunk at our controlled location at stack whic
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb5}}
-  \caption{Heap layout}
+  \caption{bck pointer}
 \end{figure}
 
 \subsection{The House of Spirits}
@@ -1251,7 +1251,7 @@ With the help of https://libc.blukat.me, we can find the offset of \_io\_list\_a
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb6}}
-  \caption{LIBC}
+  \caption{\_IO\_LIST\_ALL offset}
 \end{figure}
 
 
@@ -1351,18 +1351,18 @@ Now if freed the chunks and use the UAF attack to change the size of the first o
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb7}}
-  \caption{LIBC}
+  \caption{Heap data}
 \end{figure}
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb8}}
-  \caption{LIBC}
+  \caption{\fb{}}
 \end{figure}
 
 Now with a single big allocation we have :
 \begin{figure}[h!]
-  \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb8}}
-  \caption{LIBC}
+  \makebox[\textwidth][c]{\includegraphics[height=0.12\textwidth]{gdb9}}
+  \caption{\sbs{}}
 \end{figure}
 
 As you can see now we have two valid forged chunk inside the \sbs{} which have overlap with each other
@@ -1383,7 +1383,7 @@ When a free function calls, it tries to merge the current chunk with the previou
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb10}}
-  \caption{LIBC}
+  \caption{chunk layout}
 \end{figure}
 
 By considering the merge code of the free function we can tell if we have control over prev\_size , and prev\_inuse flag, we can have control over new chunk location. 
@@ -1484,7 +1484,7 @@ Chunk(addr=0x555555559a10, size=0x220, flags=PREV_INUSE)
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb11}}
-  \caption{LIBC}
+  \caption{a and prev pointers}
 \end{figure}
 
 In the next step with the help of UAF and double-free attack we put back the victim in the \tch{}
@@ -1505,7 +1505,7 @@ intptr_t *c = malloc(0x100);
 
  \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb12}}
-  \caption{LIBC}
+  \caption{\tch{}}
 \end{figure}
 
 
