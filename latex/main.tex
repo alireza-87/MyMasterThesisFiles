@@ -71,7 +71,7 @@ An application has different types of memory space, two must important are Heap 
 \end{itemize}
 Each of mentioned memory spaces has advantages and disadvantages, as the result, which one to use depends on the circumstances. If you need to handle data in LIFO format then the stack is the better choice. As we mentioned, The input parameters of a function may send by stack, in this way compiler does not have to free up memory after return from the function because they remove automatically. Also, Stack memory space is a better solution for local variable access.
 
-Every platform has a way to interact with heap memory, there are lots of allocators like iOS allocator, Free- BSD allocator, and Linux allocator. Our work specifically on \emph{ \libc{}} memory allocator which drives from ptmalloc heap implementations, which is itself derived from dlmalloc, so, at first we want to discuss \libc{} allocations algorithms and Methods. Consider the following code as an allocation sample : 
+Every platform has a way to interact with heap memory, there are lots of allocators like iOS allocator, Free- BSD allocator, and Linux allocator. Our work specifically on \emph{ \libc{}} memory allocator which drives from \emph{ptmalloc} heap implementations, which is itself derived from \emph{dlmalloc}, so, at first we want to discuss \libc{} allocations algorithms and Methods. Consider the following code as an allocation sample : 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 typedef struct 
@@ -101,7 +101,7 @@ The above code is a sample of how the c programming language might allocate and 
 
 Allocation and free are not the only job of the heap manager. The Heap manager needs some mechanism to keep track of the previous allocation and free space. Moreover, the Heap manager needs to align memory in 8 bytes for a 32bit system, and 16Byte in a 64bit system. To achieve this, the heap manager needs to store some metadata.
 
-This allocation metadata and padding store alongside the allocated memory by malloc which returns to the user. For this reason, the Heap manager uses a concept called ‘Chunk’, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk. the below code shows the chunk data structure :
+This allocation metadata and padding store alongside the allocated memory by \emph{malloc} which returns to the user. For this reason, the Heap manager uses a concept called ‘Chunk’, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk. the below code shows the chunk data structure :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct malloc_chunk {
@@ -259,7 +259,7 @@ Whats happens when the user does not need allocated space anymore? Simply, calli
 
 \section{Bins}
 	Bin is a mechanism that the Heap manager used to manage and organize recently freed chunks, so, they can be reused during the next allocations. The simplest solution to keep track of freed space is to store them in a giant bin, although this could work It is not a good solution. Malloc is very wildly used, so, this approach leads to a performance problem.
-To improve performance, the heap manager uses different types of bins. There is 5 different type of bins: \sbs{}, \lb{}, \fb{}, \ub{}, \tch{}. All of the mentioned bins exist in the same area of heap manager source code. This is a list with 127 items, the index 0 is unused. 
+To improve performance, the heap manager uses different types of bins. There is 5 different type of bins: \emph{\sbs{}}, \emph{\lb{}}, \emph{\fb{}}, \emph{\ub{}}, \emph{\tch{}}. All of the mentioned bins exist in the same area of heap manager source code. This is a list with 127 items, the index 0 is unused. 
 Now, We want to discuss how the heap manager recycles a chunk for a new allocation. First, let's consider a simple schema :
 \begin{enumerate}
 	\item If the M-bit in metadata is set, then this chunk is allocated off-heap, so, It should be unmmap.
