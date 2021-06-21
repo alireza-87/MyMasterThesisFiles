@@ -321,7 +321,7 @@ fd: 0x5555555592c0
 
 \section{malloc()}
 Let's put all it together to find out how malloc works. When a new allocation request arrives, malloc does the following procedure :
-Lets consider \libc{-2.31}, In these particular version \tch{} is the first place . If \tch{} have a chunk with the same size, the heap manager return it immediately. If the chunk is bigger than the request, \tch{} won't split it, instead, the heap manager keep it for future requests. In this case, the arena does not need to lock because the chunk returns from \tch{} immediately. Consider the following code :
+Lets consider \libc{-2.31}, In these particular version \tch{} is the first place . If \tch{} have a chunk with the same size, the heap manager return it immediately. If the chunk is bigger than the request, \tch{} won't split it, instead, the heap manager keep it for future requests. In this case, the arena does not need to lock because the chunk returns from \tch{} immediately. Consider the following code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3047}{\texttt{malloc.c}, line 3047}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */ 
@@ -330,7 +330,7 @@ Lets consider \libc{-2.31}, In these particular version \tch{} is the first plac
 }
 \end{lstlisting}
 
-The above code is located at libc\_malloc function, It is responsible to check and returns a chunk from \tch{} before lock the arena and search for a chunk. If the \tch{} fail, In the next step two situations may happen. If we have a single thread application there is no need to lock at arena because there is no concurrency, instead, in a multi\-thread application heap manager first get the corresponding arena then lock it at the first. The following code is responsible to check the mentioned situation :
+The above code is located at libc\_malloc function, It is responsible to check and returns a chunk from \tch{} before lock the arena and search for a chunk. If the \tch{} fail, In the next step two situations may happen. If we have a single thread application there is no need to lock at arena because there is no concurrency, instead, in a multi\-thread application heap manager first get the corresponding arena then lock it at the first. The following code is responsible to check the mentioned situation  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3056}{\texttt{malloc.c}, line 3056}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */ 
@@ -343,13 +343,13 @@ victim = _int_malloc (ar_ptr, bytes);
  /* ... */ 
 \end{lstlisting}
 
-Now we discuss the \_int\_malloc() function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast.
+Now we discuss the \_int\_malloc() function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
 \end{lstlisting}
 
-In this step, while the heap manager checks the fast bin for a suitable chunk, It fills \tch{} too, if found a same size chunk in the fast bin. It is a performance improvement, Usually, the following allocation has the same size too, so, the next allocation find in the \tch{} without the needs to arena lock.
+In this step, while the heap manager checks the fast bin for a suitable chunk, It fills \tch{} too, if found a same size chunk in the fast bin. It is a performance improvement, Usually, the following allocation has the same size too, so, the next allocation find in the \tch{} without the needs to arena lock  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3599}{\texttt{malloc.c}, line 3599}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 size_t tc_idx = csize2tidx (nb);
@@ -358,7 +358,7 @@ if (tcache && tc_idx < mp_.tcache_bins){
  }
 \end{lstlisting}
 
-In the following step, the heap manager checks the \sbs{} If the request is in the range of \sbs{} chunk size. Like \fb{}, each \sbs{} keep one chunk size, so, there is no search too.
+In the following step, the heap manager checks the \sbs{} If the request is in the range of \sbs{} chunk size. Like \fb{}, each \sbs{} keep one chunk size, so, there is no search too \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3635}{\texttt{malloc.c}, line 3635}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */ 
@@ -369,22 +369,23 @@ if (in_smallbin_range (nb)){
 	 /* ... */ 
 \end{lstlisting}
 
-Unlike \fb{}, chunks in \sbs{} use a double link list, so, when you remove one chunk you have to fix the forward and backward pointers for previous and next chunks. 
+Unlike \fb{}, chunks in \sbs{} use a double link list, so, when you remove one chunk you have to fix the forward and backward pointers for previous and next chunks \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3637}{\texttt{malloc.c}, line 3637}}. 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 idx = smallbin_index (nb);
 bin = bin_at (av, idx);
+ /* ... */ 
 bck = victim->bk;
 bin->bk = bck;
 bck->fd = bin;
 \end{lstlisting}
 
-\sbs{} attacks usually abuse this part of code to write data in a location by manipulating the pointer's data. Like what happens in a fast bin, the heap manager adds the same size chunk to \tch{} too. If the request was not in the range of \sbs{}, heap manager free and merge \fb{} chunk in the first place.
+\sbs{} attacks usually abuse this part of code to write data in a location by manipulating the pointer's data. Like what happens in a fast bin, the heap manager adds the same size chunk to \tch{} too. If the request was not in the range of \sbs{}, heap manager free and merge \fb{} chunk in the first place \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3699}{\texttt{malloc.c}, line 3699}}.
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc_consolidate (av);
 \end{lstlisting}
 
-Now it is time to check \ub{} chunks. As we mention, the heap manager examines all of the \ub{} chunks to find a suitable chunk. If the chunk is the same size then the heap manages to return it, if it is bigger than the requested size heap manager split the chunk return a chunk to the user, and put the remaining chunks to corresponding bins too, and remove them from the \ub{}.
+Now it is time to check \ub{} chunks. As we mention, the heap manager examines all of the \ub{} chunks to find a suitable chunk. If the chunk is the same size then the heap manages to return it, if it is bigger than the requested size heap manager split the chunk return a chunk to the user, and put the remaining chunks to corresponding bins too, and remove them from the \ub{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3725}{\texttt{malloc.c}, line 3725}}.
 
 \begin{lstlisting}[language=c]
 for (;; )  {
@@ -392,7 +393,7 @@ for (;; )  {
   while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av))
    /* ... */ 
 \end{lstlisting}
-This adds and removes chunks that need to alter the forward and backward pointer of chunks which some times abused by an attacker to write data in a location. this part of code has some security check to find if the chunk and heap corrupted or not by checking the pointers and chunk size :
+This adds and removes chunks that need to alter the forward and backward pointer of chunks which some times abused by an attacker to write data in a location. this part of code has some security check to find if the chunk and heap corrupted or not by checking the pointers and chunk size \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3734}{\texttt{malloc.c}, line 3734}}:
 \begin{lstlisting}[language=c,frame=tlrb]
    if (__glibc_unlikely (size <= 2 * SIZE_SZ)
     || __glibc_unlikely (size > av->system_mem))
@@ -409,7 +410,7 @@ This adds and removes chunks that need to alter the forward and backward pointer
    malloc_printerr ("malloc(): invalid next->prev_inuse (unsorted)");
 \end{lstlisting}
 
-If all of above strategy fails, the heap manager tries to allocate chunk from free space at top chunk :
+If all of above strategy fails, the heap manager tries to allocate chunk from free space at top chunk \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */ 
@@ -421,7 +422,7 @@ use_top:
  /* ... */ 
 \end{lstlisting}
 
-You can see, this part starts with a security check. In this case, the request size is bigger than the top chunk, the heap manager calls sysmalloc as the last.
+You can see, this part starts with a security check. In this case, the request size is bigger than the top chunk, the heap manager calls sysmalloc as the last \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4141}{\texttt{malloc.c}, line 4141}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
  void *p = sysmalloc (nb, av);
@@ -430,7 +431,7 @@ You can see, this part starts with a security check. In this case, the request s
 This function checks if the system support mmap allocation and the requested size is inside the mmap threshold then it allocates memory by using mmap. If it fails means there is no memory anymore, so malloc returns a null pointer.
 
 \section{calloc()}
-Calloc is another glib function used to allocate memory. Calloc and malloc have one important difference. unlike malloc, calloc does not use \tch{}. If you have free chunks in \tch{} then request a new memory by calloc, the heap manager won't use them instead create a new chunk from the top chunk. consider the following sample 
+Calloc \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. Calloc and malloc have one important difference. unlike malloc, calloc does not use \tch{}. If you have free chunks in \tch{} then request a new memory by calloc, the heap manager won't use them instead create a new chunk from the top chunk. consider the following sample 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = malloc(8);
