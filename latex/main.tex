@@ -456,7 +456,7 @@ As we mention, one of the heap manager's responsibilities is to keep memory in 1
 (((req) + SIZE_SZ + MALLOC_ALIGN_MASK < MINSIZE) ? MINSIZE : ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK)
 \end{lstlisting}
 
-Malloc call request2size macro. This macro checks the request size, then return MINSIZE of allocation or an aligned allocation size. As we mentioned before, the heap manager saves some metadata alongside the user data, as the result, every chunk needs more space than the user requested also the allocation size cant be smaller than the minimum size. Now if we check the free function :
+Malloc call request2size macro. This macro checks the request size, then return MINSIZE of allocation or an aligned allocation size. As we mentioned before, the heap manager saves some metadata alongside the user data, as the result, every chunk needs more space than the user requested also the allocation size cant be smaller than the minimum size. Now if we check the free function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}} :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 #define aligned_OK(m) (((unsigned long)(m) & MALLOC_ALIGN_MASK) == 0)
@@ -471,7 +471,7 @@ The free function checks if the size is bigger than the minimum allocation size,
 \section{malloc\_consolidate()}
 As the \libc{} document said, It is a specialized version of the free function that tears down chunks held in the \fb{}. When a new allocation request has arrived, in some conditions the heap manager calls this method to tears down \fb{} chunks. 
 
-To find when malloc\_consolidate() calls, we invest two different versions of \libc{}. the first one is 2.23 and the second one is 2.33 which is the latest \libc{} version. The first usage is the malloc function , Consider the following code :
+To find when malloc\_consolidate() \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4440}{\texttt{malloc.c}, line 4440}}  calls, we invest two different versions of \libc{}. the first one is 2.23 and the second one is 2.33 which is the latest \libc{} version. The first usage is the malloc function , Consider the following code :
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
@@ -485,7 +485,7 @@ To find when malloc\_consolidate() calls, we invest two different versions of \l
  }
 \end{lstlisting}
 
-As we tell, small/\lb{} are one of the places which malloc search to find free chunk at the first phase. During this check, the heap manager performs flush to move \fb{} chunk too. If we check mentioned section in the latest \libc{} version, we see a \sbs{} check does not contain malloc\_consolidate() anymore.
+As we tell, small/\lb{} are one of the places which malloc search to find free chunk at the first phase. During this check, the heap manager performs flush to move \fb{} chunk too. If we check mentioned section in the latest \libc{} version, we see a \sbs{} check does not contain malloc\_consolidate() anymore \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3635}{\texttt{malloc.c}, line 3635}} .
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
@@ -497,7 +497,7 @@ As we tell, small/\lb{} are one of the places which malloc search to find free c
  }
 \end{lstlisting}
 
-The second usage is when the heap manager wants to use the top chunk in malloc. consider the following code in malloc :
+The second usage is when the heap manager wants to use the top chunk in malloc. consider the following code in malloc \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4128}{\texttt{malloc.c}, line 4128}} :
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */ 
@@ -508,7 +508,7 @@ use_top:
 	}
 \end{lstlisting}
 
-The third usage is not in the malloc, instead, it is about free function. consider the following code from the free function :
+The third usage is not in the malloc, instead, it is about free function. consider the following code from the free function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4398}{\texttt{malloc.c}, line 4398}}  :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
@@ -687,14 +687,14 @@ p[1]=(unsigned long)(&stack_var-2);
 //------------------------------------
 malloc(400);
 \end{lstlisting}
- At the first line, we define our target ‘stack\_var’ where we want to write the big value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap, otherwise, when we free ‘p’ the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of ‘p’. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list, In malloc, we have such a code : 
+ At the first line, we define our target ‘stack\_var’ where we want to write the big value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap, otherwise, when we free ‘p’ the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of ‘p’. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list, In malloc, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3738}{\texttt{malloc.c}, line 3738}} : 
  
 \begin{lstlisting}[language=c,frame=tlrb]
 unsorted_chunks (av)->bk = bck;
 bck->fd = unsorted_chunks (av);
 \end{lstlisting}
 
-The last malloc tries to allocate 400-Byte of memory, so the heap manager checks the \ub{} to find a suitable chunk of memory. Also, move the \ub{} chunk to corresponding bins. If you check the malloc source code you can see malloc check every item to achieve this goal. At first, we have such a code :
+The last malloc tries to allocate 400-Byte of memory, so the heap manager checks the \ub{} to find a suitable chunk of memory. Also, move the \ub{} chunk to corresponding bins. If you check the malloc source code you can see malloc check every item to achieve this goal. At first, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3728}{\texttt{malloc.c}, line 3728}}  :
 \begin{lstlisting}[language=c,frame=tlrb]
 
 while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
@@ -709,7 +709,7 @@ unsorted_chunks(av)->bk = bck = target addr-16
 bck->fd = *(target addr -16+16) = unsorted_chunks(av);
 \end{lstlisting}
 
-Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable. In the recent versions of \libc{} the following check was added to prevent this attack:
+Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable. In the recent versions of \libc{} the following check was added to prevent this attack \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3785}{\texttt{malloc.c}, line 3785}} :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (\_\_glibc_unlikely (bck->fd != victim))
@@ -758,7 +758,7 @@ p1[3] = (size_t)((&target)-4);
 size_t *g4 = malloc(0x438);
 \end{lstlisting}
  
-The last step is to allocate a bigger chunk, so, p2 moves to a larger chunk. When p2 move to large chunk, the heap manager write the address of p2 inside p1->bk\_nextsize->fd\_nextsize as the code of \libc{} show:
+The last step is to allocate a bigger chunk, so, p2 moves to a larger chunk. When p2 move to large chunk, the heap manager write the address of p2 inside p1->bk\_nextsize->fd\_nextsize as the code of \libc{} show \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3843}{\texttt{malloc.c}, line 3843}} :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 fwd = bck;
@@ -893,7 +893,7 @@ In this stage if we allocate a new big chunk, this new big chunk has overlap wit
 It's time to talk about the House of XXX families' attack. In 2004 the authors of \libc{} published a series of patches over malloc to prevent previous attacks on heap manager. In late 2004 a person published a paper ‘The Malloc Maleficarum’ over the internet. ‘It is for this reason, a small suggestion of impossibility, that I present the Malloc Maleficarum’ As he/she said. The name came from a 14-century book written by a Catholic clergyman on witchcraft, cool :)
 
 \subsection{The House of Mind}
-The goal of this attack is to overwrite a memory location by abusing the free() function. Take a look at free() function : 
+The goal of this attack is to overwrite a memory location by abusing the free() function. Take a look at free() function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4154}{\texttt{malloc.c}, line 4154}} : 
 \begin{lstlisting}[language=c,frame=tlrb]
 public free(Void_t* mem){
   mstate ar_ptr;
@@ -922,7 +922,7 @@ This attack works by manipulating the heap in a way a fake ar\_ptr supply to \_i
 We saw It possible to hijack the heap\_info and supply an arbitrary ar\_ptr value, so, what value should we use for ar\_ptr? We have two option on that :
 
 \subsection{Large area of memory}
-Use a large area of memory then \ub{} link code overwrite the target for us. There is some condition and security check, if we can bypass them all the following code of \ub{} do the real job:
+Use a large area of memory then \ub{} link code overwrite the target for us. There is some condition and security check, if we can bypass them all the following code of \ub{} do the real job :
 \begin{lstlisting}[language=c,frame=tlrb]
 bck = unsorted_chunks(av);
 fwd = bck->fd;
@@ -934,7 +934,7 @@ fwd->bk = p;
 In the above code ‘p’ stands for the address of the attacker overflowed chunk, unsorted\_chunks(av)returns av->bin[0] which is controlled by the attacker, as the result, bk->fd overwrite ‘p’.
 
 \subsection{Fast bin}
-Consider following code of \fb{}
+Consider following code of \fb{} 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long)(size) <= (unsigned long)(av->max_fast)){
 	if (chunk_at_offset (p, size)->size <= 2 * SIZE_SZ
@@ -1027,7 +1027,7 @@ free(fastbin_chunk);
 \end{figure}
 
 \subsection{The house of Force}
-The house of Force is the first attack of House of X which we want to discuss. We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, Glib uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size? The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} :
+The house of Force is the first attack of House of X which we want to discuss. We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, Glib uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size? The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23}  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}} :
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */ 
 use_top:
@@ -1084,7 +1084,7 @@ This chunk points to our target, so, with one simple strum we can overwrite the 
 strcpy(ctr_chunk, "YEAH!!!");
 \end{lstlisting}
 
-Unfortunate this attack does not work on current \libc{} version because of below patch:
+Unfortunate this attack does not work on current \libc{} version because of below patch  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4106}{\texttt{malloc.c}, line 4106}} :
 \begin{lstlisting}[language=c,frame=tlrb]
 if (__glibc_unlikely (size > av->system_mem))
     malloc_printerr ("malloc(): corrupted top size");
@@ -1092,13 +1092,13 @@ if (__glibc_unlikely (size > av->system_mem))
 
 \subsection{The House of Lore}
 
-This attack abuses the vulnerability inside \sbs{} to modify memory in any location. If you check the malloc source code, you can see there is a check for small chunk request, so , if the requested chunk fits inside the \sbs{} range, the heap manager use it 
+This attack abuses the vulnerability inside \sbs{} to modify memory in any location. If you check the malloc source code, you can see there is a check for small chunk request, so , if the requested chunk fits inside the \sbs{} range, the heap manager use it  
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (in_smallbin_range (nb))
 \end{lstlisting}
 
-In the following we have below code.
+In the following we have below code. \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3635}{\texttt{malloc.c}, line 3635}} 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 bck = victim->bk;
