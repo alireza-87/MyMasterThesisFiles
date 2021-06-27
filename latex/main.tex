@@ -3,6 +3,9 @@
 \usepackage{xcolor}
 \usepackage{hyperref} % links
 \usepackage{graphicx}
+\usepackage{xspace}
+\setlength {\marginparwidth}{2cm}
+\usepackage{todonotes}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -39,6 +42,14 @@
 \newcommand*\ub{unsorted bins}
 \newcommand*\lb{large bins}
 \newcommand*\sbs{small bins}
+\newcommand*\Tch{Tcache\xspace}
+\newcommand*\Fb{Fast bins\xspace}
+\newcommand*\Ub{Unsorted bins\xspace}
+\newcommand*\Lb{Large bins\xspace}
+\newcommand*\Sbs{Small bins\xspace}
+
+\newcommand{\kanote}[1]{\todo[color=blue!20]{#1}}
+\newcommand{\glnote}[1]{\todo[color=yellow!20]{#1}}
 
 \graphicspath{ {./images/} }
 
@@ -62,7 +73,7 @@
 
 \section{Heap}
 
-An application has different types of memory space, two must important are \emph{heap} and \emph{stack}. Usually, the stack is used to store local variables, also, It may use to pass the function's parameters. Unlike stack, heap is a portion of memory which use by applications to dynamically allocate memory during run time. This means an application can request memory and freed memory during execution. The data stored in the heap are accessible by all thread, so, It is important to handle it properly. There are some other differences between stack and heap too :
+\glnote{This chapter is glibc-specific, so the general description should be moved to chapter 1. You could also add a general description of malloc/realloc/free, with some examples}An application has different types of memory space, two must important are \emph{heap} and \emph{stack}. Usually, the stack is used to store local variables, also, It may use to pass the function's parameters. Unlike stack, heap is a portion of memory which use by applications to dynamically allocate memory during run time. This means an application can request memory and freed memory during execution. The data stored in the heap are accessible by all thread, so, It is important to handle it properly. There are some other differences between stack and heap too :\glnote{As a general rule, in English there is no space before punctuation}
 \begin{itemize}
 	\item heap memory can become fragment, but, Stack memory won't
 	\item heap can access to variable globally, but, the stack can access to a local variable only
@@ -95,13 +106,13 @@ int main()
 
 \end{lstlisting}
 
-The above code is a sample of how the c programming language might allocate and free memory on the heap. \libc{} has other functions to allocate and free memory too which we discuss future. In the following sections, we discuss how \libc{} manages heap memory space. 
+The above code is a sample of how the C programming language might allocate and free memory on the heap. \libc{} has other functions to allocate and free memory too which we discuss future. In the following sections, we discuss how \libc{} manages heap memory space. 
 
 \section{Chunk}
 
 Allocation and free are not the only job of the heap manager. The heap manager needs some mechanism to keep track of the previous allocation and free space. Moreover, the heap manager needs to align memory in 8 bytes for a 32bit system, and 16Byte in a 64bit system. To achieve this, the heap manager needs to store some metadata.
 
-This allocation metadata and padding store alongside the allocated memory by \emph{malloc} which returns to the user. For this reason, the heap manager uses a concept called \emph{chunk}, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk. the below code shows the chunk data structure \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l1163}{\texttt{malloc.c}, line 1163}} :
+This allocation metadata and padding store alongside the allocated memory by \emph{malloc} which returns to the user. For this reason, the heap manager uses a concept called \emph{chunk}, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk.\glnote{that is, the address of the field fd; maybe clarify this point better (it's not obvious at all from the struct definition). I see you explained that later, but I'd say something more here too} the below code shows the chunk data structure \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l1163}{\texttt{malloc.c}, line 1163}} :
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct malloc_chunk {
@@ -174,7 +185,7 @@ The returned address by \libc{} is not the address of chunk, but, the address of
 0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
 \end{lstlisting}
 
-In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation which total allocation becomes 24 bytes, however, \libc{} must keep memory in 16-byte alignment, as the result, the final allocation is 32 byte. Take a look at the size field in an allocated chunk, we can see the size is not 32 but 33. The reason is 3 last bits of size parse differently:
+In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation which total allocation becomes 24 bytes, however, \libc{} must keep memory in 16-byte alignment, as the result, the final allocation is 32 byte. Take a look at the size field in an allocated chunk, we can see the size is not 32 but 33. The reason is 3 last bits of size parse differently:\glnote{non-main-arena and prev-in-use seem swapped}
 \begin{enumerate}
 	\item A (NON\_MAIN\_ARENA) : 0 when the previous chunk is free
 	\item M (IS\_MMAPPED): The chunk is obtained through mmap
@@ -215,7 +226,7 @@ Also take look at inside memory again ,You can see , \libc{} keep pointer inform
 0x5555555592f0:	0x00000000	0x00000000	0x00020d11	0x00000000
 0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
 \end{lstlisting}
- 
+\glnote{the fd/bk pointers point to the chunk user's data, right? Maybe you could point that out. I don't understand where the bk pointers are pointing in this listing... what is 0x555555559010?}
 \section{Memory Allocation}
  First, we discuss the heap manager in a simple algorithm, then, we discuss each part in detail. The first question is, What is happen when the user requests a memory allocation : 
 \begin{enumerate}
@@ -236,7 +247,7 @@ So, Let's check what happens yet. First, the heap manager search through previou
 After a while, this system call break, Because, the newly allocated region at the end of the program space collides with another thing in the process’s space. Once this situation happens heap manager unable to allocate contiguous memory space, so, by calling mmap try to allocate non-contiguous memory space. 
 
 \section{MMAP}
-As we mentioned, the heap manager uses \emph{mmap} for large memory allocation instead of sbrk. Chunks metadata contain a special flag for these reasons which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
+As we mentioned\glnote{where? I don't see where you mentioned it}, the heap manager uses \emph{mmap} for large memory allocation instead of sbrk. Chunks metadata contain a special flag for these reasons which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
 
 \section{ARENA}
 Concurrency is a challenge in multi-thread applications, so, heap manager is not safe from this issue. There are many solutions to overcome this problem. In the early days' heap managers used a simple global lock before every heap operation to overcome this situation, however, this approach has a great cost. In multi-thread applications with heavy use of heap, this strategy leads to huge performance issues, because, heap needs to lock many times.
@@ -244,11 +255,12 @@ Concurrency is a challenge in multi-thread applications, so, heap manager is not
 To improve the performance ptmalloc2 introduces a concept called \emph{arena}. In this approach different thread has their arena, also, Each arena manages their chunks, as the result, threads can work at the same time on different arena without altering each other data.
 
 When the process creates a new thread, the heap manager finds an unused arena up to the maximum allowed number which is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit. So, what happens when we reach max number? Thread has to share arena.
+\glnote{I think these are just the defaults, they can be changed via environment variable and \texttt{mallopt}; you should mention that}
 
-As we saw before, the main Areas create and grow by the sbrk system call, however, this is not true for the second heap. The second heap creates via mmap.
+As we saw before, the main Arenas create and grow by the sbrk system call, however, this is not true for the second heap. The second heap creates via mmap.
 
 \section{Subheap}
-As we mentioned subhead works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Sub heap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
+As we mentioned subhead\glnote{this is the first time you use the term subheap; clarify what it is} works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Sub heap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
 How heap manager create and manage the sub heap? In the first step, the heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap, it just tells the kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
 On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling ‘protect. What mprotect do? It concerts PROT\_NONE to PROT\_READ, PROT\_WRITE . In this way, at least the kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
 
@@ -256,11 +268,12 @@ On the next step, when the main heap expands by sbrk, the heap manager allocates
 Whats happens when the user does not need allocated space anymore? Simply, calling heap can free up space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. User has a pointer to the user data section of the chunk, but, free() needs the actual address of chunk, so, by subtracting the pointer address from metadata size we can find the chunk address. You may ask what happens if we send an invalid pointer? This may lead to memory corruption, as the result, the heap manager does some security check before free up space :
 
 \begin{enumerate}
-	\item Is chunk align? 
+	\item Is chunk align?
 	\item Is chunk size valid?
 	\item Is Chunk in the arena address space?
 	\item Is it already free?
 \end{enumerate}
+\glnote{add link to glibc source for these checks}
 
 \section{Bins}
 	Bin is a mechanism that the heap manager used to manage and organize recently freed chunks, so, they can be reused during the next allocations. The simplest solution to keep track of freed space is to store them in a giant bin, although this could work It is not a good solution. Malloc is very wildly used, so, this approach leads to a performance problem.
@@ -268,20 +281,22 @@ To improve performance, the heap manager uses different types of bins. There is 
 Now, We want to discuss how the heap manager recycles a chunk for a new allocation. First, let's consider a simple schema :
 \begin{enumerate}
 	\item If the M-bit in metadata is set, then this chunk is allocated off-heap, so, It should be unmmap.
-	\item Otherwise, if the chunk right before this chunk is free, then they merge
+	\item Otherwise, if the chunk right before this chunk is free, then they merge \glnote{the way chunks are merged should be better described; if you did this in the exploitation part, you can simply insert a reference to it}
 	\item If the chunk right after this chunk is free, then they merge
 	\item After the merge, if the larger chunk is located at the top of the heap, then it absorbs into the end of the heap instead of adding to bins
 	\item Otherwise, the freed chunk add to the corresponding bin
 \end{enumerate}
 
-\subsection{\sbs{}}
-There are 62 \sbs{}, Each of them store the same size of the chunk, as the result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. In the 32-bit system, it stores chunk size below 512 bytes, In the 64-bit system, it stores chunk size below 1024 Byte. 
+\subsection{\Sbs}
+There are 62 \sbs{}, Each of them store the same size of the chunk, as the result, each list is sorted by default\glnote{what do you mean? I think they are inserted in a LIFO order}, also, store and retrieve chunk from \sbs{} is fast. In the 32-bit system, it stores chunk size below 512 bytes, In the 64-bit system, it stores chunk size below 1024 Byte. 
+\glnote{is this a single or double-linked list?}
 
-\subsection{\lb{}}
+\subsection{\Lb}
 For chunks over 512 bytes ( 1024 byte 64-bit ), the heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed size in \sbs{}, in a way, they do not overlap with each other.
 The other difference is \lb{} need to manually sort during the insertion of a chunk. As the result \lb{} are slower than \sbs{}, however, \lb{} used less than \sbs{} in a real program, so, this is not a big problem.
+\glnote{is this a single or double-linked list?}
 
-\subsection{\ub{}}
+\subsection{\Ub}
 Usually free() follow by an allocation of the same size in a real program. The heap manager introduced another optimization call \ub{}. In this optimization, the heap manager merges freed chunk with its neighbors and puts it inside a general bin call \ub{} instead of finding the corresponding bin. When a new allocation request arrives, the heap manager iterates the overall item in \ub{}, compares the request to each item, If an item is big enough for request, the heap manager returns it, otherwise move an item to the corresponding bin. consider following malloc code from \libc{} 2.23 \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;hb=ad372e296b6b944884f14fb5d8f3a6195bfba22b\#l3467}{\texttt{malloc.c}, line 3467}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -295,11 +310,11 @@ for (;; ){
 
 As you can see malloc iterate over all items inside \ub{}. We can conclude, when the heap manager tries to find chunks in \ub{}, all of the \ub{} chunks move to corresponding bins too.
 
-\subsection{\fb{}}
+\subsection{\Fb}
 This is the second optimizations on heap manager. These bins keep recently freed small chunks in a list. As we mention \ub{} merge chunk before adding to bins, but, chunk in \ub{} does not merge with neighbors, instead, \fb{} keeps them alive, so, If the program sends the same size request, then heap manager can use this chunks.
 The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too, the memory of the process becomes full or fragment after a while, to overcome this issue heap manager needs to ‘flush ‘ memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call malloc\_consolidate(). 
 
-\subsection{\tch{} bins Bins}
+\subsection{\Tch bins}
 \tch{} is the last optimizations in the heap manager which added since \libc{-2.26}. Usually, a process has multiple threads, and a resource-like heap is shared between threats. A shared resource between threads can lead to a problem called ‘race condition’. As we mentioned before, a simple strategy to overcome race conditions is 'lock'. The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost for heap managers which is frequently used by a program. As we talk before, the heap manager overcomes this problem by using a secondary arena for each threat until hits the threshold, moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat check for available chunk, If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, you can see chunks added to \tch{} after call free, however, If we execute the same code on \libc{-2.23} we have a different result because it does not support \tch{}
 
 \begin{lstlisting}[frame=tlrb]
@@ -343,7 +358,7 @@ victim = _int_malloc (ar_ptr, bytes);
  /* ... */ 
 \end{lstlisting}
 
-Now we discuss the \_int\_malloc() function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
+Now we discuss the \_int\_malloc()\glnote{use \texttt{\textbackslash{}lstinline} to format identifier in the main text; example: \lstinline{int_malloc()}} function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
