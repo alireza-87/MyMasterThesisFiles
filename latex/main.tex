@@ -187,9 +187,9 @@ The returned address by \libc{} is not the address of chunk, but, the address of
 
 In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation which total allocation becomes 24 bytes, however, \libc{} must keep memory in 16-byte alignment, as the result, the final allocation is 32 byte. Take a look at the size field in an allocated chunk, we can see the size is not 32 but 33. The reason is 3 last bits of size parse differently:\glnote{non-main-arena and prev-in-use seem swapped}
 \begin{enumerate}
-	\item A (NON\_MAIN\_ARENA) : 0 when the previous chunk is free
+	\item A (NON\_MAIN\_ARENA): 0 for chunks in the main arena
 	\item M (IS\_MMAPPED): The chunk is obtained through mmap
-	\item P (PREV\_INUSE) 0 for chunks in the main arena
+	\item P (PREV\_INUSE): 
 \end{enumerate}
 Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the chunk as a place to keep pointer metadata in the free chunk. Take look at heap after call free function :
 
@@ -260,7 +260,7 @@ When the process creates a new thread, the heap manager finds an unused arena up
 As we saw before, the main Arenas create and grow by the sbrk system call, however, this is not true for the second heap. The second heap creates via mmap.
 
 \section{Subheap}
-As we mentioned subhead\glnote{this is the first time you use the term subheap; clarify what it is} works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Sub heap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
+\emph{subheap}\glnote{this is the first time you use the term subheap; clarify what it is} works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Sub heap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
 How heap manager create and manage the sub heap? In the first step, the heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap, it just tells the kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
 On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling ‘protect. What mprotect do? It concerts PROT\_NONE to PROT\_READ, PROT\_WRITE . In this way, at least the kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
 
@@ -358,7 +358,7 @@ victim = _int_malloc (ar_ptr, bytes);
  /* ... */ 
 \end{lstlisting}
 
-Now we discuss the \_int\_malloc()\glnote{use \texttt{\textbackslash{}lstinline} to format identifier in the main text; example: \lstinline{int_malloc()}} function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
+Now we discuss the \lstinline{_int_malloc()}\glnote{use \texttt{\textbackslash{}lstinline} to format identifier in the main text; example: \lstinline{int_malloc()}} function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
@@ -533,7 +533,80 @@ if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
 \end{lstlisting}
 
 The rest of the usage located inside malloc\_trim and malloc\_opt
+\chapter{Tools -  NOT FINISH}
+Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools That depends on different platforms. These tools allow us to display any type of memory like stack and heap, disassemble binary code, execute and debug a binary program. 
 
+We worked exclusively on \libc{} as the heap manager on the x86 machine, so, the main tool is \emph{gdb}. In addition to gdb, we use some utility like \emph{gef} and \emph{heapy} to have better memory visualization. 
+
+
+\section{GDB}
+The gdb is a portable debugger that works on Unix-like os. Gdb allows you to execute, debug and modify inside an executable program while it's running, even, without the source code. Gdb supports a wide variety of programming languages like c/c++, go, rust, assembly. The installation process is easy, all you have to do is use the apt package manager.
+\begin{lstlisting}[frame=tlrb]
+sudo apt-get install gdb
+\end{lstlisting}
+
+\subsection{GEF}
+Gdb allows us to debug and watch inside a running program, but, we need more tools to investigate a running program. Gef is a set of tools that give us more functionality when using Gdb using the Python API to assist in the dynamic analysis process. To install gef, simply clone the repository, then add the python script to the gdb initialize file :
+\begin{lstlisting}[frame=tlrb]
+$ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
+$ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
+\end{lstlisting}
+
+\subsubsection{heap}
+Gef has a lot of debugging tools, we focus on the heap utility of gef which call \emph{heap} .The heap command provide us information on Glibc heap memory allocation . Syntax to the subcommands is straight forward :
+\begin{lstlisting}[frame=tlrb]
+gef: heap <sub_commands>
+\end{lstlisting}
+
+\paragraph{heap chunks command}
+
+Display all of the heap chunks
+\begin{lstlisting}[frame=tlrb]
+gef:  heap chunks
+\end{lstlisting}
+
+ \begin{figure}[h!]
+  \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb13}}
+  \caption{heap chunks}
+\end{figure}
+
+
+\paragraph{heap chunk command}
+This command provides information on a chunk like the size and pointer. Simply provide the address of the chunk data section to the command.
+\begin{lstlisting}[frame=tlrb]
+gef: heap chunk <LOCATION>
+\end{lstlisting}
+
+ \begin{figure}[h!]
+  \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb13}}
+  \caption{heap chunk}
+\end{figure}
+
+\paragraph{heap arenas command}
+As we mention, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.
+
+\begin{lstlisting}[frame=tlrb]
+gef:  heap arenas
+\end{lstlisting}
+
+ \begin{figure}[h!]
+  \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb13}}
+  \caption{heap arenas}
+\end{figure}
+
+\paragraph{heap bins command}
+\libc{} use bins to keep track of freed chunks. Gef provides a sun command to visualize the state of all bins of a running application.
+\begin{lstlisting}[frame=tlrb]
+gef:  heap bins
+\end{lstlisting}
+
+ \begin{figure}[h!]
+  \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb13}}
+  \caption{heap bins}
+\end{figure}
+
+\subsection{PWNGBD}
+\section{Heapy}
 \chapter{Heap Exploitation }
 
 As the implementation of the \libc{} has changed and improved over the years, various methods have been proposed for its exploitation. In this chapter, we discuss must famous heap exploitation techniques. how exploitation works entirely depends on the heap implementation, as the result, some techniques work on a specific version of \libc{}. we discussed each technique in one or more versions.
