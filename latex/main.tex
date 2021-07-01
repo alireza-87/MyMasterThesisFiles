@@ -606,7 +606,90 @@ gef:  heap bins
 \end{figure}
 
 \subsection{PWNGBD}
+Pwngdb is a set of tools that aim us during debugging with GDB. It works like a GEF by providing us more tools to investigate a running program.
+To install pwngdb, simply clone the repository, then add it to the gdb initialize file :
+\begin{lstlisting}[frame=tlrb]
+cd ~/
+git clone https://github.com/scwuaptx/Pwngdb.git 
+cp ~/Pwngdb/.gdbinit ~/
+\end{lstlisting}
+
 \section{Heapy}
+Unlike previously mentioned tools, heappy focuses on heap layout presentation. this utility is an editor which presents a graphical layout of the heap. To install heappy , first, you have to download requirements:
+
+\begin{lstlisting}[frame=tlrb]
+wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+apt update
+sudo apt install nodejs npm
+\end{lstlisting}
+
+In the next step, clone the heappy and install it by npm
+
+\begin{lstlisting}[frame=tlrb]
+git clone https://github.com/gand3lf/heappy
+cd heappy/
+npm install
+\end{lstlisting}
+
+then load the server file during the debug inside the gdb
+\begin{lstlisting}[frame=tlrb]
+gef: source /my/path/heappy/server/heappy.py
+\end{lstlisting}
+
+finally execute the editor by npm
+
+\begin{lstlisting}[frame=tlrb]
+cd /my/path/heappy/
+npm start
+\end{lstlisting}
+
+
+\section{Lib dataBase}
+We come across different versions that are different from our car version
+We deal with different versions on \libc{} that are different from our car version during the exploitation  , so , we need to download different versions on \libc{}. the libc-database project has all of \libc{} for different machines , also , the corresponding dynamic loader . To use libc-database simply clone it first:
+\begin{lstlisting}[frame=tlrb]
+git clone git@github.com:niklasb/libc-database.git
+\end{lstlisting}
+then with the help of download script file , we can download any version of \libc{}
+\begin{lstlisting}[frame=tlrb]
+./download libc6_2.23-0ubuntu10_amd64
+Getting libc6_2.23-0ubuntu10_amd64
+    -> Location: http://security.ubuntu.com/ubuntu/pool/main/g/glibc/libc6_2.23-0ubuntu10_amd64.deb
+    -> Downloading package
+    -> Extracting package
+    -> Package saved to libs/libc6_2.23-0ubuntu10_amd64
+ls libs/libc6_2.23-0ubuntu10_amd64
+ld-2.23.so ... libc.so.6 ... libpthread.so.0 ...
+\end{lstlisting}
+
+\section{Patchelf}
+It is easy to compile an application for a specific version of \libc{} and dynamic loader when we have the source code, however, we do not have the source code always actually we have just the executable file must time. In such a situation we have to set \libc{} and dynamic load path for executable file otherwise file uses the machine \libc{}
+\begin{lstlisting}[frame=tlrb]
+patchelf --set-interpreter <DYNALIC_LOADER_FILE.so> --set-rpath <LIBC FOLDER> <EXECUTABLE FILE>  
+\end{lstlisting}
+
+\section{Debug Libc}
+
+Debugging inside the \libc{} source code is really important during investigating an attack. To debug the \libc{} we need debugging symbols, otherwise, gdb could not show us the source code. If you compile the program with your machine \libc{}, you can install the symbols with the apt package manager.
+\begin{lstlisting}[frame=tlrb]
+sudo apt-get install libc6-dbg
+\end{lstlisting}
+
+If you are using another version of \libc{}, you must download the desired version and then compile it. The first step is to clone \libc{} source code
+\begin{lstlisting}[frame=tlrb]
+git clone https://sourceware.org/git/glibc.git
+\end{lstlisting}
+with the help of \emph{tag} command , we can see all version of \libc{} , then \emph{checkout} to desired version
+\begin{lstlisting}[frame=tlrb]
+git tag
+git checkout glibc-2.27
+\end{lstlisting}
+after that, we have to compile the source code 
+\begin{lstlisting}[frame=tlrb]
+<glibc-source-path>/configure --disable-werror --prefix=/usr --without-selinux
+\end{lstlisting}
+After waiting a while, we run the make command to make the \libc{}. The final result is the \libc{} and debugging symbols. inside the gdb, we can set debug symbols directory.
+
 \chapter{Heap Exploitation }
 
 As the implementation of the \libc{} has changed and improved over the years, various methods have been proposed for its exploitation. In this chapter, we discuss must famous heap exploitation techniques. how exploitation works entirely depends on the heap implementation, as the result, some techniques work on a specific version of \libc{}. we discussed each technique in one or more versions.
