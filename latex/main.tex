@@ -250,7 +250,7 @@ So, Let's check what happens yet. First, the heap manager search through previou
 After a while, this system call break, Because, the newly allocated region at the end of the program space collides with another thing in the process’s space. Once this situation happens heap manager unable to allocate contiguous memory space, so, by calling mmap try to allocate non-contiguous memory space. 
 
 \section{MMAP}
-As we mentioned\glnote{where? I don't see where you mentioned it}, the heap manager uses \emph{mmap} for large memory allocation instead of sbrk. Chunks metadata contain a special flag for these reasons which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
+\glnote{where? I don't see where you mentioned it}, the heap manager uses \emph{mmap} for large memory allocation instead of sbrk, If the user requests a too large memory space . Chunks metadata contain a special flag for these reasons which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
 
 \section{ARENA}
 Concurrency is a challenge in multi-thread applications, so, heap manager is not safe from this issue. There are many solutions to overcome this problem. In the early days' heap managers used a simple global lock before every heap operation to overcome this situation, however, this approach has a great cost. In multi-thread applications with heavy use of heap, this strategy leads to huge performance issues, because, heap needs to lock many times.
