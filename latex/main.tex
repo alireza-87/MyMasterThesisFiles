@@ -291,7 +291,7 @@ Now, We want to discuss how the heap manager recycles a chunk for a new allocati
 \end{enumerate}
 
 \subsection{\Sbs}
-There are 62 \sbs{}, Each of them store the same size of the chunk, as the result, each list is sorted by default\glnote{what do you mean? I think they are inserted in a LIFO order}, also, store and retrieve chunk from \sbs{} is fast. In the 32-bit system, it stores chunk size below 512 bytes, In the 64-bit system, it stores chunk size below 1024 Byte. 
+There are 62 \sbs{}, Each of them stores the same size of the chunk, as the result, each list is sorted by default\glnote{what do you mean? I think they are inserted in a LIFO order}, also, store and retrieve chunk from \sbs{} is fast. \sbs{}  stores chunk size below 512 bytes in the 32-bit system and below 1024 Byte in 64-bit with a double-link list. 
 \glnote{is this a single or double-linked list?}
 
 \subsection{\Lb}
