@@ -296,7 +296,7 @@ There are 62 \sbs{}, Each of them stores the same size of the chunk, as the resu
 
 \subsection{\Lb}
 For chunks over 512 bytes ( 1024 byte 64-bit ), the heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed size in \sbs{}, in a way, they do not overlap with each other.
-The other difference is \lb{} need to manually sort during the insertion of a chunk. As the result \lb{} are slower than \sbs{}, however, \lb{} used less than \sbs{} in a real program, so, this is not a big problem.
+The other difference is \lb{} need to manually sort during the insertion of a chunk. As the result \lb{} are slower than \sbs{}, however, \lb{} used less than \sbs{} in a real program, so, this is not a big problem. \lb{} uses double-link list like \sbs{}. 
 \glnote{is this a single or double-linked list?}
 
 \subsection{\Ub}
