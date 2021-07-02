@@ -119,8 +119,8 @@ This allocation metadata and padding store alongside the allocated memory by \em
 struct malloc_chunk {
  INTERNAL_SIZE_T  mchunk_prev_size; 
  INTERNAL_SIZE_T  mchunk_size;
- struct malloc_chunk* fd; 
- struct malloc_chunk* bk;
+ struct malloc_chunk* fd;  // Forward Pointer , Point to next freed chunk
+ struct malloc_chunk* bk; // Backward Pointer , Point to previous freed chunk in double link list
  /* Only used for large blocks: pointer to next larger size. */
  struct malloc_chunk* fd_nextsize;
  struct malloc_chunk* bk_nextsize;
@@ -176,6 +176,7 @@ $5 = (int *) 0x5555555592e0
 The returned address by \libc{} is not the address of chunk, but, the address of the data section. if We minus these two numbers we can see 16 bytes different which use for metadata. If you look at the chunk data structure, there are two INTERNAL\_SIZE\_T is used to keep the size of the chunk. The \libc{} documentation said ' |INTERNAL\_SIZE\_T is the word-size used for internal bookkeeping of chunk sizes' . The default size is equal to \sizet{}. Now if we take a look at inside the memory: 
 
 \begin{lstlisting}[frame=tlrb]
+gef:  x/64h 0x0000555555559290
 0x555555559290:	0x00000000	0x00000000	0x00000021	0x00000000
 0x5555555592a0:	0x00000000	0x00000000	0x00000000	0x00000000
 0x5555555592b0:	0x00000000	0x00000000	0x00000021	0x00000000
@@ -215,9 +216,10 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-Also take look at inside memory again ,You can see , \libc{} keep pointer information in chunk's data section .
+Also, take look at inside memory again, You can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk, also, the forward pointers point to the beginning of the heap area in memory.
 
 \begin{lstlisting}[frame=tlrb]
+gef:  x/64h 0x0000555555559290
 0x555555559290:	0x00000000	0x00000000	0x00000021	0x00000000
 0x5555555592a0:	0x00000000	0x00000000	0x55559010	0x00005555
 0x5555555592b0:	0x00000000	0x00000000	0x00000021	0x00000000
@@ -535,7 +537,7 @@ if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
 
 The rest of the usage located inside malloc\_trim and malloc\_opt
 \chapter{Tools -  NOT FINISH}
-Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools That depends on different platforms. These tools allow us to display any type of memory like stack and heap, disassemble binary code, execute and debug a binary program. 
+Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depends on different platforms. These tools allow us to display any type of memory like stack and heap, disassemble binary code, execute and debug a binary program. 
 
 We worked exclusively on \libc{} as the heap manager on the x86 machine, so, the main tool is \emph{gdb}. In addition to gdb, we use some utility like \emph{gef} and \emph{heapy} to have better memory visualization. 
 
@@ -547,7 +549,7 @@ sudo apt-get install gdb
 \end{lstlisting}
 
 \subsection{GEF}
-Gdb allows us to debug and watch inside a running program, but, we need more tools to investigate a running program. Gef is a set of tools that give us more functionality when using Gdb using the Python API to assist in the dynamic analysis process. To install gef, simply clone the repository, then add the python script to the gdb initialize file:
+Gdb allows us to debug and watch inside a running program, but, we need more tools to investigate a running program. Gef is a set of tools that give us more functionality when using gdb using the Python API to assist in the dynamic analysis process. To install gef, simply clone the repository, then add the python script to the gdb initialize file:
 \begin{lstlisting}[frame=tlrb]
 $ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
