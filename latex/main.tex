@@ -1451,7 +1451,7 @@ With the help of \emph{blukat}  \footnote{\href{https://libc.blukat.me}{\texttt{
 \end{figure}
 
 
-Now we have the offset of io\_list\_all inside \libc{}, in the next step, with the help of vmmap in gdb found the start address of \libc{}, then add offset to \libc{} address to found io\_list\_all address in the current execution.
+Now we have the offset of  \lstinline{io_list_all} inside \libc{}, in the next step, with the help of vmmap in gdb found the start address of \libc{}, then add offset to \libc{} address to found  \lstinline{io_list_all} address in the current execution.
 \begin{lstlisting}[language=c,frame=tlrb]
 0x00007ffff7a36000 0x00007ffff7bce000 0x0000000000000000 r-x /mnt/vmshare/MasterThesis/libc223/libc.so.6
 0x00007ffff7a36000+0x39c520 = 0x7FFFF7DD2520
@@ -1460,7 +1460,7 @@ Now we have the offset of io\_list\_all inside \libc{}, in the next step, with t
 
 
 
-However, this address can’t be calculated in the real-time execution, because we don’t have \libc{} address. As we mention the backward and forward pointer of the freed chunk is a point to heap main arena, also, the offset between the main arena and io\_list\_all always is fix, as the result, we can calculate this offset now and use it in real execution 
+However, this address can’t be calculated in the real-time execution, because we don’t have \libc{} address. As we mention the backward and forward pointer of the freed chunk is a point to heap main arena, also, the offset between the main arena and  \lstinline{io_list_all} always is fix, as the result, we can calculate this offset now and use it in real execution 
 \begin{lstlisting}[language=c,frame=tlrb]
 0x7FFFF7DD2520-0x7ffff7dd1b78 = 0x9a8 - > the offset of io_list_all from main arena
 \end{lstlisting}
@@ -1471,7 +1471,7 @@ The final result is the below code:
 io_list_all = top[2] + 0x9a8;
 \end{lstlisting}
 
-For the rest of the attack, we can use an \ub{} attack. As we mentioned before, in an \ub{} attack we can overwrite the bk pointer with any address, in this case, we want to overwrite io\_list\_all with the address of the \ub{} 
+For the rest of the attack, we can use an \ub{} attack. As we mentioned before, in an \ub{} attack we can overwrite the bk pointer with any address, in this case, we want to overwrite  \lstinline{io_list_all} with the address of the \ub{} 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 top[3] = io_list_all - 0x10;
@@ -1484,7 +1484,7 @@ memcpy( ( char *) top, "/bin/sh\x00", 8);
 \end{lstlisting}
 
 
-As we mentioned, the libc flushes all file pointers inside the io\_list\_all link list, which currently overwrites with the address of the \ub{}. 
+As we mentioned, the libc flushes all file pointers inside the  \lstinline{io_list_all} link list, which currently overwrites with the address of the \ub{}. 
 The goal is to gain control of execution with the help of fd pointers. In the real list, the next file pointer is located at base\_address+0x68, if we consider bins, the mentioned address is a \sbs{}[4] which keeps a chunk between 90 to 98. We can conclude, if we manipulate the top chunk size again and set the size of 97, on the next allocation with a smaller size, the heap manager checks chunks in the \ub{} and puts it into corresponding bins which are smallbin[4]. Also, if we check the source code, we can see this size check: 
 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1502,7 +1502,7 @@ top[1] = 0x61;
 \end{lstlisting}
 
 
-Now the chain of events are complete , but we have to meet the condition of IO\_LIST\_ALL
+Now the chain of events are complete , but we have to meet the condition of  \lstinline{IO_LIST_ALL}
 
 \begin{lstlisting}[language=c,frame=tlrb]
  FILE *fp = (FILE *) top;
@@ -1523,7 +1523,7 @@ Finally, we trigger the attack by one allocation.
 \subsection{The House of roman = NOT FINISH YET}
 This attack is a combination of \fb{} attack, \ub{} attack, and Use after the free attack, also, The goal is to open a shell. However, the chance of a successful attack is so small because we need to brute force 12-bit of randomness. The attack consists of three steps.
 
-The first step is to get a pointer inside malloc\_hook, but, what is the malloc hook? Malloc\_hooc lets you modify the behavior of malloc and free with a hook function. To achieve this we use a \fb{} attack in a way the fd pointer points to malloc\_hook.
+The first step is to get a pointer inside  \emph{\lstinline{malloc_hook}}, but, what is the malloc hook?  \lstinline{malloc_hook} lets you modify the behavior of malloc and free with a hook function. To achieve this we use a \fb{} attack in a way the fd pointer points to malloc\_hook.
 
 \subsection{The House of Rabbit}
 
@@ -1575,14 +1575,14 @@ if (!prev_inuse(p)) {
 	unlink (off, p, bck, fwd);
 } 
  \end{lstlisting}
-When a free function calls, it tries to merge the current chunk with the previous chunk if the prev\_inuse flag is not set. The merged chunk size is calculated by the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned in \libc{} the metadata at the end of the heap is in share with metadata at the beginning of the next chunk: 
+When a free function calls, it tries to merge the current chunk with the previous chunk if the  \lstinline{prev_inuse} flag is not set. The merged chunk size is calculated by the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned in \libc{} the metadata at the end of the heap is in share with metadata at the beginning of the next chunk: 
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb10}}
   \caption{chunk layout}
 \end{figure}
 
-By considering the merge code of the free function we can tell if we have control over prev\_size , and prev\_inuse flag, we can have control over new chunk location. 
+By considering the merge code of the free function we can tell if we have control over  \lstinline{prev_size} , and  \lstinline{prev_inuse} flag, we can have control over new chunk location. 
 Consider the following sample, first, we need a chunk inside the heap, also, we need a fake chunk in any location. For this example we use the stack for fake chunk:
 \begin{lstlisting}[language=c,frame=tlrb]
 uint8_t* a;
@@ -1611,7 +1611,7 @@ Now we use ‘a’ inorder to overflow and manipulate the size of ‘b’
 a[real_a_size] = 0;
 \end{lstlisting}
 
- Now its time to set prev\_size of our fake chunk to an inorder to merge it with our fake chunk
+ Now its time to set  \lstinline{prev_size} of our fake chunk to an inorder to merge it with our fake chunk
 
 \begin{lstlisting}[language=c,frame=tlrb]
 size_t fake_size = (size_t)((b-sizeof(size_t)*2) - (uint8_t*)fake_chunk);
