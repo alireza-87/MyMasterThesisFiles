@@ -257,14 +257,14 @@ Concurrency is a challenge in multi-thread applications, so, heap manager is not
 
 To improve the performance ptmalloc2 introduces a concept called \emph{arena}. In this approach different thread has their arena, also, Each arena manages their chunks, as the result, threads can work at the same time on different arena without altering each other data.
 
-When the process creates a new thread, the heap manager finds an unused arena up to the maximum allowed number which is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit. So, what happens when we reach max number? Thread has to share arena.
+When the process creates a new thread, the heap manager finds an unused arena up to the maximum allowed number which default value is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit, , also , you can tuning this value by \emph{mallopt} function . So, what happens when we reach max number? Thread has to share arena.
 \glnote{I think these are just the defaults, they can be changed via environment variable and \texttt{mallopt}; you should mention that}
 
 As we saw before, the main Arenas create and grow by the sbrk system call, however, this is not true for the second heap. The second heap creates via mmap.
 
 \section{Subheap}
-\emph{subheap}\glnote{this is the first time you use the term subheap; clarify what it is} works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Sub heap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
-How heap manager create and manage the sub heap? In the first step, the heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap, it just tells the kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
+As we mention, the main heap arena located just after where the program started and expanded by sbrk, so, we can conclude in the multi-thread application which has a secondary heap this can not be done. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap\glnote{this is the first time you use the term subheap; clarify what it is} works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Subheap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
+How heap manager create and manage the subheap? In the first step, the heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap, it just tells the kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
 On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling ‘protect. What mprotect do? It concerts PROT\_NONE to PROT\_READ, PROT\_WRITE . In this way, at least the kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
 
 \section{free}
