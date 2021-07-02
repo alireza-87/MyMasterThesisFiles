@@ -489,7 +489,7 @@ The free function checks if the size is bigger than the minimum allocation size,
 \section{malloc\_consolidate()}
 As the \libc{} document said, It is a specialized version of the free function that tears down chunks held in the \fb{}. When a new allocation request has arrived, in some conditions the heap manager calls this method to tears down \fb{} chunks. 
 
-To find when malloc\_consolidate() \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4440}{\texttt{malloc.c}, line 4440}}  calls, we invest two different versions of \libc{}. the first one is 2.23 and the second one is 2.33 which is the latest \libc{} version. The first usage is the malloc function , Consider the following code:
+To find when \lstinline{malloc_consolidate()} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4440}{\texttt{malloc.c}, line 4440}}  calls, we invest two different versions of \libc{}. the first one is 2.23 and the second one is 2.33 which is the latest \libc{} version. The first usage is the malloc function , Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
@@ -503,7 +503,7 @@ To find when malloc\_consolidate() \footnote{\href{https://sourceware.org/git/?p
  }
 \end{lstlisting}
 
-As we tell, small/\lb{} are one of the places which malloc search to find free chunk at the first phase. During this check, the heap manager performs flush to move \fb{} chunk too. If we check mentioned section in the latest \libc{} version, we see a \sbs{} check does not contain malloc\_consolidate() anymore \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3635}{\texttt{malloc.c}, line 3635}} .
+As we tell, small/\lb{} are one of the places which malloc search to find free chunk at the first phase. During this check, the heap manager performs flush to move \fb{} chunk too. If we check mentioned section in the latest \libc{} version, we see a \sbs{} check does not contain \lstinline{malloc_consolidate()} anymore \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3635}{\texttt{malloc.c}, line 3635}} .
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
@@ -535,7 +535,7 @@ if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
 	}
 \end{lstlisting}
 
-The rest of the usage located inside malloc\_trim and malloc\_opt
+The rest of the usage located inside \lstinline{malloc_trim} and \lstinline{malloc_opt}
 \chapter{Tools -  NOT FINISH}
 Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depends on different platforms. These tools allow us to display any type of memory like stack and heap, disassemble binary code, execute and debug a binary program. 
 
@@ -770,7 +770,7 @@ void* p3 = malloc(0x400);
 free(p1);
 \end{lstlisting}
 
-The thirds malloc have a big memory allocation, this malloc triggers another method call malloc\_consolidate() automatically. Malloc In this situation consolidate chunks in the fast bin before continuing, then, put the resulting merged chunks on the \ub{}.
+The thirds malloc have a big memory allocation, this malloc triggers another method call \lstinline{malloc_consolidate()} automatically. Malloc In this situation consolidate chunks in the fast bin before continuing, then, put the resulting merged chunks on the \ub{}.
 The result of such behavior is we have another solution to bypass the fast bin double-free security check. It is possible to use malloc with a big size instead of free another chunk in the middle of two free. The third malloc moves chunk from fast bin to unsorted, as the result, when the second free request arrives there is no chunk inside the \fb{}. we can implement a double-free attack. In the final layout, we have P1 on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
 
 \section{Forged Chunk}
@@ -861,7 +861,7 @@ p[1]=(unsigned long)(&stack_var-2);
 //------------------------------------
 malloc(400);
 \end{lstlisting}
- At the first line, we define our target ‘stack\_var’ where we want to write the big value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap, otherwise, when we free ‘p’ the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of ‘p’. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list, In malloc, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3738}{\texttt{malloc.c}, line 3738}}: 
+ At the first line, we define our target \lstinline{stack_var} where we want to write the big value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap, otherwise, when we free ‘p’ the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of ‘p’. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list, In malloc, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3738}{\texttt{malloc.c}, line 3738}}: 
  
 \begin{lstlisting}[language=c,frame=tlrb]
 unsorted_chunks (av)->bk = bck;
@@ -874,7 +874,7 @@ The last malloc tries to allocate 400-Byte of memory, so the heap manager checks
 while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
 bck = victim->bk;
 \end{lstlisting}
-‘Av’ is arena and unsorted\_chunks (av) is the head of the \ub{} and Victim is our current item. You can see, malloc checks items from the head of the \ub{} and removes them one by one. Put it all to gather:
+‘Av’ is arena and \lstinline{unsorted_chunks (av)} is the head of the \ub{} and Victim is our current item. You can see, malloc checks items from the head of the \ub{} and removes them one by one. Put it all to gather:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 victim = unsorted_chunks (av) -> bk = p
@@ -1054,13 +1054,13 @@ gef: p top_ptr
 $3 = (long long *) 0x7ffff7ef2010
  \end{lstlisting}
 
-Like the previous one, we change the size of the last chunk. The new chunk size is the sum of the size of chunk\_3 and chunk\_2, as the result, the unmmap freezes both areas.
+Like the previous one, we change the size of the last chunk. The new chunk size is the sum of the size of \lstinline{chunk_3} and \lstinline{chunk_2}, as the result, the unmmap freezes both areas.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(mmap_chunk_3)
  \end{lstlisting}
  
-In this stage if we allocate a new big chunk, this new big chunk has overlap with chunk\_2 which just has been unmmap without call unmmap directly, as the result, we can write on the chunk2 area with the help of our new chunk.
+In this stage if we allocate a new big chunk, this new big chunk has overlap with \lstinline{chunk_2} which just has been unmmap without call unmmap directly, as the result, we can write on the chunk2 area with the help of our new chunk.
 
 \section{The Houses}
 
@@ -1080,7 +1080,7 @@ public free(Void_t* mem){
   _int_free(ar_ptr, mem);
 }
  \end{lstlisting}
-As we mentioned, when the user requests a memory allocation \libc{} returns a pointer to the data section on the allocated chunk, however, to free chunk \libc{} needs a pointer to the beginning of the chunk. mem2chunk() responsible to convert mem pointer to chunk pointer by subtracting address from metadata size. Then this chunk passes to arena\_for\_chunk() macro. Take a look at the code: 
+As we mentioned, when the user requests a memory allocation \libc{} returns a pointer to the data section on the allocated chunk, however, to free chunk \libc{} needs a pointer to the beginning of the chunk. mem2chunk() responsible to convert mem pointer to chunk pointer by subtracting address from metadata size. Then this chunk passes to \lstinline{arena_for_chunk()} macro. Take a look at the code: 
 
 \begin{lstlisting}[language=c,frame=tlrb]
 #define HEAP_MAX_SIZE (1024*1024)
@@ -1428,7 +1428,7 @@ while (fp != NULL)
 	 && _IO_OVERFLOW (fp, EOF) == EOF)
 \end{lstlisting}
 
-As you can see, libc keeps file pointers inside \_io\_list\_all, so, in the corruption situation, all pointers be flush by the use of the io\_file object. When libc allocate a new file structure and fopen() return the pointer, the actual internal structure inside the \libc{} is io\_file\_plus , if we take a look at \libc{} code we have:
+As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the io\_file object. When libc allocate a new file structure and fopen() return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus} , if we take a look at \libc{} code we have:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE_plus{
@@ -1437,13 +1437,13 @@ struct _IO_FILE_plus{
 };
 \end{lstlisting}
 
-As you can see this internal structure keeps \_io\_file object alongside a jump virtual table called \_io\_jump\_t. This virtual table contains a list of pointers to all of the file functions. Because \_io\_file use the virtual table to call files function, the attacker can forge a fake object and overwrite the pointer, as the result, he can gain control flow of the application
+As you can see this internal structure keeps \lstinline{_io_file} object alongside a jump virtual table called \lstinline{_io_jump_t}. This virtual table contains a list of pointers to all of the file functions. Because \lstinline{_io_file} use the virtual table to call files function, the attacker can forge a fake object and overwrite the pointer, as the result, he can gain control flow of the application
 
-Our goal is to make \_IO\_flush\_all\_lockp call \_IO\_OVERFLOW, also, overwrite \_io\_list\_all with a forged file pointer in a way \_IO\_OVERFLOW point to system function. The result of this action is to open a shell.
+Our goal is to make \lstinline{_IO_flush_all_lockp} call \lstinline{_IO_OVERFLOW}, also, overwrite \lstinline{_io_list_all} with a forged file pointer in a way \lstinline{_IO_OVERFLOW} point to system function. The result of this action is to open a shell.
 
-To achieve this, the first thing is to calculate the address of \_io\_list\_all inside the libc. Currently, we have one freed chunk inside the \ub{}, the bk and fd pointer are pointed to the main arena of the heap, so, we can use this address to calculate the \_io\_list\_all address. 
+To achieve this, the first thing is to calculate the address of \lstinline{_io_list_all} inside the libc. Currently, we have one freed chunk inside the \ub{}, the bk and fd pointer are pointed to the main arena of the heap, so, we can use this address to calculate the \lstinline{_io_list_all} address. 
 
-With the help of https://libc.blukat.me, we can find the offset of \_io\_list\_all based on the \libc{} version. This sample use \libc{-2.23} , so we search inside we site for this specific \libc{} version:
+With the help of \emph{blukat}  \footnote{\href{https://libc.blukat.me}{\texttt{libc database}}} website , we can find the offset of \lstinline{_io_list_all} based on the \libc{} version. This sample use \libc{-2.23} , so we search inside we site for this specific \libc{} version:
 
 \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb6}}
