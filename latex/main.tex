@@ -485,6 +485,7 @@ if (__glibc_unlikely (size < MINSIZE || !aligned_OK (size))){
 \end{lstlisting}
 
 The free function checks if the size is bigger than the minimum allocation size, also, the size must be aligned otherwise an error raise which means memory is corrupted.
+\section{mallocopt()-NOT FINISH}
 
 \section{malloc\_consolidate()}
 As the \libc{} document said, It is a specialized version of the free function that tears down chunks held in the \fb{}. When a new allocation request has arrived, in some conditions the heap manager calls this method to tears down \fb{} chunks. 
@@ -536,7 +537,7 @@ if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
 \end{lstlisting}
 
 The rest of the usage located inside \lstinline{malloc_trim} and \lstinline{malloc_opt}
-\chapter{Tools -  NOT FINISH}
+\chapter{Tools }
 Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depends on different platforms. These tools allow us to display any type of memory like stack and heap, disassemble binary code, execute and debug a binary program. 
 
 We worked exclusively on \libc{} as the heap manager on the x86 machine, so, the main tool is \emph{gdb}. In addition to gdb, we use some utility like \emph{gef} and \emph{heapy} to have better memory visualization. 
@@ -616,6 +617,34 @@ cd ~/
 git clone https://github.com/scwuaptx/Pwngdb.git 
 cp ~/Pwngdb/.gdbinit ~/
 \end{lstlisting}
+\subsubsection{commands}
+like gdb, it provides some commands to monitor the heap state. unlike gef, it does not have subcommands.
+
+\paragraph{heap command}
+This command provide  information about allocated and freed chunk , also , the top chunk .
+
+ \begin{figure}[h!]
+  \makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb18}}
+  \caption{heap}
+\end{figure}
+
+\paragraph{bins command}
+Provide information about freed chunks inside every bins .
+
+ \begin{figure}[h!]
+  \makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb19}}
+  \caption{heap}
+\end{figure}
+
+\paragraph{top\_chunk command}
+
+show top chunk information.
+
+ \begin{figure}[h!]
+  \makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb20}}
+  \caption{heap}
+\end{figure}
+
 
 \section{Heapy}
 Unlike previously mentioned tools, heappy focuses on heap layout presentation. this utility is an editor which presents a graphical layout of the heap. To install heappy , first, you have to download requirements:
