@@ -69,7 +69,7 @@
 
 \chapter{Introduction}
 
-\glnote{This chapter is glibc-specific, so the general description should be moved to chapter 1. You could also add a general description of malloc/realloc/free, with some examples}An application has different types of memory space, two must important are \emph{heap} and \emph{stack}. Usually, the stack is used to store local variables, also, It may use to pass the function's parameters. Unlike stack, heap is a portion of memory which use by applications to dynamically allocate memory during run time. This means an application can request memory and freed memory during execution. The data stored in the heap are accessible by all thread, so, It is important to handle it properly. There are some other differences between stack and heap too:\glnote{As a general rule, in English there is no space before punctuation}
+\glnote{This chapter is glibc-specific, so the general description should be moved to chapter 1. You could also add a general description of malloc/realloc/free, with some examples - MOVE TO C1 }An application has different types of memory space, two must important are \emph{heap} and \emph{stack}. Usually, the stack is used to store local variables, also, It may use to pass the function's parameters. Unlike stack, heap is a portion of memory which use by applications to dynamically allocate memory during run time. This means an application can request memory and freed memory during execution. The data stored in the heap are accessible by all thread, so, It is important to handle it properly. There are some other differences between stack and heap too:\glnote{As a general rule, in English there is no space before punctuation, DONE}
 \begin{itemize}
 	\item heap memory can become fragment, but, Stack memory won't
 	\item heap can access to variable globally, but, the stack can access to a local variable only
@@ -113,7 +113,7 @@ The above code is a sample of how the C programming language might allocate and 
 
 Allocation and free are not the only job of the heap manager. The heap manager needs some mechanism to keep track of the previous allocation and free space. Moreover, the heap manager needs to align memory in 8 bytes for a 32bit system, and 16Byte in a 64bit system. To achieve this, the heap manager needs to store some metadata.
 
-This allocation metadata and padding store alongside the allocated memory by \emph{malloc} which returns to the user. For this reason, the heap manager uses a concept called \emph{chunk}, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk.\glnote{that is, the address of the field fd; maybe clarify this point better (it's not obvious at all from the struct definition). I see you explained that later, but I'd say something more here too} the below code shows the chunk data structure \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l1163}{\texttt{malloc.c}, line 1163}}:
+This allocation metadata and padding store alongside the allocated memory by \emph{malloc} which returns to the user. For this reason, the heap manager uses a concept called \emph{chunk}, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk.\glnote{that is, the address of the field fd; maybe clarify this point better (it's not obvious at all from the struct definition). I see you explained that later, but I'd say something more here too, DONE , ADDED SOME EXPLAIN} the below code shows the chunk data structure \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l1163}{\texttt{malloc.c}, line 1163}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct malloc_chunk {
@@ -187,7 +187,7 @@ gef:  x/64h 0x0000555555559290
 0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
 \end{lstlisting}
 
-In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation which total allocation becomes 24 bytes, however, \libc{} must keep memory in 16-byte alignment, as the result, the final allocation is 32 byte. Take a look at the size field in an allocated chunk, we can see the size is not 32 but 33. The reason is 3 last bits of size parse differently:\glnote{non-main-arena and prev-in-use seem swapped}
+In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation which total allocation becomes 24 bytes, however, \libc{} must keep memory in 16-byte alignment, as the result, the final allocation is 32 byte. Take a look at the size field in an allocated chunk, we can see the size is not 32 but 33. The reason is 3 last bits of size parse differently:\glnote{non-main-arena and prev-in-use seem swapped - DONE}
 \begin{enumerate}
 	\item A (NON\_MAIN\_ARENA): 0 for chunks in the main arena
 	\item M (IS\_MMAPPED): The chunk is obtained through mmap
@@ -229,7 +229,7 @@ gef:  x/64h 0x0000555555559290
 0x5555555592f0:	0x00000000	0x00000000	0x00020d11	0x00000000
 0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
 \end{lstlisting}
-\glnote{the fd/bk pointers point to the chunk user's data, right? Maybe you could point that out. I don't understand where the bk pointers are pointing in this listing... what is 0x555555559010?}
+\glnote{ DONE - the fd/bk pointers point to the chunk user's data, right? Maybe you could point that out. I don't understand where the bk pointers are pointing in this listing... what is 0x555555559010?}
 \section{Memory Allocation}
  First, we discuss the heap manager in a simple algorithm, then, we discuss each part in detail. The first question is, What is happen when the user requests a memory allocation: 
 \begin{enumerate}
@@ -250,7 +250,7 @@ So, Let's check what happens yet. First, the heap manager search through previou
 After a while, this system call break, Because, the newly allocated region at the end of the program space collides with another thing in the process’s space. Once this situation happens heap manager unable to allocate contiguous memory space, so, by calling mmap try to allocate non-contiguous memory space. 
 
 \section{MMAP}
-\glnote{where? I don't see where you mentioned it}, the heap manager uses \emph{mmap} for large memory allocation instead of sbrk, If the user requests a too large memory space . Chunks metadata contain a special flag for these reasons which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
+\glnote{DONE - where? I don't see where you mentioned it}The heap manager uses \emph{mmap} for large memory allocation instead of sbrk, If the user requests a too large memory space . Chunks metadata contain a special flag for these reasons which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
 
 \section{ARENA}
 Concurrency is a challenge in multi-thread applications, so, heap manager is not safe from this issue. There are many solutions to overcome this problem. In the early days' heap managers used a simple global lock before every heap operation to overcome this situation, however, this approach has a great cost. In multi-thread applications with heavy use of heap, this strategy leads to huge performance issues, because, heap needs to lock many times.
@@ -258,12 +258,12 @@ Concurrency is a challenge in multi-thread applications, so, heap manager is not
 To improve the performance ptmalloc2 introduces a concept called \emph{arena}. In this approach different thread has their arena, also, Each arena manages their chunks, as the result, threads can work at the same time on different arena without altering each other data.
 
 When the process creates a new thread, the heap manager finds an unused arena up to the maximum allowed number which default value is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit, , also , you can tuning this value by \emph{mallopt} function . So, what happens when we reach max number? Thread has to share arena.
-\glnote{I think these are just the defaults, they can be changed via environment variable and \texttt{mallopt}; you should mention that}
+\glnote{DOEN - ALSO MALLOPT WILL ADD - I think these are just the defaults, they can be changed via environment variable and \texttt{mallopt}; you should mention that}
 
 As we saw before, the main Arenas create and grow by the sbrk system call, however, this is not true for the second heap. The second heap creates via mmap.
 
 \section{Subheap}
-As we mention, the main heap arena located just after where the program started and expanded by sbrk, so, we can conclude in the multi-thread application which has a secondary heap this can not be done. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap\glnote{this is the first time you use the term subheap; clarify what it is} works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Subheap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
+As we mention, the main heap arena located just after where the program started and expanded by sbrk, so, we can conclude in the multi-thread application which has a secondary heap this can not be done. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap\glnote{DONE - this is the first time you use the term subheap; clarify what it is} works like the main heap, however, they have some differences. The main heap is located right after where the program starts in memory, they grow with the sbrk system call. Subheap create by use of mmap, so, they are not located where the program starts contiguously, moreover, the heap manager expands them by ‘protect.
 How heap manager create and manage the subheap? In the first step, the heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap, it just tells the kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
 On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling ‘protect. What mprotect do? It concerts PROT\_NONE to PROT\_READ, PROT\_WRITE . In this way, at least the kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
 
@@ -276,7 +276,7 @@ Whats happens when the user does not need allocated space anymore? Simply, calli
 	\item Is Chunk in the arena address space?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4171}}
 	\item Is it already free?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4266}}
 \end{enumerate}
-\glnote{add link to glibc source for these checks}
+\glnote{DONE-add link to glibc source for these checks}
 
 \section{Bins}
 	Bin is a mechanism that the heap manager used to manage and organize recently freed chunks, so, they can be reused during the next allocations. The simplest solution to keep track of freed space is to store them in a giant bin, although this could work It is not a good solution. Malloc is very wildly used, so, this approach leads to a performance problem.
@@ -284,20 +284,20 @@ To improve performance, the heap manager uses different types of bins. There is 
 Now, We want to discuss how the heap manager recycles a chunk for a new allocation. First, let's consider a simple schema:
 \begin{enumerate}
 	\item If the M-bit in metadata is set, then this chunk is allocated off-heap, so, It should be unmmap.
-	\item Otherwise, if the chunk right before this chunk is free, then they merge \glnote{the way chunks are merged should be better described; if you did this in the exploitation part, you can simply insert a reference to it}
+	\item Otherwise, if the chunk right before this chunk is free, then they merge \glnote{I EXPLAINED THE FULLY IN MALLOC AND EACH BINS SECTION , THIS IS JUST A SIMPLE PLOT WHICH MENTIONED , THEY WAY CHUNKS MERGE DEPENDED ON MANY THING WHICH EXPLAINED ON OTHER PARTS , MAY I CAN DELETE THIS SIMPLE PLOT ? the way chunks are merged should be better described; if you did this in the exploitation part, you can simply insert a reference to it}
 	\item If the chunk right after this chunk is free, then they merge
 	\item After the merge, if the larger chunk is located at the top of the heap, then it absorbs into the end of the heap instead of adding to bins
 	\item Otherwise, the freed chunk add to the corresponding bin
 \end{enumerate}
 
 \subsection{\Sbs}
-There are 62 \sbs{}, Each of them stores the same size of the chunk, as the result, each list is sorted by default\glnote{what do you mean? I think they are inserted in a LIFO order}, also, store and retrieve chunk from \sbs{} is fast. \sbs{}  stores chunk size below 512 bytes in the 32-bit system and below 1024 Byte in 64-bit with a double-link list. 
-\glnote{is this a single or double-linked list?}
+There are 62 \sbs{}, Each of them stores the same size of the chunk, as the result, each list is sorted by default\glnote{I DIDNT MENTION ORDER , THE ORDER IS LIFO FOR SMALL BINS , ALSO , SMALL BINS KEEP ONE SIZE ITS SORTED BY DEFAULT  . what do you mean? I think they are inserted in a LIFO order}, also, store and retrieve chunk from \sbs{} is fast. \sbs{}  stores chunk size below 512 bytes in the 32-bit system and below 1024 Byte in 64-bit with a double-link list. 
+\glnote{DONE - is this a single or double-linked list?}
 
 \subsection{\Lb}
 For chunks over 512 bytes ( 1024 byte 64-bit ), the heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed size in \sbs{}, in a way, they do not overlap with each other.
 The other difference is \lb{} need to manually sort during the insertion of a chunk. As the result \lb{} are slower than \sbs{}, however, \lb{} used less than \sbs{} in a real program, so, this is not a big problem. \lb{} uses double-link list like \sbs{}. 
-\glnote{is this a single or double-linked list?}
+\glnote{DONE - is this a single or double-linked list?}
 
 \subsection{\Ub}
 Usually free() follow by an allocation of the same size in a real program. The heap manager introduced another optimization call \ub{}. In this optimization, the heap manager merges freed chunk with its neighbors and puts it inside a general bin call \ub{} instead of finding the corresponding bin. When a new allocation request arrives, the heap manager iterates the overall item in \ub{}, compares the request to each item, If an item is big enough for request, the heap manager returns it, otherwise move an item to the corresponding bin. consider following malloc code from \libc{} 2.23 \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;hb=ad372e296b6b944884f14fb5d8f3a6195bfba22b\#l3467}{\texttt{malloc.c}, line 3467}}:
@@ -361,7 +361,7 @@ victim = _int_malloc (ar_ptr, bytes);
  /* ... */ 
 \end{lstlisting}
 
-Now we discuss the \lstinline{_int_malloc()}\glnote{use \texttt{\textbackslash{}lstinline} to format identifier in the main text; example: \lstinline{int_malloc()}} function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
+Now we discuss the \lstinline{_int_malloc()}\glnote{DONE - use \texttt{\textbackslash{}lstinline} to format identifier in the main text; example: \lstinline{int_malloc()}} function . This function gets the request size and arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk, as the result, remove and add a chunk to the fast bin is fast  \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
@@ -1119,9 +1119,9 @@ As we mentioned, when the user requests a memory allocation \libc{} returns a po
 (chunk_non_main_arena(ptr)?heap_for_ptr(ptr)->ar_ptr: &main_arena)
  \end{lstlisting}
  
-When a non\_main arena heap creates, the first thing that goes into this heap is heap\_stricture, this structure contains a field call ar\_ptr, In the above code ar\_ptr stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for non\_main\_arena. Since the attacker has control of the size field, can control chunk threats as the main arena or non\_main arena. We can conclude , if the non\_main\_arena is set , then chunk\_non\_main\_arena() return true ,as the result ar\_ptr in free() function is set to heap\_for\_ptr(ptr)->ar\_ptr .
-This attack works by manipulating the heap in a way a fake ar\_ptr supply to \_init\_free(), as the result, an arbitrary overwrite be happen. The Attacker has to allocate enough memory until reaches non\_main\_arena where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so, max allocation never is more than 1MB.
-We saw It possible to hijack the heap\_info and supply an arbitrary ar\_ptr value, so, what value should we use for ar\_ptr? We have two option on that:
+When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or non\_main arena. We can conclude , if the \lstinline{non_main_arena} is set , then \lstinline{chunk_non_main_arena()} return true ,as the result \lstinline{ar_ptr} in \lstinline{free()} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
+This attack works by manipulating the heap in a way a fake \lstinline{ar_ptr} supply to \lstinline{_init_free()}, as the result, an arbitrary overwrite be happen. The Attacker has to allocate enough memory until reaches \lstinline{non_main_arena} where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so, max allocation never is more than 1MB.
+We saw It possible to hijack the \lstinline{heap_info} and supply an arbitrary \lstinline{ar_ptr} value, so, what value should we use for \lstinline{ar_ptr}? We have two option on that:
 
 \subsection{Large area of memory}
 Use a large area of memory then \ub{} link code overwrite the target for us. There is some condition and security check, if we can bypass them all the following code of \ub{} do the real job:
@@ -1132,8 +1132,9 @@ p->bk = bck;
 p->fd = fwd;
 bck->fd = p;
 fwd->bk = p;
- \end{lstlisting}
-In the above code ‘p’ stands for the address of the attacker overflowed chunk, unsorted\_chunks(av)returns av->bin[0] which is controlled by the attacker, as the result, bk->fd overwrite ‘p’.
+\end{lstlisting}
+
+In the above code ‘p’ stands for the address of the attacker overflowed chunk, \lstinline{unsorted_chunks(av)} returns \lstinline{av->bin[0]} which is controlled by the attacker, as the result, \lstinline{bk->fd} overwrite ‘p’.
 
 \subsection{Fast bin}
 Consider following code of \fb{} 
