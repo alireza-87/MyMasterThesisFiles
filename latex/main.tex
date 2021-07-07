@@ -546,7 +546,7 @@ The rest of the usage located inside \lstinline{malloc_trim} and \lstinline{mall
 \chapter{Tools }
 Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depends on different platforms. These tools allow us to display any type of memory like stack and heap, disassemble binary code, execute and debug a binary program.
 
-We worked exclusively on \libc{} as the heap manager on the x86 machine, so, the main tool is \emph{gdb}. In addition to gdb, we use some utility like \emph{gef} and \emph{heapy} to have better memory visualization.
+We worked exclusively on \libc{} as the heap manager on the x86 machine, so, the main tool is \emph{gdb}. In addition to gdb, we use some utility like \emph{gef} and \emph{heappy} to have better memory visualization.
 
 
 \section{GDB}
@@ -578,7 +578,9 @@ gef:  heap chunks
  \begin{figure}[h!]
   \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb14}}
   \caption{heap chunks}
+	 \label{fig:chunks}
 \end{figure}
+\glnote{latex moves figures, so you can either include the graphics without using a figure, or you must add a \\ref to the figure. Eg, ``Figure~\ref{fig:chunks} shows an example of the command \lstinline{heap chunks}}
 
 
 \paragraph{heap chunk command}
@@ -615,7 +617,7 @@ gef:  heap bins
   \caption{heap bins}
 \end{figure}
 
-\subsection{PWNGBD}
+\subsection{PWNGDB}
 Pwngdb is a set of tools that aim us during debugging with GDB. It works like a GEF by providing us more tools to investigate a running program.
 To install pwngdb, simply clone the repository, then add it to the gdb initialize file:
 \begin{lstlisting}[frame=tlrb]
@@ -652,7 +654,7 @@ show top chunk information.
 \end{figure}
 
 
-\section{Heapy}
+\section{Heappy}
 Unlike previously mentioned tools, heappy focuses on heap layout presentation. this utility is an editor which presents a graphical layout of the heap. To install heappy , first, you have to download requirements:
 
 \begin{lstlisting}[frame=tlrb]
