@@ -486,6 +486,15 @@ if (__glibc_unlikely (size < MINSIZE || !aligned_OK (size))){
 
 The free function checks if the size is bigger than the minimum allocation size, also, the size must be aligned otherwise an error raise which means memory is corrupted.
 \section{mallocopt()-NOT FINISH}
+mallopt is a function used to tune the behavior of \libc{} memory allocation methods like malloc. In the below, we mention the parameters list which can be modified by mallopt.
+
+\begin{enumerate}
+\item \lstinline{M_ARENA_MAX} Defines the maximum number of arenas that can be create. Programs usually have multiple threads, in which case an arena may receive multiple requests, so arenas must be thread-safe. Having more numbers arena means less thread concurrent, however, the higher memory needs.
+
+\item \lstinline{M_MMAP_MAX} Define the maximum number of sequential memory allocation which can handle by mmap. 
+
+\item \lstinline{M_MMAP_THRESHOLD} The system uses the mmap to allocate larger memory than the
+\end{enumerate}
 
 \section{malloc\_consolidate()}
 As the \libc{} document said, It is a specialized version of the free function that tears down chunks held in the \fb{}. When a new allocation request has arrived, in some conditions the heap manager calls this method to tears down \fb{} chunks. 
