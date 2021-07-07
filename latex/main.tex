@@ -748,7 +748,7 @@ e = malloc(10);  // 0xa04030
 f = malloc(10);  // 0xa04010
 \end{lstlisting}
 
-At first, we requested 3 chunks of 10-byte. After that, we free ‘a’ and ‘b’ and at last ‘a' again. You can see the fast bin structure after free() below step by step:
+At first, we requested 3 chunks of 10-byte. After that, we free ‘a’\glnote{instead of single quotes, use lstinline for a, b, etc} and ‘b’ and at last ‘a' again. You can see the fast bin structure after free() below step by step:
 
 \begin{lstlisting}[frame=tlrb]
 head -> a -> tail
@@ -878,6 +878,7 @@ As you can see in the first part we allocate 3 chunks and free one of them twice
 head -> a
 \end{lstlisting}
 
+\glnote{could you clarify/rephrase the following? The role of the 0x20 is unclear}
 The final step is to write 0x20 on the stack and overwrite the first 8 bytes of data at ‘a’ (any change on ‘d’ affect ‘a’ at top of the \fb{}) in away point to write before 0x20 on the stack. In this way, we trick the heap in a way that thinks there is an available free chunk.
  Now, all we have to do is remove ‘a’ from the top of the \fb{} with a call to malloc(), then, final malloc returns a controller address on memory to the program, in this case, stack.
 
@@ -922,7 +923,7 @@ bck->fd = *(target addr -16+16) = unsorted_chunks(av);
 Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable. In the recent versions of \libc{} the following check was added to prevent this attack \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3785}{\texttt{malloc.c}, line 3785}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
-if (\_\_glibc_unlikely (bck->fd != victim))
+if (__glibc_unlikely (bck->fd != victim))
 	malloc\_printerr ('malloc(): corrupted unsorted chunks 3');
 \end{lstlisting}
 
@@ -954,14 +955,14 @@ free(p2);
 In the third step, we freed the smaller chunk. Now we have one chunk inside the \lb{} and one chunk in the \ub{}.
 
 \begin{lstlisting}[frame=tlrb]
-unsorted\_bins[0]: fw=0x5555555596e0, bk=0x5555555596e0
+unsorted_bins[0]: fw=0x5555555596e0, bk=0x5555555596e0
 Chunk(addr=0x5555555596f0, size=0x420, flags=PREV_INUSE)
 
-large\_bins[63]: fw=0x555555559290, bk=0x555555559290
+large_bins[63]: fw=0x555555559290, bk=0x555555559290
 Chunk(addr=0x5555555592a0, size=0x430, flags=PREV_INUSE)
  \end{lstlisting}
 
-The next step is to put the target address - 0x20 in the p1->bk\_nextsize . As we mentioned before, Just \lb{} chunk chunks use this pointer, they point to the next biggest chunk in the link list.
+ The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nextsize}. As we mentioned before, Just \lb{} chunk chunks use this pointer, they point to the next biggest chunk in the link list.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p1[3] = (size_t)((&target)-4);
@@ -1009,6 +1010,7 @@ unsorted_bins[0]: fw=0x555555559100, bk=0x555555559100
 Chunk(addr=0x555555559110, size=0x100, flags=PREV\_INUSE)
 \end{lstlisting}
 
+\glnote{Check for the presence of backslash-underscore in lstlisting and lstinlne (I removed some, but there are others}
 \begin{lstlisting}[language=c,frame=tlrb]
 Chunk(addr=0x555555559010, size=0x100, flags=PREV_INUSE)
  [0x0000555555559010  31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 1111111111111111]
