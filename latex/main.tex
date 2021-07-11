@@ -778,7 +778,7 @@ for (int i=0; i<7; i++) {
 }
 \end{lstlisting}
 
-A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of return freed \tch{} chunks. The above code allocated seven chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these seven freed chunks to add to \tch{}. \tch{} can keep up to 7 chunks. From this point, if we release other chunks, they add to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use malloc() to allocate fresh chunks, the heap manager returns chunks from \tch{}, so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation, allocation can use calloc. Calloc does not use \tch{}, and \fb{} are free, so calloc gets memory from the top chunk.
+A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of return freed \tch{} chunks. The above code allocated seven chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these seven freed chunks to add to \tch{}. \tch{} can keep up to 7 chunks. From this point, if we release other chunks, they add to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \lstinline{malloc()} to allocate fresh chunks, the heap manager returns chunks from \tch{}, so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation, allocation can use calloc. Calloc does not use \tch{}, and \fb{} are free, so calloc gets memory from the top chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = calloc(1, 8);
@@ -807,8 +807,8 @@ void* p3 = malloc(0x400);
 free(p1);
 \end{lstlisting}
 
-The thirds malloc have a significant memory allocation; this malloc triggers another method call \lstinline{malloc_consolidate()} automatically. Malloc In this situation, consolidate chunks in the fast bin before continuing, then put the resulting merged chunks on the \ub{}.
-Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use malloc with a big size instead of free another chunk in the middle of two free. The third malloc moves chunk from fast bin to unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have \lstinline{P1} on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
+The thirds \lstinline{malloc} have a significant memory allocation; this allocation triggers another method call \lstinline{malloc_consolidate()} automatically. \lstinline{malloc} In this situation, consolidate chunks in the fast bin before continuing, then put the resulting merged chunks on the \ub{}.
+Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use \lstinline{malloc} with a big size instead of free another chunk in the middle of two free. The third \lstinline{malloc} moves chunk from fast bin to unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have \lstinline{P1} on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
 
 \section{Forged Chunk}
 Freeing up a chunk does not prevent access to it because the pointer still exists in the application, so we can implement an attack on the heap data structure by controlling the pointer . Below code shows how we can return our forged chunk instead of a real heap chunk:
@@ -855,7 +855,7 @@ head -> undefined [ forged chunk is returned to the victim ]
 \end{lstlisting}
 
 Take into consideration, another allocation on \fb{} could raise Segmentation faults.
-Now let us use double-free vulnerabilities in \libc{-2.23}; the below code is just an extended version of the Double Free attack which we examined. The extended version tricks malloc() to return a controller memory location on the stack instead of a real chunk of the heap.
+Now let us use double-free vulnerabilities in \libc{-2.23}; the below code is just an extended version of the Double Free attack which we examined. The extended version tricks \lstinline{malloc()} to return a controller memory location on the stack instead of a real chunk of the heap.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long long stack_var;
@@ -873,7 +873,7 @@ malloc(8)
 malloc(8)
 \end{lstlisting}
 
-As describe in the first part, we allocate three chunks and free one of them twice to bypass the \fb{} security check as we mentioned before; as a result, we have twice \lstinline{a} in the \fb{} list and attack by modifying data at \lstinline{a}. There are two mallocs on the following; the first one keep access to \lstinline{a} inside \lstinline{d} pointer, the second one simply remove the \lstinline{b} from top of the \fb{}, now we have one pointer to \lstinline{a} inside the program as \lstinline{d}; also, another \lstinline{a} at top of the heap, remember any change on \lstinline{a} inside the program could affect on \lstinline{a} at top of \fb{} too.
+As describe in the first part, we allocate three chunks and free one of them twice to bypass the \fb{} security check as we mentioned before; as a result, we have twice \lstinline{a} in the \fb{} list and attack by modifying data at \lstinline{a}. There are two \lstinline{malloc} on the following; the first one keep access to \lstinline{a} inside \lstinline{d} pointer, the second one simply remove the \lstinline{b} from top of the \fb{}, now we have one pointer to \lstinline{a} inside the program as \lstinline{d}; also, another \lstinline{a} at top of the heap, remember any change on \lstinline{a} inside the program could affect on \lstinline{a} at top of \fb{} too.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> a
@@ -881,7 +881,7 @@ head -> a
 
 \glnote{could you clarify/rephrase the following? The role of the 0x20 is unclear}
 The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affect \lstinline{a} at the top of the \fb{}) in an away point to right before 0x20 on the stack. In this way, we trick the heap into thinking there is an available free chunk.
- Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \lstinline{malloc()}, then, the final malloc returns a controller address on memory to the program is stack in this case.
+ Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \lstinline{malloc()}, then, the final allocation returns a controller address on memory to the program is stack in this case.
 
 \section{\ub{} Attack}
 
@@ -899,20 +899,20 @@ p[1]=(unsigned long)(&stack_var-2);
 //------------------------------------
 malloc(400);
 \end{lstlisting}
- At the first line, we define our target \lstinline{stack_var} where we want to write the great value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap; otherwise, when we free \lstinline{p} the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of \lstinline{p}. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list; in malloc, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3738}{\texttt{malloc.c}, line 3738}}:
+ At the first line, we define our target \lstinline{stack_var} where we want to write the great value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap; otherwise, when we free \lstinline{p} the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of \lstinline{p}. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list; in \lstinline{malloc}, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3738}{\texttt{malloc.c}, line 3738}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsorted_chunks (av)->bk = bck;
 bck->fd = unsorted_chunks (av);
 \end{lstlisting}
 
-The last malloc tries to allocate 400-Byte of memory, so the heap manager checks the \ub{} to find a fair chunk of memory. Also, move the \ub{} chunk to corresponding bins. If we check the malloc source code, we can see malloc check every item to achieve this goal. At first, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3728}{\texttt{malloc.c}, line 3728}} :
+The last \lstinline{malloc} tries to allocate 400-Byte of memory, so the heap manager checks the \ub{} to find a fair chunk of memory. Also, move the \ub{} chunk to corresponding bins. If we check the \lstinline{malloc} source code, we can see \lstinline{malloc} check every item to achieve this goal. At first, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3728}{\texttt{malloc.c}, line 3728}} :
 \begin{lstlisting}[language=c,frame=tlrb]
 
 while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
 bck = victim->bk;
 \end{lstlisting}
-‘Av’ is arena and \lstinline{unsorted_chunks (av)} is the head of the \ub{} and Victim is our current item. You can see, malloc checks items from the head of the \ub{} and removes them one by one. Put it all to gather:
+‘Av’ is arena and \lstinline{unsorted_chunks (av)} is the head of the \ub{} and Victim is our current item. You can see, \lstinline{malloc} checks items from the head of the \ub{} and removes them one by one. Put it all to gather:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 victim = unsorted_chunks (av) -> bk = p
@@ -1103,7 +1103,7 @@ In this stage, if we allocate a new big chunk, this new big chunk has overlap wi
 
 \section{The Houses}
 
-It is time to talk about the House of XXX families' attack. In 2004 the authors of \libc{} published a series of patches over malloc to prevent previous attacks on heap manager. In late 2004 a person issued a paper \lstinline{The Malloc Maleficarum}, over the internet. 'It is for this reason, a small suggestion of impossibility, that I present the Malloc Maleficarum' As they said. The name came from a 14-century book written by a Catholic clergyman on witchcraft, cool:)
+It is time to talk about the House of XXX families' attack. In 2004 the authors of \libc{} published a series of patches over \lstinline{malloc} to prevent previous attacks on heap manager. In late 2004 a person issued a paper \lstinline{The Malloc Maleficarum}, over the internet. 'It is for this reason, a small suggestion of impossibility, that I present the Malloc Maleficarum' As they said. The name came from a 14-century book written by a Catholic clergyman on witchcraft, cool:)
 
 \subsection{The House of Mind}
 The goal of this attack is to overwrite a memory location by abusing the free() function. Take a look at free() function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4154}{\texttt{malloc.c}, line 4154}}:
@@ -1177,7 +1177,7 @@ uint8_t* target_loc = fake_arena + 0x30;
 uint8_t* target_chunk = (uint8_t*) fake_arena - 0x10;
 \end{lstlisting}
 
-The second step is to initialize the mentioned fake arena and target location. Then, initial malloc\_state of the arena, also, system\_mem field. This field is used to validate the size of the chunk, so it must be larger than our chunk size.
+The second step is to initialize the mentioned fake arena and target location. Then, initial \lstinline{malloc_state} of the arena, also, \lstinline{system_mem} field. This field is used to validate the size of the chunk, so it must be larger than our chunk size.
 \begin{lstlisting}[language=c,frame=tlrb]
 fake_arena[0x888] = 0xFF;
 fake_arena[0x889] = 0xFF;
@@ -1279,7 +1279,7 @@ Now, we have a pointer to the top chunk, all we have to do overwrite the size fi
 *(intptr_t *)((char *)ptr_top + sizeof(long)) = -1
 \end{lstlisting}
 
-If you check the \libc{} above code, you can see the \libc{} convert the size to (unsigned long), so, \-1 is the largest number. Now we put a big number on size, so, malloc doesn’t call mmap to get more memory from os, instead, it uses the top chunk. All we have to do now is allocate a chunk from the top chunk to right before our target, then, the second chunk is be our target:
+If you check the \libc{} above code, you can see the \libc{} convert the size to (unsigned long), so, \-1 is the largest number. Now we put a big number on size, so, \lstinline{malloc} doesn’t call mmap to get more memory from os, instead, it uses the top chunk. All we have to do now is allocate a chunk from the top chunk to right before our target, then, the second chunk is be our target:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long evil_size = (unsigned long)bss_var - sizeof(long)*4 - (unsigned long)ptr_top;
@@ -1306,7 +1306,7 @@ if (__glibc_unlikely (size > av->system_mem))
 
 \subsection{The House of Lore}
 
-This attack abuses the vulnerability inside \sbs{} to modify memory in any location. If we check the malloc source code, we can see there is a check for small chunk request, so, if the requested chunk fits inside the \sbs{} range, the heap manager use it.
+This attack abuses the vulnerability inside \sbs{} to modify memory in any location. If we check the \lstinline{malloc} source code, we can see there is a check for small chunk request, so, if the requested chunk fits inside the \sbs{} range, the heap manager use it.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (in_smallbin_range (nb))
@@ -1392,7 +1392,7 @@ Now the last allocation returns a chunk at our controlled location at the stack,
 \end{figure}
 
 \subsection{The House of Spirits}
-In this attack, an attacker forged a fake chunk inside a controller location like the stack, then overwrote a pointer inside the application in a way pointing to the forged chunk. When the application frees the pointer, it puts our forged chunk inside the bins; as a result, the next malloc returns our forged chunk instead of the real chunk. All the attacker has to do is forge a chunk in a way that bypasses all libc security checks. Consider the application have a pointer call \lstinline{a}, attacker has a forged chunk called \lstinline{fake_chunks}
+In this attack, an attacker forged a fake chunk inside a controller location like the stack, then overwrote a pointer inside the application in a way pointing to the forged chunk. When the application frees the pointer, it puts our forged chunk inside the bins; as a result, the next \lstinline{malloc} returns our forged chunk instead of the real chunk. All the attacker has to do is forge a chunk in a way that bypasses all libc security checks. Consider the application have a pointer call \lstinline{a}, attacker has a forged chunk called \lstinline{fake_chunks}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long long *a;
@@ -1413,10 +1413,10 @@ a = &fake_chunks[2];
 free(a);
 \end{lstlisting}
 
-The result of such an action is, our fake chunk is at the top of the bin, so the next malloc return to the attacker's controlled location.
+The result of such an action is, our fake chunk is at the top of the bin, so the next \lstinline{malloc} return to the attacker's controlled location.
 
 \subsection{The House of Orange}
-The house of orange is different from previous attacks. As we remember, in the previous attack, we use malloc and free to abuse libc vulnerability, but, In the house of orange, we do not use the free() function at all. In other words, we force the heap manager to free a chunk of the heap without calling the free() function. The final layout of this attack is a combination of \ub{} attacks; also, in the end, we gain shell access.
+The house of orange is different from previous attacks. As we remember, in the previous attack, we use \lstinline{malloc} and free to abuse libc vulnerability, but, In the house of orange, we do not use the free() function at all. In other words, we force the heap manager to free a chunk of the heap without calling the free() function. The final layout of this attack is a combination of \ub{} attacks; also, in the end, we gain shell access.
 
 At first, there is one chunk in the application called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation; As we mentioned before, when a request has arrived, the heap manager first checks the bins. If there is no suitable chunk in the bins, the heap manager tries to create a new chunk from the top chunk, so what happens if the requested chunk size is bigger than the top chunk? There are two scenarios for such a situation: if the requested size is smaller than 0x21000, extend the top chunk; otherwise, use mmap. If we can make the heap manager extend instead of mmap, the old top chunk is inserted into an \ub{} without calling the free function.
 
@@ -1563,11 +1563,11 @@ Finally, we trigger the attack by one allocation.
 \subsection{The House of roman = NOT FINISH YET}
 This attack is a combination of \fb{} attack, \ub{} attack, and Use after the free attack, also, The goal is to open a shell. However, the chance of a successful attack is so slight because we need to brute force 12-bit of randomness. The attack consists of three steps.
 
-The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}, but what is the malloc hook? \lstinline{malloc_hook} lets you modify the behavior of malloc and free with a hook function. To achieve this, we use a \fb{} attack in a way the fd pointer points to malloc\_hook.
+The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}, but what is the \lstinline{malloc_hook}? \lstinline{malloc_hook} lets us modify the behavior of \lstinline{malloc} and \lstinline{free} with a hook function. To achieve this, we use a \fb{} attack in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
 
 \subsection{The House of Rabbit}
 
-This attack used a \Fb{} and \lstinline{UAF} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call malloc inorder to consolidate, this chunk merge and split into \sbs{}. as a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
+This attack used a \Fb{} and \lstinline{UAF} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call \lstinline{malloc} inorder to consolidate, this chunk merge and split into \sbs{}. as a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long *a = malloc(0x40);
@@ -1604,7 +1604,7 @@ Now with a single big allocation we have:
 As we can see, now we have two valid forged chunks inside the \sbs{} which have overlap with each other.
 
 \subsection{The House of Einherjar}
-In this attack, the goal is to force malloc to return a chunk in any given address by use of the free function. Consider the free function:
+In this attack, the goal is to force \lstinline{malloc} to return a chunk in any given address by use of the free function. Consider the free function:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 /* consolidate backward */
@@ -1659,7 +1659,7 @@ size_t fake_size = (size_t)((b-sizeof(size_t)*2) - (uint8_t*)fake_chunk);
 fake_chunk[1] = fake_size;
 \end{lstlisting}
 
-The final step is free \lstinline{b} after free \lstinline{b} it is merged without fake chunk, so next malloc returns our fake chunk.
+The final step is free \lstinline{b} after free \lstinline{b} it is merged without fake chunk, so next \lstinline{malloc} returns our fake chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(b);
