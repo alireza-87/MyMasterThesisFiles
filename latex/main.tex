@@ -74,11 +74,11 @@ An application has different types of memory space. Two must important are \emph
 	\item heap memory can become fragment, but Stack memory won't
 	\item heap can access to variable globally, but the stack can access to a local variable only
 	\item heap memory allocation perform by developers, but stack allocation perform by compilers
-	\item developer have to free heap's memory when they don't need it anymore, but you would not have to handle stack
+	\item developer have to free heap's memory when they do not need it anymore, but we would not have to handle stack
 \end{itemize}
-Each of mentioned memory spaces has advantages and disadvantages; as a result, which one to use depends on the circumstances. If you need to handle data in LIFO format, then the stack is the better choice. As we mentioned, The input parameters of a function may send by the stack. In this way, the compiler does not have to free up memory after returning from the function because they automatically remove it. Also, Stack memory space is a better solution for local variable access.
+Each of mentioned memory spaces has advantages and disadvantages; as a result, which one to use depends on the circumstances. If we need to handle data in LIFO format, then the stack is the better choice. As we mentioned, The input parameters of a function may send by the stack. In this way, the compiler does not have to free up memory after returning from the function because they automatically remove it. Also, Stack memory space is a better solution for local variable access.
 
-Every platform has a way to interact with heap memory. There are lots of allocators like iOS allocator, Free- BSD allocator, and Linux allocator. Our work specifically on \emph{ \libc{}} memory allocator which drives from \emph{ptmalloc} heap implementations, which is itself derived from \emph{dlmalloc}, so, at first we want to discuss \libc{} allocations algorithms and Methods. Consider the following code as an allocation sample:
+Every platform has a way to interact with heap memory. Our work specifically on \emph{ \libc{}} memory allocator which drives from \emph{ptmalloc} heap implementations, which is itself derived from \emph{dlmalloc}, so, at first we want to discuss \libc{} allocations algorithms and Methods. Consider the following code as an allocation sample:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 typedef struct
@@ -215,7 +215,7 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-Also, retake a look at inside memory; you can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. Also, the forward pointers point to the beginning of the heap area in memory.
+Also, retake a look at inside memory; we can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. Also, the forward pointers point to the beginning of the heap area in memory.
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/64h 0x0000555555559290
@@ -236,18 +236,18 @@ gef: x/64h 0x0000555555559290
 	\item heap manager cheek previously freed chunk, if there is a chunk which big enough, then, return it.
 	\item If the heap manager unable to find a previously freed chunk, then look at the top chunk. If there is available free space, then allocated a new chunk and returned it.
 	\item If there is not enough space in a heap anymore, then ask Kernel for new memory allocation to the end of the heap and allocate chunk from this new space.
-	\item If all the above space failed, then malloc returns NULL, which means we can't allocate new space.
+	\item If all the above space failed, then malloc returns NULL, which means we cannot allocate new space.
 \end{enumerate}
 
 \subsection{Allocation from Freed Chunks}
 As we mention, Previously freed chunks are the first place search by the heap manager. Heap manager tracks of Freed chunks via some linked list call 'bins' when a new allocation request arrives; the heap manager looks at bins to find a big enough chunk. If the chunk has the same size, then the heap manager returns it. Otherwise, if the chunk is more significant than the request, then the heap manager split it. There are several different types of bins which we discuss later.
 
 \subsection{Allocation from Top Chunk}
-So what's happen if there were no suitable previously free space? In this situation, the heap manager checks the remaining space at the end of the heap. If there is enough space to create a chunk, then allocate a new chunk from the top of the heap space.
+So what does happen if there were no suitable previously free space? In this situation, the heap manager checks the remaining space at the end of the heap. If there is enough space to create a chunk, then allocate a new chunk from the top of the heap space.
 
 \subsection{Ask Kernel for more memory}
-So, Let's check what happens yet—first, the heap manager search through previously free chunk. Assume we don't have any suitable free chunk; as a result, the heap manager performs chunk creation in the top chunk; however, the request is bigger than this space. If there is not enough space at the end of the heap, the heap manager asks Linux Kernel for more memory. Now we have to discuss another system called \emph{brk}. When a program executes, the heap manager calls \emph{sbrk} which used the brk system call. This system call allocates more memory just after the program gets load which is the end of the heap.
-After a while, this system calls \lstinline{break} because the newly allocated region at the end of the program space collides with another thing in the process's space. Once this situation happens, the heap manager cannot allocate contiguous memory space, so by calling mmap to allocate non-contiguous memory space.
+So, let us check what happens yet—first, the heap manager search through previously free chunk. Assume we do not have any suitable free chunk. As a result, the heap manager performs chunk creation from the top chunk; however, the request is bigger than the remaining space. If there is not enough space at the end of the heap, the heap manager asks Linux Kernel for more memory. Now we have to discuss another system called \emph{brk}. When a program executes, the heap manager calls \emph{sbrk} which used the brk system call. This system call allocates memory just after the program gets load which is the end of the heap.
+After a while, this system calls \lstinline{break} because the newly allocated region at the end of the program space collides with another thing in the process's space. Once this situation happens, the heap manager cannot allocate contiguous memory space by calling mmap to allocate non-contiguous memory space.
 
 \section{MMAP}
 The heap manager uses \emph{mmap} for large memory allocation instead of sbrk If the user requests a too large memory space. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
@@ -255,15 +255,15 @@ The heap manager uses \emph{mmap} for large memory allocation instead of sbrk If
 \section{ARENA}
 Concurrency is a challenge in multi-thread applications, so heap manager is not safe from this issue. There are many solutions to overcome this problem. In the early days' heap managers used a simple global lock before every heap operation to overcome this situation; However, this approach has a high cost. In multi-thread applications with heavy use of heap, this strategy leads to substantial performance issues because the heap needs to lock many times.
 
-To improve the performance, \lstinline{ptmalloc2} introduces a concept called \emph{arena}. In this approach different thread has their arena; also, Each arena manages their chunks; as a result, threads can work at the same time on different arena without altering each other data.
+To improve the performance, \lstinline{ptmalloc2} introduces a concept called \emph{arena}. Different threads have their arena; also, Each arena manages its chunks. As a result, threads can work simultaneously in the different arenas without altering each other data.
 
-When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number, which default value is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit; also, you can tune this value by \emph{mallopt} function. So, what happens when we reach max number? Thread has to share the arena.
+When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit; also, you can tune this value by \emph{mallopt} function. So, what happens when we reach max number? Thread has to share the arena.
 \glnote{MALLOPT WILL ADD}
 
 As we saw before, the main Arenas create and grow by the sbrk system call; however, this is not true for the second heap. The second heap creates via mmap.
 
 \section{Subheap}
-As we mention, the main heap arena located just after where the program started and expanded by sbrk, so we can conclude in the multi-thread application, which has a secondary heap, sbrk can not do this. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap works like the main heap; however, they have some differences. The main heap is located right after the program starts in memory; they grow with the sbrk system call. Subheap can not contiguously allocate after the program begins because it creates by mmap; moreover, the heap manager expands them by 'protect.
+The main heap arena is located just after where the program started and expanded by sbrk. We can conclude that in the multi-thread application, which has a secondary heap, sbrk can not do this. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap works like the main heap; however, they have some differences. The main heap is located right after the program starts in memory; they grow with the sbrk system call. Subheap can not contiguously allocate after the program begins because it creates by mmap; moreover, the heap manager expands them by 'protect.
 
 How heap manager create and manage the subheap? In the first step, the heap manager asks the Kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap; it just tells the Kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
 On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling \lstinline{mprotect}. What mprotect do? It concerts \lstinline{PROT_NONE}\glnote{use lstinline for identifiers/function-names/etc; change everywhere} to PROT\_READ, PROT\_WRITE. In this way, at least the Kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
@@ -281,7 +281,7 @@ Whats happens when the user does not need allocated space anymore? , calling hea
 \section{Bins}
 	The heap manager requires a mechanism to manage and organize recently freed chunks for the following allocations. The simplest solution to keep track of freed space is to store them in a giant bin; although this could work, It is not a good solution. Malloc uses vary wildly, so this approach leads to a performance problem.
 To improve performance, the heap manager uses different types of bins. There is 5 different type of bins: \emph{\sbs{}}, \emph{\lb{}}, \emph{\fb{}}, \emph{\ub{}}, \emph{\tch{}}. All of the mentioned bins exist in the same area of heap manager source code. This is a list with 127 items, the index 0 is unused.
-Now, We want to discuss how the heap manager recycles a chunk for a new allocation. First, let's consider a simple schema:
+Now, We want to discuss how the heap manager recycles a chunk for a new allocation. First, let us consider a simple schema:
 \begin{enumerate}
 	\item If the M-bit in metadata is set, then this chunk is allocated off-heap, so, It should be unmmap.
 	\item Otherwise, if the chunk right before this chunk is free, then they merge (the way they are merged depends on many factors, we will detail them in the following sections)
@@ -304,19 +304,19 @@ Usually free() follow by an allocation of the same size in a real program. The h
 for (;; ){
  int iters = 0;
  while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
-  /* ... */
+ /* ... */
  }
 }
 \end{lstlisting}
 
-As you can see, malloc iterate over all items inside \ub{}. We can conclude that when the heap manager tries to find chunks in \ub{}, all of the \ub{} chunks move to corresponding bins.
+As we can see, malloc iterate over all items inside \ub{}. We can conclude that when the heap manager tries to find chunks in \ub{}, all of the \ub{} chunks move to corresponding bins.
 
 \subsection{\Fb}
 \Fb{} bins keep recently freed small chunks in a list. As we mention \ub{} merge chunk before adding to bins, but, chunk in \ub{} does not merge with neighbors; instead, \fb{} keeps them alive, so, If the program sends the same size request, then heap manager can use this chunks.
 The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call malloc\_consolidate().
 
 \subsection{\Tch bins}
-since \libc{-2.26} \tch{} add ad the last optimization in the heap manager . Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. As we talk before, the heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, you can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}
+since \libc{-2.26} \tch{} add ad the last optimization in the heap manager . Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}
 
 \begin{lstlisting}[frame=tlrb]
 Free chunk (tcache)
@@ -336,7 +336,7 @@ fd: 0x5555555592c0
 \end{lstlisting}
 
 \section{malloc()}
-Let's put all it together to find out how malloc works. When a new allocation request arrives, malloc does the following procedure:
+Let us put all it together to find out how malloc works. When a new allocation request arrives, malloc does the following procedure:
 Lets consider \libc{-2.31}, In these particular version \tch{} is the first place. If \tch{} have a chunk with the same size, the heap manager return it immediately. If the chunk is bigger than the request, \tch{} won't split it, instead, the heap manager keep it for future requests. In this case, the arena does not need to lock because the chunk returns from \tch{} immediately. Consider the following code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3047}{\texttt{malloc.c}, line 3047}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -346,7 +346,7 @@ Lets consider \libc{-2.31}, In these particular version \tch{} is the first plac
 }
 \end{lstlisting}
 
-The above code is inside the \lstinline{libc_malloc()} . It is responsible for checking and returns a chunk from \tch{} before locking the arena and search for a chunk. If the \tch{} fail, In the next step, two situations may happen. If we have a single thread application, there is no need to lock at the arena because there is no concurrency; instead, in a multi\-thread application heap manager, first get the corresponding arena and then lock it first. The following code is responsible to check the mentioned situation \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3056}{\texttt{malloc.c}, line 3056}}:
+The above code is inside the \lstinline{libc_malloc()} . It is responsible for checking and returns a chunk from \tch{} before locking the arena and search for a chunk. If the \tch{} fail, In the next step, two situations may happen. There is no need to lock at the arena in a single-thread application because there is no concurrency. Instead, in a multi\-thread application heap manager, first, get the corresponding arena and then lock it first. The following code is responsible to check the mentioned situation \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3056}{\texttt{malloc.c}, line 3056}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */
@@ -359,13 +359,13 @@ victim = _int_malloc (ar_ptr, bytes);
  /* ... */
 \end{lstlisting}
 
-Now we discuss the \lstinline{_int_malloc()} function. This function gets the request size, and the arena then tries to allocate a chunk and return it from bins or top chunks. Let's consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk; as a result, remove and add a chunk to the fast bin is fast \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
+Now we discuss the \lstinline{_int_malloc()} function. This function gets the request size, and the arena then tries to allocate a chunk and return it from bins or top chunks. Let us consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk; as a result, remove and add a chunk to the fast bin is fast \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
 \end{lstlisting}
 
-In this step, while the heap manager checks the fast bin for a fair chunk, It fills \tch{} too, if found a same size chunk in the fast bin. It is a performance improvement. Usually, the following allocation has the same size too, so the next allocation finds in the \tch{} without the need to arena lock \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3599}{\texttt{malloc.c}, line 3599}}.
+In this step, while the heap manager checks the fast bin for a fair chunk, It fills \tch{} too, if found a same size chunk in the fast bin. It is a performance improvement. Usually, the following allocation has the same size too. Hence, the next allocation finds in the \tch{} without the need to arena lock \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3599}{\texttt{malloc.c}, line 3599}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 size_t tc_idx = csize2tidx (nb);
@@ -401,29 +401,29 @@ Attacks in \sbs{} usually abuse this part of code to write data in a location by
 malloc_consolidate (av);
 \end{lstlisting}
 
-Now it is time to check \ub{} chunks. As we mention, the heap manager examines all of the \ub{} chunks to find a fair chunk. If the chunk is the same size, then the heap manages to return it; if it is bigger than the requested size heap manager split the chunk, return a chunk to the user, and put the remaining chunks to corresponding bins too, and remove them from the \ub{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3725}{\texttt{malloc.c}, line 3725}}.
+Now it is time to check \ub{} chunks. As we mention, the heap manager examines all of the \ub{} chunks to find a fair chunk. If the chunk has the same size, then the heap manages to return the chunk. If the chunk is bigger than the requested size heap manager split the chunk at first, return the user chunk. In the following the heap manager put the remaining chunk to corresponding bins too, and remove them from the \ub{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3725}{\texttt{malloc.c}, line 3725}}.
 
 \begin{lstlisting}[language=c]
 for (;; ) {
  int iters = 0;
  while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av))
-  /* ... */
+ /* ... */
 \end{lstlisting}
 This adds and removes chunks that need to alter the forward and backward pointer of chunks which some times abused by an attacker to write data in a location. this part of code has some security check to find if the chunk and heap corrupted or not by checking the pointers and chunk size \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3734}{\texttt{malloc.c}, line 3734}}:
 \begin{lstlisting}[language=c,frame=tlrb]
-  if (__glibc_unlikely (size <= 2 * SIZE_SZ)
-  || __glibc_unlikely (size > av->system_mem))
-  malloc_printerr ("malloc(): invalid size (unsorted)");
-  if (__glibc_unlikely (chunksize_nomask (next) < 2 * SIZE_SZ)
-  || __glibc_unlikely (chunksize_nomask (next) > av->system_mem))
-  malloc_printerr ("malloc(): invalid next size (unsorted)");
-  if (__glibc_unlikely ((prev_size (next) & ~(SIZE_BITS)) != size))
-  malloc_printerr ("malloc(): mismatching next->prev_size (unsorted)");
-  if (__glibc_unlikely (bck->fd != victim)
-  || __glibc_unlikely (victim->fd != unsorted_chunks (av)))
-  malloc_printerr ("malloc(): unsorted double linked list corrupted");
-  if (__glibc_unlikely (prev_inuse (next)))
-  malloc_printerr ("malloc(): invalid next->prev_inuse (unsorted)");
+ if (__glibc_unlikely (size <= 2 * SIZE_SZ)
+ || __glibc_unlikely (size > av->system_mem))
+ malloc_printerr ("malloc(): invalid size (unsorted)");
+ if (__glibc_unlikely (chunksize_nomask (next) < 2 * SIZE_SZ)
+ || __glibc_unlikely (chunksize_nomask (next) > av->system_mem))
+ malloc_printerr ("malloc(): invalid next size (unsorted)");
+ if (__glibc_unlikely ((prev_size (next) & ~(SIZE_BITS)) != size))
+ malloc_printerr ("malloc(): mismatching next->prev_size (unsorted)");
+ if (__glibc_unlikely (bck->fd != victim)
+ || __glibc_unlikely (victim->fd != unsorted_chunks (av)))
+ malloc_printerr ("malloc(): unsorted double linked list corrupted");
+ if (__glibc_unlikely (prev_inuse (next)))
+ malloc_printerr ("malloc(): invalid next->prev_inuse (unsorted)");
 \end{lstlisting}
 
 If all of above strategy fails, the heap manager tries to allocate chunk from free space at top chunk \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
@@ -438,16 +438,16 @@ use_top:
  /* ... */
 \end{lstlisting}
 
-You can see, this part starts with a security check. In this case, the request size is bigger than the top chunk; the heap manager calls sysmalloc as the last \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4141}{\texttt{malloc.c}, line 4141}}.
+We can see, this part starts with a security check. In this case, the request size is bigger than the top chunk; the heap manager calls sysmalloc as the last \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4141}{\texttt{malloc.c}, line 4141}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
  void *p = sysmalloc (nb, av);
  \end{lstlisting}
 
-This function checks if the system support mmap allocation and the requested size is inside the mmap threshold, then it allocates memory by using mmap. If it fails means there is no memory anymore, so malloc returns a null pointer.
+This function checks if the system supports mmap allocation and the requested size is inside the mmap threshold. It allocates memory by using mmap. If it fails means there is no memory anymore, so malloc returns a null pointer.
 
 \section{calloc()}
-Calloc \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. Calloc and malloc have one important difference. Unlike malloc, calloc does not use \tch{}. If you have free chunks in \tch{} then request a new memory by calloc, the heap manager won't\glnote {do not use contractions in formal writing; in this case, "will not" (instead of won't)} use them instead create a new chunk from the top chunk. consider the following sample
+Calloc \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. Calloc and malloc have one important difference. Unlike malloc, calloc does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by calloc, the heap manager will not use them \glnote {DONE do not use contractions in formal writing; in this case, "will not" (instead of will not)}. Instead, create a new chunk from the top chunk. consider the following sample
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = malloc(8);
@@ -458,7 +458,7 @@ calloc(1,8);
 calloc(1,8);
 \end{lstlisting}
 
-If you look at the heap state after calloc, you can see heap manager create new chunks from the top chunk and \tch{} chunks remain.
+If we look at the heap state after calloc, we can see heap manager create new chunks from the top chunk and \tch{} chunks remain.
 
 \section{Alignment()}
 As we mention, one of the heap manager's responsibilities is to keep memory in 16-byte alignment. In short form, the heap manager return aligned memory in the allocation phase, then, When a user calls free to request a chunk, the heap manager checks the alignment of memory for security reasons too. First, see the allocation part:
@@ -530,7 +530,7 @@ The second usage is when the heap manager wants to use the top chunk in malloc. 
 use_top:
 	 /* ... */
 	else if (have_fastchunks (av)){
-	  malloc_consolidate (av);
+	 malloc_consolidate (av);
 	}
 \end{lstlisting}
 
@@ -551,7 +551,7 @@ We worked exclusively on \libc{} as the heap manager on the x86 machine, so the 
 
 
 \section{GDB}
-The gdb is a portable debugger that works on Unix-like os. Gdb allows you to execute, debug and modify inside an executable program while it's running, even without the source code. Gdb supports a wide variety of programming languages like c/c++, go, rust, assembly. The installation process is easy; all you have to do is use the apt package manager.
+The gdb is a portable debugger that works on Unix-like os. Gdb allows us to execute, debug and modify inside an executable program while running, even without the source code. Gdb supports a wide variety of programming languages like c/c++, go, rust, assembly. The installation process is easy; all we have to do is use the apt package manager.
 \begin{lstlisting}[frame=tlrb]
 sudo apt-get install gdb
 \end{lstlisting}
@@ -656,7 +656,7 @@ Show top chunk information.
 
 
 \section{Heappy}
-Unlike previously mentioned tools, heappy focuses on heap layout presentation. This utility is an editor which presents a graphical layout of the heap. To install heappy, first, you have to download requirements:
+Unlike previously mentioned tools, heappy focuses on heap layout presentation. This utility is an editor which presents a graphical layout of the heap. To install heappy, first, we have to download requirements:
 
 \begin{lstlisting}[frame=tlrb]
 wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
@@ -694,10 +694,10 @@ then with the help of download script file , we can download any version of \lib
 \begin{lstlisting}[frame=tlrb]
 ./download libc6_2.23-0ubuntu10_amd64
 Getting libc6_2.23-0ubuntu10_amd64
-  -> Location: http://security.ubuntu.com/ubuntu/pool/main/g/glibc/libc6_2.23-0ubuntu10_amd64.deb
-  -> Downloading package
-  -> Extracting package
-  -> Package saved to libs/libc6_2.23-0ubuntu10_amd64
+ -> Location: http://security.ubuntu.com/ubuntu/pool/main/g/glibc/libc6_2.23-0ubuntu10_amd64.deb
+ -> Downloading package
+ -> Extracting package
+ -> Package saved to libs/libc6_2.23-0ubuntu10_amd64
 ls libs/libc6_2.23-0ubuntu10_amd64
 ld-2.23.so ... libc.so.6 ... libpthread.so.0 ...
 \end{lstlisting}
@@ -710,7 +710,7 @@ patchelf --set-interpreter <DYNALIC_LOADER_FILE.so> --set-rpath <LIBC FOLDER> <E
 
 \section{Debug Libc}
 
-Debugging inside the \libc{} source code is essential while investigating an attack. To debug the \libc{} we need debugging symbols; otherwise, gdb could not show us the source code. If you compile the program with your machine \libc{}, you can install the symbols with the apt package manager.
+Debugging inside the \libc{} source code is essential while investigating an attack. To debug the \libc{} we need debugging symbols; otherwise, gdb could not show us the source code. If we compile the program with we machine \libc{}, you can install the symbols with the apt package manager.
 \begin{lstlisting}[frame=tlrb]
 sudo apt-get install libc6-dbg
 \end{lstlisting}
@@ -1286,7 +1286,7 @@ unsigned long evil_size = (unsigned long)bss_var - sizeof(long)*4 - (unsigned lo
 void *new_ptr = malloc(evil_size);
 \end{lstlisting}
 
-The above code calculates the distance between the top chunk beginning and the target \lstinline{bss_var}. In the following, allocate enough memory space to rich the target; however, this chunk does not point to target, instead this chunk point to start of the top chunk, so, we need to allocate the second chunk:
+The above code calculates the distance between the top chunk beginning and the target \lstinline{bss_var}. In the following, allocate enough memory space to reach the target. this chunk does not point to target; instead, this chunk point to the start of the top chunk, so we need to allocate the second chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void* ctr_chunk = malloc(100);
@@ -1306,7 +1306,7 @@ if (__glibc_unlikely (size > av->system_mem))
 
 \subsection{The House of Lore}
 
-This attack abuses the vulnerability inside \sbs{} to modify memory in any location. If you check the malloc source code, you can see there is a check for small chunk request, so, if the requested chunk fits inside the \sbs{} range, the heap manager use it.
+This attack abuses the vulnerability inside \sbs{} to modify memory in any location. If we check the malloc source code, we can see there is a check for small chunk request, so, if the requested chunk fits inside the \sbs{} range, the heap manager use it.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (in_smallbin_range (nb))
@@ -1364,7 +1364,7 @@ After that, we need to abuse the vulnerability, so the bck pointer of the victim
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb3}}
  \caption{Heap layout}
 \end{figure}
-The victim is not in the \ub{} anymore; instead, the heap manager moves it to the \sbs{} after allocation of p2. As you remember, we mentioned, the heap manager checks all of the chunks inside the \ub{}. If the size is not suitable for the current allocation, they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
+The victim is not in the \ub{} anymore; instead, the heap manager moves it to the \sbs{} after allocation of p2. As we remember, the heap manager checks all of the chunks inside the \ub{}. If the size is not suitable for the current allocation, they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *p3 = malloc(0x100);
@@ -1416,7 +1416,7 @@ free(a);
 The result of such an action is, our fake chunk is at the top of the bin, so the next malloc return to the attacker's controlled location.
 
 \subsection{The House of Orange}
-The house of orange is different from previous attacks. As you remember, in the previous attack, we use malloc and free to abuse libc vulnerability, but, In the house of orange, we do not use the free() function at all. In other words, we force the heap manager to free a chunk of the heap without calling the free() function. The final layout of this attack is a combination of \ub{} attacks; also, in the end, we gain shell access.
+The house of orange is different from previous attacks. As we remember, in the previous attack, we use malloc and free to abuse libc vulnerability, but, In the house of orange, we do not use the free() function at all. In other words, we force the heap manager to free a chunk of the heap without calling the free() function. The final layout of this attack is a combination of \ub{} attacks; also, in the end, we gain shell access.
 
 At first, there is one chunk in the application called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation; As we mentioned before, when a request has arrived, the heap manager first checks the bins. If there is no suitable chunk in the bins, the heap manager tries to create a new chunk from the top chunk, so what happens if the requested chunk size is bigger than the top chunk? There are two scenarios for such a situation: if the requested size is smaller than 0x21000, extend the top chunk; otherwise, use mmap. If we can make the heap manager extend instead of mmap, the old top chunk is inserted into an \ub{} without calling the free function.
 
@@ -1477,11 +1477,11 @@ struct _IO_FILE_plus{
 };
 \end{lstlisting}
 
-As you can see this internal structure keeps \lstinline{_io_file} object alongside a jump virtual table called \lstinline{_io_jump_t}. This virtual table contains a list of pointers to all of the file functions. Because \lstinline{_io_file} uses the virtual table to call files function, the attacker can forge a fake object and overwrite the pointer; as a result, he can gain control flow of the application.
+As you can see this internal structure keeps \lstinline{_io_file} object alongside a jump virtual table called \lstinline{_io_jump_t}. This virtual table contains a list of pointers to all of the file functions. \lstinline{_io_file} uses a virtual table to call files function. An attacker can forge a fake object, overwrite the pointer to gain control flow of the application.
 
 Our goal is to make \lstinline{_IO_flush_all_lockp} call \lstinline{_IO_OVERFLOW}, also, overwrite \lstinline{_io_list_all} with a forged file pointer in a way \lstinline{_IO_OVERFLOW} point to system function. The result of this action is to open a shell.
 
-The first thing is to calculate the address of \lstinline{_io_list_all} inside the libc. Currently, we have one freed chunk inside the \ub{}, the bk and fd pointer is pointed to the main arena of the heap, so we can use this address to calculate the \lstinline{_io_list_all} address.
+The first thing is to calculate the address of \lstinline{_io_list_all} inside the libc. Currently, we have one freed chunk inside the \ub{}, the \lstinline{bk} and \lstinline{fd} pointer is pointed to the main arena of the heap. we can use this address to calculate the \lstinline{_io_list_all} address.
 
 With the help of \emph{blukat} \footnote{\href{https://libc.blukat.me}{\texttt{libc database}}} website , we can find the offset of \lstinline{_io_list_all} based on the \libc{} version. This sample use \libc{-2.23} , so we search inside we site for this specific \libc{} version:
 
@@ -1535,7 +1535,7 @@ if (__builtin_expect (victim->size <= 2 * SIZE_SZ, 0)
 \end{lstlisting}
 
 
-During iteration over chunks inside the \ub{}, the libc checks the size of the chunk; if the size is smaller than \lstinline{MINSIZE}, then the abort procedure called, and an attack be performed.
+During iteration over chunks inside the \ub{}, the libc checks the size of the chunk; if the size is smaller than \lstinline{MINSIZE}, then the abort procedure called, and an attack happens.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 top[1] = 0x61;
@@ -1567,7 +1567,7 @@ The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}, but wh
 
 \subsection{The House of Rabbit}
 
-This attack used a combination of fast bin and UAF attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size and aborts the allocation; however, If we force the heap manager to call malloc to consolidate, this chunk merge and split into \sbs{}; as a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
+This attack used a \Fb{} and \lstinline{UAF} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call malloc inorder to consolidate, this chunk merge and split into \sbs{}. as a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long *a = malloc(0x40);
@@ -1601,7 +1601,7 @@ Now with a single big allocation we have:
  \caption{\sbs{}}
 \end{figure}
 
-As you can see, now we have two valid forged chunks inside the \sbs{} which have overlap with each other.
+As we can see, now we have two valid forged chunks inside the \sbs{} which have overlap with each other.
 
 \subsection{The House of Einherjar}
 In this attack, the goal is to force malloc to return a chunk in any given address by use of the free function. Consider the free function:
@@ -1615,7 +1615,7 @@ if (!prev_inuse(p)) {
 	unlink (off, p, bck, fwd);
 }
  \end{lstlisting}
-When a free function calls, it tries to merge the current chunk with the previous chunk if the \lstinline{prev_inuse} flag is not set. The merged chunk size is calculated by the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned in \libc{} the metadata at the end of the heap is in share with metadata at the beginning of the next chunk:
+If the \lstinline{prev_inuse} flag is zero, in the time of free function calls, it tries to merge the current chunk with the previous chunk. The calculation of merged chunk size is the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned, \libc{} share metadata at the end of the chunk with metadata at the beginning of the next chunk:
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb10}}
@@ -1674,7 +1674,7 @@ Consider the following code, like always, first; we assume our target is at the 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t stack_var[4];
 \end{lstlisting}
-Now, We allocate seven chunks to fill up the \tch{} in the future. As you remember, we did this trick before too.
+Now, We allocate seven chunks to fill up the \tch{} in the future. As we remember, we did this trick before too.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *x[7];
@@ -1730,7 +1730,7 @@ malloc(0x100);
 free(a);
 \end{lstlisting}
 
-The above procedure has another result, too; now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the fd pointer in a way pointing to the target, then two allocations. The last allocation has control over the target.
+The above procedure has another result, too; now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the fd pointer pointing to the target, then two allocations. The last allocation has control over the target.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *b = malloc(0x120);
@@ -1859,7 +1859,7 @@ Like the previous one, we change the size of the last chunk. The new chunk size 
 free(mmap_chunk_3);
 \end{lstlisting}
 
-In this stage, if we allocate a new big chunk, this new big chunk is overlapped with chunk\_2, which just has been unmmap without call unmmap directly; as a result, we can write on the chunk2 area with the help of our new chunk.
+In this stage, By allocating a new big chunk, the new one overlapped with \lstinline{chunk_2}, which has been unmmap without call unmmap directly. We can write on the \lstinline{chunk2} area with the help of our new chunk.
 
 \section{\tch{} poisoning}
 This attack is specially designed for \tch{} bins, As a result, The \tch{} attack won't work on the older version of libc which does not have \tch{}. The final goal is to force \tch{} to return a chunk in a controlled location for example the stack. consider the following code:
@@ -1876,7 +1876,7 @@ free(b);
 Tcachebins[idx=7, size=0x90] count=2 Chunk(addr=0x555555559330, size=0x90, flags=PREV_INUSE) Chunk(addr=0x5555555592a0, size=0x90, flags=PREV_INUSE)
 \end{lstlisting}
 
-The controller location in this sample is a variable inside the stack. In the next step, we allocate and free two chunks. In newer versions of \libc{}, this chunk could be added to \tch{}.
+The controller location in this sample is a variable inside the stack. In the next step, we allocate and free two chunks. We should mention, in newer versions of \libc{}, this chunk adds to \tch{}.
 In the second step we overwrite the fd pointer of chunk ‘b’:
 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1911,7 +1911,7 @@ The first step is to define the target, also, we need to define two chunks in th
 free(p1);
 size_t *g3 = malloc(0x438);
 \end{lstlisting}
-In the second step, we free the most significant chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, the freed chunk was added to \ub{} at first, so, The best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (Like other attacks).
+In the second step, we free the most significant chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, a free chunk adds to \ub{} at first, so, The best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (Like other attacks).
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2);
 \end{lstlisting}
