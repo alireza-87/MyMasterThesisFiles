@@ -172,7 +172,7 @@ pwndbg> p c
 $5 = (int *) 0x5555555592e0
 \end{lstlisting}
 
-The returned address by \libc{} is not the address of chunk, but, the address of the data section. if We minus these two numbers we can see 16 bytes different which use for metadata. If you look at the chunk data structure, there are two INTERNAL\_SIZE\_T is used to keep the size of the chunk. The \libc{} documentation said ' |INTERNAL\_SIZE\_T is the word-size used for internal bookkeeping of chunk sizes'. The default size is equal to \sizet{}. Now if we take a look at inside the memory:
+The returned address by \libc{} is not the address of chunk, but, the address of the data section. if We minus these two numbers we can see 16 bytes different which use for metadata. If you look at the chunk data structure, there are two \lstinline{INTERNAL_SIZE_T} is used to keep the size of the chunk. The \libc{} documentation said ' \lstinline{|INTERNAL_SIZE_T} is the word-size used for internal bookkeeping of chunk sizes'. The default size is equal to \sizet{}. Now if we take a look at inside the memory:
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/64h 0x0000555555559290
@@ -188,9 +188,9 @@ gef: x/64h 0x0000555555559290
 
 In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation, which total allocation becomes 24 bytes. However, \libc{} must keep memory in 16-byte alignment; as a result, the final allocation is 32 bytes. Please look at the size field in an allocated chunk; we can see the size is not 32 but 33. The reason is three last bits of size parse differently:
 \begin{enumerate}
-	\item A (NON\_MAIN\_ARENA): 0 for chunks in the main arena
-	\item M (IS\_MMAPPED): The chunk is obtained through mmap
-	\item P (PREV\_INUSE):
+	\item A (\lstinline{NON_MAIN_ARENA}): 0 for chunks in the main arena
+	\item M (\lstinline{IS_MMAPPED}): The chunk is obtained through mmap
+	\item P (\lstinline{PREV_INUSE}):
 \end{enumerate}
 Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the chunk as a place to keep pointer metadata in the free chunk. Take a look at heap after call free function:
 
@@ -265,8 +265,8 @@ As we saw before, the main Arenas create and grow by the sbrk system call; howev
 \section{Subheap}
 The main heap arena is located just after where the program started and expanded by sbrk. We can conclude that in the multi-thread application, which has a secondary heap, sbrk can not do this. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap works like the main heap; however, they have some differences. The main heap is located right after the program starts in memory; they grow with the sbrk system call. Subheap can not contiguously allocate after the program begins because it creates by mmap; moreover, the heap manager expands them by 'protect.
 
-How heap manager create and manage the subheap? In the first step, the heap manager asks the Kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap; it just tells the Kernel, Do not use this area. Mmap by flags required page as PROT\_NONE achieve this goal.
-On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling \lstinline{mprotect}. What mprotect do? It concerts \lstinline{PROT_NONE}\glnote{use lstinline for identifiers/function-names/etc; change everywhere} to PROT\_READ, PROT\_WRITE. In this way, at least the Kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
+How heap manager create and manage the subheap? In the first step, the heap manager asks the Kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap; it just tells the Kernel, Do not use this area. Mmap by flags required page as \lstinline{PROT_NONE} achieve this goal.
+On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling \lstinline{mprotect}. What mprotect do? It concerts \lstinline{PROT_NONE}\glnote{use lstinline for identifiers/function-names/etc; change everywhere} to \lstinline{PROT_READ}, \lstinline{PROT_WRITE}. In this way, at least the Kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
 
 \section{free}
 Whats happens when the user does not need allocated space anymore? , calling heap can free up space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but free() needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. send an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks before free up space:
@@ -313,7 +313,7 @@ As we can see, malloc iterate over all items inside \ub{}. We can conclude that 
 
 \subsection{\Fb}
 \Fb{} bins keep recently freed small chunks in a list. As we mention \ub{} merge chunk before adding to bins, but, chunk in \ub{} does not merge with neighbors; instead, \fb{} keeps them alive, so, If the program sends the same size request, then heap manager can use this chunks.
-The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call malloc\_consolidate().
+The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate()}.
 
 \subsection{\Tch bins}
 since \libc{-2.26} \tch{} add ad the last optimization in the heap manager . Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}
@@ -970,7 +970,7 @@ p1[3] = (size_t)((&target)-4);
 size_t *g4 = malloc(0x438);
 \end{lstlisting}
 
-The last step is to allocate a bigger chunk, so, p2 moves to a larger chunk. When p2 move to large chunk, the heap manager write the address of p2 inside p1->bk\_nextsize->fd\_nextsize as the code of \libc{} show \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3843}{\texttt{malloc.c}, line 3843}}:
+The last step is to allocate a bigger chunk, so, \lstinline{p2} moves to a larger chunk. When \lstinline{p2} move to large chunk, the heap manager write the address of \lstinline{p2} inside \lstinline{p1->bk_nextsize->fd_nextsize} as the code of \libc{} show \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3843}{\texttt{malloc.c}, line 3843}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 fwd = bck;
@@ -1130,7 +1130,7 @@ As we mentioned, when the user requests a memory allocation \libc{} returns a po
 (chunk_non_main_arena(ptr)?heap_for_ptr(ptr)->ar_ptr: &main_arena)
  \end{lstlisting}
 
-When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or non\_main arena. We can conclude , if the \lstinline{non_main_arena} is set , then \lstinline{chunk_non_main_arena()} return true ,as the result \lstinline{ar_ptr} in \lstinline{free()} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
+When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude , if the \lstinline{non_main_arena} is set , then \lstinline{chunk_non_main_arena()} return true ,as the result \lstinline{ar_ptr} in \lstinline{free()} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
 This attack works by manipulating the heap in a way a fake \lstinline{ar_ptr} supply to \lstinline{_init_free()}; as a result, an arbitrary overwrite happen. The Attacker has to allocate enough memory until it reaches \lstinline{non_main_arena} where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so max allocation never is more than 1MB.
 We saw It possible to hijack the \lstinline{heap_info} and supply an arbitrary \lstinline{ar_ptr} value, so, what value should we use for \lstinline{ar_ptr}? We have two options on that:
 
@@ -1205,7 +1205,7 @@ As we told, this approach use the \fb{} approach , so, we need a chunk in range 
 uint64_t* fastbin_chunk = malloc(0x50)
 uint64_t* chunk_ptr = fastbin_chunk - 2
 \end{lstlisting}
-This file work on \libc{-2.31} which support \tch{} as the first mechanism, so, like fastbin\_dup, all we need is to fill up the \tch{} to force the heap manager role back to the \fb{}
+This file work on \libc{-2.31} which support \tch{} as the first mechanism, so, like \lstinline{fastbin_dup}, all we need is to fill up the \tch{} to force the heap manager role back to the \fb{}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 uint64_t* tcache_chunks[7];
@@ -1223,7 +1223,7 @@ The next step is setting up \lstinline{ar_ptr} of heap structure in the fake hea
 fake_heap_info[0] = (uint64_t) fake_arena
 \end{lstlisting}
 
-Now we have to set non\_main\_arena bit in the size field of our victim chunk:
+Now we have to set \lstinline{non_main_arena} bit in the size field of our victim chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 chunk_ptr[1] = 0x60 | 0x4;
@@ -1260,14 +1260,14 @@ use_top:
 	   return p;
 }
 \end{lstlisting}
-As you can see in the first step \libc{} compares the requested chunk size and top chunk size, as the result, the first step is to set a large value in top chunk size to bypass this step, cheating \libc{} to use this space. The following code Is hose\_of\_force sample from how2heap:
+As you can see in the first step \libc{} compares the requested chunk size and top chunk size, as the result, the first step is to set a large value in top chunk size to bypass this step, cheating \libc{} to use this space. The following code Is \lstinline{hose_of_force} sample from how2heap:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *p1 = malloc(256);
 int real_size = malloc_usable_size(p1);
 \end{lstlisting}
 
-The first line allocates a big chunk of data from heap memory, so the memory becomes divided into two parts: The allocated part, The top chunk. real\_size is the size of the data section in the chunk. We need to overwrite the top chunk size; to do that, we need a pointer to the top chunk first. The top chunk located at the following address:
+The first line allocates a big chunk of data from heap memory, so the memory becomes divided into two parts: The allocated part, The top chunk. \lstinline{real_size} is the size of the data section in the chunk. We need to overwrite the top chunk size; to do that, we need a pointer to the top chunk first. The top chunk located at the following address:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *ptr_top = (intptr_t *) ((char *)p1 + real_size - sizeof(long));
@@ -1343,7 +1343,7 @@ At first, we allocate a small chunk, then calculate the actual address of the ch
  stack_buffer_1[3] = (intptr_t*)stack_buffer_2;
  stack_buffer_2[2] = (intptr_t*)stack_buffer_1;
 \end{lstlisting}
-Now we forge a fake chunk, point the bck pointer of buffer\_1 to the victim, the fwd pointer of buffer\_1 to buffer\_2, also, the bck pointer of buffer\_2 to buffer\_1. In this way, we can bypass the \sbs{} security check.
+Now we forge a fake chunk, point the \lstinline{bck} pointer of \lstinline{buffer_1} to the victim, the fwd pointer of \lstinline{buffer_1} to \lstinline{buffer_2}, also, the bck pointer of \lstinline{buffer_2} to \lstinline{buffer_1}. In this way, we can bypass the \sbs{} security check.
 \begin{lstlisting}[language=c,frame=tlrb]
 void *p5 = malloc(1000);
 free((void*)victim);
@@ -1429,8 +1429,8 @@ To achieve this, we have to meet some security conditions. There is a check for 
 \end{lstlisting}
 
 \begin{enumerate}
-	\item Size must be greater than 'MINSIZE'
-	\item Prev\_inuse flag must be set
+	\item Size must be greater than \lstinline{MINSIZE}
+	\item \lstinline{Prev_inuse} flag must be set
 	\item Top chunk + size must be page align
 \end{enumerate}
 
@@ -1442,7 +1442,7 @@ size_t *top;
 p1 = malloc(0x400-16);
  \end{lstlisting}
 
-First, we allocate a chunk with the size of 0x400; as we told, the top chunk size is 0x21000; after we allocate 0x400, the remaining top chunk is 0x20c00; also, consider the prev\_inuse flag the final size is 0x20c01.
+First, we allocate a chunk with the size of 0x400; as we told, the top chunk size is 0x21000; after we allocate 0x400, the remaining top chunk is 0x20c00; also, consider the \lstinline{prev_inuse} flag the final size is 0x20c01.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 top = (size_t *) ( (char *) p1 + 0x400 - 16);
@@ -1450,9 +1450,9 @@ top[1] = 0xc01;
 p2= malloc(0x1000);
 \end{lstlisting}
 
-Now, we have to change the top chunk size in a way to meet security checks. By set 0xc00 + Prev\_flag, we can bypass the security check. At least, we request a chunk more significant than the top chunk size. In this situation, the heap manager creates a new top chunk where the old one has ended, then calls the free function to free the old top chunk, so the old one moves to an \ub{}.
+Now, we have to change the top chunk size in a way to meet security checks. By set 0xc00 + \lstinline{Prev_flag}, we can bypass the security check. At least, we request a chunk more significant than the top chunk size. In this situation, the heap manager creates a new top chunk where the old one has ended, then calls the free function to free the old top chunk, so the old one moves to an \ub{}.
 
-The first part of the attack finished, now, It's time to talk about \libc{} file structure and abort routine before continuing to the second phase. What's happen if \libc{} detected corruption inside the heap structure? When libc detects any memory corruption, it call the Abort routing automatically. Abort routine flush all file pointers in memory by calling \_IO\_flush\_all\_lockp. Consider a part of code:
+The first part of the attack finished, now, It's time to talk about \libc{} file structure and abort routine before continuing to the second phase. What's happen if \libc{} detected corruption inside the heap structure? When libc detects any memory corruption, it call the Abort routing automatically. Abort routine flush all file pointers in memory by calling \lstinline{_IO_flush_all_lockp}. Consider a part of code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE *fp;
@@ -1468,7 +1468,7 @@ while (fp != NULL)
 	 && _IO_OVERFLOW (fp, EOF) == EOF)
 \end{lstlisting}
 
-As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the io\_file object. When libc allocate a new file structure and fopen() return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus} , if we take a look at \libc{} code we have:
+As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the \lstinline{io_file} object. When libc allocate a new file structure and fopen() return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus} , if we take a look at \libc{} code we have:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE_plus{
@@ -1525,7 +1525,7 @@ memcpy( ( char *) top, "/bin/sh\x00", 8);
 
 
 As we mentioned, the libc flushes all file pointers inside the \lstinline{io_list_all} link list, which currently overwrites with the address of the \ub{}.
-The goal is to gain control of execution with the help of fd pointers. In the real list, the next file pointer is located at base\_address+0x68, if we consider bins, the mentioned address is a \sbs{}[4] which keeps a chunk between 90 to 98. We can conclude, if we manipulate the top chunk size again and set the size of 97, on the next allocation with a smaller size, the heap manager checks chunks in the \ub{} and puts it into corresponding bins which are smallbin[4]. Also, if we check the source code, we can see this size check:
+The goal is to gain control of execution with the help of fd pointers. In the real list, the next file pointer is located at \lstinline{base_address}+0x68, if we consider bins, the mentioned address is a \sbs{}[4] which keeps a chunk between 90 to 98. We can conclude, if we manipulate the top chunk size again and set the size of 97, on the next allocation with a smaller size, the heap manager checks chunks in the \ub{} and puts it into corresponding bins which are smallbin[4]. Also, if we check the source code, we can see this size check:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (__builtin_expect (victim->size <= 2 * SIZE_SZ, 0)
@@ -1853,7 +1853,7 @@ gef p top_ptr
 $3 = (long long *) 0x7ffff7ef2010
 \end{lstlisting}
 
-Like the previous one, we change the size of the last chunk. The new chunk size is the sum of the size of chunk\_3 and chunk\_2; as a result, the unmmap freezes both areas.
+Like the previous one, we change the size of the last chunk. The new chunk size is the sum of the size of \lstinline{chunk_3} and \lstinline{chunk_2}; as a result, the unmmap freezes both areas.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(mmap_chunk_3);
@@ -1924,12 +1924,12 @@ In the third step, we freed the smaller chunk. Now we have one chunk inside the 
  Chunk(addr=0x5555555592a0, size=0x430, flags=PREV_INUSE)
 \end{lstlisting}
 
-The next step is to put the target address - 0x20 in the p1->bk\_nextsize . As we mentioned before, Just \lb{} chunk chunks use this pointer, they point to the next biggest chunk in the link list.
+The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nextsize} . As we mentioned before, Just \lb{} chunk chunks use this pointer, they point to the next biggest chunk in the link list.
 \begin{lstlisting}[language=c,frame=tlrb]
 p1[3] = (size_t)((&target)-4);
 size_t *g4 = malloc(0x438);
 \end{lstlisting}
-The last step is to allocate a bigger chunk , so , p2 move to a larger chunk . When p2 move to large chunk , the heap manager write the address of p2 inside p1->bk\_nextsize->fd\_nextsize as the code of \libc{} show:
+The last step is to allocate a bigger chunk , so , \lstinline{p2} move to a larger chunk . When \lstinline{p2} move to large chunk , the heap manager write the address of \lstinline{p2} inside \lstinline{p1->bk_nextsize->fd_nextsize} as the code of \libc{} show:
 \begin{lstlisting}[language=c,frame=tlrb]
 fwd = bck;
 bck = bck->bk;
