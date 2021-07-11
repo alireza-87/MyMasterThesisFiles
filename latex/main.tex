@@ -229,7 +229,7 @@ gef: x/64h 0x0000555555559290
 0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
 \end{lstlisting}
 \glnote{size\_t is 8 bytes, and pointers are 8 bytes too, it would make more sense to dump/describe quadwords (same for the following memory dump)}
-\glnote{what is 0x555555559010? why all three blocks point to it?}
+\glnote{what is 0x555555559010? why all three blocks point to it?IT IS ALMOST THE HEAP ADDRESS , THE BIN IN THIS SAMPLE IS SINGLE LINK LIST }
 \section{Memory Allocation}
  First, we discuss the heap manager in a simple algorithm; then, we discuss each part in detail. The first question is, What is happen when the user requests a memory allocation:
 \begin{enumerate}
@@ -258,7 +258,7 @@ Concurrency is a challenge in multi-thread applications, so heap manager is not 
 To improve the performance, \lstinline{ptmalloc2} introduces a concept called \emph{arena}. Different threads have their arena; also, Each arena manages its chunks. As a result, threads can work simultaneously in the different arenas without altering each other data.
 
 When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit; also, you can tune this value by \emph{mallopt} function. So, what happens when we reach max number? Thread has to share the arena.
-\glnote{MALLOPT WILL ADD}
+\glnote{MALLOPT WILL ADD - DONE}
 
 As we saw before, the main Arenas create and grow by the sbrk system call; however, this is not true for the second heap. The second heap creates via mmap.
 
@@ -749,7 +749,7 @@ e = malloc(10); // 0xa04030
 f = malloc(10); // 0xa04010
 \end{lstlisting}
 
-At first, we requested 3 chunks of 10-byte. After that, we free ‘a’\glnote{instead of single quotes, use lstinline for a, b, etc} and ‘b’ and at last ‘a' again. You can see the fast bin structure after free() below step by step:
+At first, we requested 3 chunks of 10-byte. After that, we free \lstinline{a}\glnote{instead of single quotes, use lstinline for a, b, etc - DONE} and \lstinline{b} and at last \lstinline{a} again. You can see the fast bin structure after \lstinline{free()} below step by step:
 
 \begin{lstlisting}[frame=tlrb]
 head -> a -> tail
@@ -808,7 +808,7 @@ free(p1);
 \end{lstlisting}
 
 The thirds malloc have a significant memory allocation; this malloc triggers another method call \lstinline{malloc_consolidate()} automatically. Malloc In this situation, consolidate chunks in the fast bin before continuing, then put the resulting merged chunks on the \ub{}.
-Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use malloc with a big size instead of free another chunk in the middle of two free. The third malloc moves chunk from fast bin to unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have P1 on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
+Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use malloc with a big size instead of free another chunk in the middle of two free. The third malloc moves chunk from fast bin to unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have \lstinline{P1} on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
 
 \section{Forged Chunk}
 Freeing up a chunk does not prevent access to it because the pointer still exists in the application, so we can implement an attack on the heap data structure by controlling the pointer . Below code shows how we can return our forged chunk instead of a real heap chunk:
@@ -840,14 +840,14 @@ malloc(10);   // Will return 0x219c010
 victim = malloc(10);  // Points to 0x7ffc6de966a0
 \end{lstlisting}
 
-In the first step, we allocate a memory 'a' with 10-Byte size, also, Create our fake chunk with size 0x20. Chunk size is essential. It must fall in \fb{} chunks because \fb{} has a security check on chunk size while removing it from the list.
-Now by call free(a), the real chunk is put back in the \fb{}. As we tell, we free up space, but the pointer still points to chunk memory location. We make the forward pointer of freed chunk 'a' to point to the forged chunk by accessing the pointer. The current layout of the heap is like below now:
+In the first step, we allocate a memory \lstinline{a} with 10-Byte size, also, Create our fake chunk with size 0x20. Chunk size is essential. It must fall in \fb{} chunks because \fb{} has a security check on chunk size while removing it from the list.
+Now by call free(a), the real chunk is put back in the \fb{}. As we tell, we free up space, but the pointer still points to chunk memory location. We make the forward pointer of freed chunk \lstinline{a} to point to the forged chunk by accessing the pointer. The current layout of the heap is like below now:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> a -> forged chunk -> undefined (forward of the forged chunk be holding attacker's data)
 \end{lstlisting}
 
-In the following, by first allocated 'a' again, the heap manager returns the 'a' from the fast bin; following that, our forged chunk be at the head, so subsequent allocation return it instead of a real chunk.
+In the following, by first allocated \lstinline{a} again, the heap manager returns the \lstinline{a} from the fast bin; following that, our forged chunk be at the head, so subsequent allocation return it instead of a real chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> forged chunk -> undefined
@@ -873,15 +873,15 @@ malloc(8)
 malloc(8)
 \end{lstlisting}
 
-As describe in the first part, we allocate three chunks and free one of them twice to bypass the \fb{} security check as we mentioned before; as a result, we have twice \lstinline{a} in the \fb{} list and attack by modifying data at \lstinline{a}. There are two mallocs on the following; the first one keep access to \lstinline{a} inside \lstinline{d} pointer, the second one simply remove the \lstinline{b} from top of the \fb{}, now we have one pointer to \lstinline{a} inside the program as \lstinline{d}; also, another \lstinline{a} at top of the heap, remember any change on 'a' inside the program could affect on \lstinline{a} at top of \fb{} too.
+As describe in the first part, we allocate three chunks and free one of them twice to bypass the \fb{} security check as we mentioned before; as a result, we have twice \lstinline{a} in the \fb{} list and attack by modifying data at \lstinline{a}. There are two mallocs on the following; the first one keep access to \lstinline{a} inside \lstinline{d} pointer, the second one simply remove the \lstinline{b} from top of the \fb{}, now we have one pointer to \lstinline{a} inside the program as \lstinline{d}; also, another \lstinline{a} at top of the heap, remember any change on \lstinline{a} inside the program could affect on \lstinline{a} at top of \fb{} too.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> a
 \end{lstlisting}
 
 \glnote{could you clarify/rephrase the following? The role of the 0x20 is unclear}
-The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on 'd' affect 'a' at the top of the \fb{}) in an away point to right before 0x20 on the stack. In this way, we trick the heap into thinking there is an available free chunk.
- Now, all we have to do is remove 'a' from the top of the \fb{} with a call to malloc(), then, the final malloc returns a controller address on memory to the program is stack in this case.
+The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affect \lstinline{a} at the top of the \fb{}) in an away point to right before 0x20 on the stack. In this way, we trick the heap into thinking there is an available free chunk.
+ Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \lstinline{malloc()}, then, the final malloc returns a controller address on memory to the program is stack in this case.
 
 \section{\ub{} Attack}
 
@@ -1392,7 +1392,7 @@ Now the last allocation returns a chunk at our controlled location at the stack,
 \end{figure}
 
 \subsection{The House of Spirits}
-In this attack, an attacker forged a fake chunk inside a controller location like the stack, then overwrote a pointer inside the application in a way pointing to the forged chunk. When the application frees the pointer, it puts our forged chunk inside the bins; as a result, the next malloc returns our forged chunk instead of the real chunk. All the attacker has to do is forge a chunk in a way that bypasses all libc security checks. Consider the application have a pointer call 'a', attacker has a forged chunk called \lstinline{fake_chunks}
+In this attack, an attacker forged a fake chunk inside a controller location like the stack, then overwrote a pointer inside the application in a way pointing to the forged chunk. When the application frees the pointer, it puts our forged chunk inside the bins; as a result, the next malloc returns our forged chunk instead of the real chunk. All the attacker has to do is forge a chunk in a way that bypasses all libc security checks. Consider the application have a pointer call \lstinline{a}, attacker has a forged chunk called \lstinline{fake_chunks}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long long *a;
@@ -1645,7 +1645,7 @@ int real_b_size = malloc_usable_size(b);
 uint64_t* b_size_ptr = (uint64_t*)(b - 8);
 \end{lstlisting}
 
-Now we use 'a' in order to overflow and manipulate the size of 'b.'
+Now we use \lstinline{a} in order to overflow and manipulate the size of \lstinline{b}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 a[real_a_size] = 0;
