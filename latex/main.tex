@@ -192,7 +192,7 @@ In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory all
 	\item M (\lstinline{IS_MMAPPED}): The chunk is obtained through mmap
 	\item P (\lstinline{PREV_INUSE}):
 \end{enumerate}
-Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the chunk as a place to keep pointer metadata in the free chunk. Take a look at heap after call free function:
+Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the chunk as a place to keep pointer metadata in the free chunk. Take a look at heap after call \lstinline{free()}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Free chunk
@@ -240,7 +240,7 @@ gef: x/64h 0x0000555555559290
 \end{enumerate}
 
 \subsection{Allocation from Freed Chunks}
-As we mention, Previously freed chunks are the first place search by the heap manager. Heap manager tracks of Freed chunks via some linked list call 'bins' when a new allocation request arrives; the heap manager looks at bins to find a big enough chunk. If the chunk has the same size, then the heap manager returns it. Otherwise, if the chunk is more significant than the request, then the heap manager split it. There are several different types of bins which we discuss later.
+As we mention, Previously freed chunks are the first place search by the heap manager. Heap manager tracks of Freed chunks via some linked list call \emph{bins} when a new allocation request arrives; the heap manager looks at bins to find a big enough chunk. If the chunk has the same size, then the heap manager returns it. Otherwise, if the chunk is more significant than the request, then the heap manager split it. There are several different types of bins which we discuss later.
 
 \subsection{Allocation from Top Chunk}
 So what does happen if there were no suitable previously free space? In this situation, the heap manager checks the remaining space at the end of the heap. If there is enough space to create a chunk, then allocate a new chunk from the top of the heap space.
@@ -250,7 +250,7 @@ So, let us check what happens yet—first, the heap manager search through previ
 After a while, this system calls \lstinline{break} because the newly allocated region at the end of the program space collides with another thing in the process's space. Once this situation happens, the heap manager cannot allocate contiguous memory space by calling mmap to allocate non-contiguous memory space.
 
 \section{MMAP}
-The heap manager uses \emph{mmap} for large memory allocation instead of sbrk If the user requests a too large memory space. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via mmap. After the user releases the memory by free(), these chunks are unmmap. By default, the mmap threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
+The heap manager uses \emph{mmap} for large memory allocation instead of \lstinline{sbrk} If the user requests a too large memory space. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via mmap. After the user releases the memory by \lstinline{free()}, these chunks are \emph{unmmap}. By default, the \lstinline{mmap} threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
 
 \section{ARENA}
 Concurrency is a challenge in multi-thread applications, so heap manager is not safe from this issue. There are many solutions to overcome this problem. In the early days' heap managers used a simple global lock before every heap operation to overcome this situation; However, this approach has a high cost. In multi-thread applications with heavy use of heap, this strategy leads to substantial performance issues because the heap needs to lock many times.
@@ -260,13 +260,13 @@ To improve the performance, \lstinline{ptmalloc2} introduces a concept called \e
 When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit; also, you can tune this value by \emph{mallopt} function. So, what happens when we reach max number? Thread has to share the arena.
 \glnote{MALLOPT WILL ADD - DONE}
 
-As we saw before, the main Arenas create and grow by the sbrk system call; however, this is not true for the second heap. The second heap creates via mmap.
+As we saw before, the main Arenas create and grow by the \lstinline{sbrk} system call; however, this is not true for the second heap. The second heap creates via \lstinline{mmap}.
 
 \section{Subheap}
-The main heap arena is located just after where the program started and expanded by sbrk. We can conclude that in the multi-thread application, which has a secondary heap, sbrk can not do this. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap works like the main heap; however, they have some differences. The main heap is located right after the program starts in memory; they grow with the sbrk system call. Subheap can not contiguously allocate after the program begins because it creates by mmap; moreover, the heap manager expands them by 'protect.
+The main heap arena is located just after where the program started and expanded by \lstinline{sbrk}. We can conclude that in the multi-thread application, which has a secondary heap, \lstinline{sbrk} can not do this. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap works like the main heap; however, they have some differences. The main heap is located right after the program starts in memory; they grow with the \lstinline{sbrk} system call. Subheap can not contiguously allocate after the program begins because it creates by mmap; moreover, the heap manager expands them by 'protect.
 
 How heap manager create and manage the subheap? In the first step, the heap manager asks the Kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap; it just tells the Kernel, Do not use this area. Mmap by flags required page as \lstinline{PROT_NONE} achieve this goal.
-On the next step, when the main heap expands by sbrk, the heap manager allocates the previously reserved area to subheap by calling \lstinline{mprotect}. What mprotect do? It concerts \lstinline{PROT_NONE}\glnote{use lstinline for identifiers/function-names/etc; change everywhere} to \lstinline{PROT_READ}, \lstinline{PROT_WRITE}. In this way, at least the Kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
+On the next step, when the main heap expands by \lstinline{sbrk}, the heap manager allocates the previously reserved area to subheap by calling \lstinline{mprotect}. What \lstinline{mprotect} do? It concerts \lstinline{PROT_NONE}\glnote{use lstinline for identifiers/function-names/etc; change everywhere} to \lstinline{PROT_READ}, \lstinline{PROT_WRITE}. In this way, at least the Kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
 
 \section{free}
 Whats happens when the user does not need allocated space anymore? , calling heap can free up space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but free() needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. send an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks before free up space:
