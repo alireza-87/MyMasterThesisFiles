@@ -78,36 +78,36 @@ An application has different types of memory space. Two must important are \emph
 \end{itemize}
 Each of mentioned memory spaces has advantages and disadvantages; as a result, which one to use depends on the circumstances. If we need to handle data in LIFO format, then the stack is the better choice. As we mentioned, The input parameters of a function may send by the stack. In this way, the compiler does not have to free up memory after returning from the function because they automatically remove it. Also, Stack memory space is a better solution for local variable access.
 
-Every platform has a way to interact with heap memory. Our work specifically on \emph{ \libc{}} memory allocator which drives from \emph{ptmalloc} heap implementations, which is itself derived from \emph{dlmalloc}, so, at first we want to discuss \libc{} allocations algorithms and Methods. Consider the following code as an allocation sample:
-
-\begin{lstlisting}[language=c,frame=tlrb]
-typedef struct
-{
- int field1;
- char* field2;
-} SomeStruct;
-
-int main()
-{
- SomeStruct* myObject = (SomeStruct*)malloc(sizeof(SomeStruct));
- if(myObject != NULL)
- {
- myObject->field1 = 1234;
- myObject->field2 = 'Hello World!';
- do_stuff(myObject);
-	free(myObject);
- }
- return 0;
-}
-
-\end{lstlisting}
-
-The above code is a sample of how the C programming language might allocate free memory on the heap. \libc{} has other functions to give and free memory too, which we discuss future.
+Every platform has a way to interact with heap memory. Our work specifically on \emph{ \libc{}} memory allocator which drives from \emph{ptmalloc} heap implementations, which is itself derived from \emph{dlmalloc}, so, at first we want to discuss \libc{} allocations algorithms and Methods. 
 
 \chapter{Introduction to \libc{} Heap}
 
 In the following sections, we discuss how \libc{} manages heap memory space.
+The GNU C library, known as \libc{}, is GNU's implementation of the C standard library. \libc{} provides a wide variety of c standard functions and systems call wrapper. \libc{} is not just one '.so' library file; instead, It contains many library files. The most famous \libc{} library is the c standard library or Libc. Libc provides macro, type, or function for a task like memory management. 
+Libc provide memory management function like malloc(),calloc(),free(). Libc manages memory dynamic, static or automatic. The static one allocates in mani memory and exists during the execution. Automatic variable allocates on the stack like function variable. The dynamic one allocates during the execution; also, dynamic variable size is unknown during the compile time. We work especially on libc dynamic memory management mechanism.Consider the following code as an allocation sample:
+\begin{lstlisting}[language=c,frame=tlrb]
+int array[20];
+\end{lstlisting}
 
+The above code statically allocates an array of ten integers. In the mentioned sample, the array size is fixed during the compile-time. However, there may be a situation in which the array size is unknown.
+\begin{lstlisting}[language=c,frame=tlrb]
+int *array = (int*)malloc(20 * sizeof(int));
+\end{lstlisting}
+The above code computes the number of bytes required to store 20 integers in memory, then requests that bytes from malloc. Malloc returns the pointer to that ten bytes in the memory. Sometimes may malloc cannot allocate memory; in such a scenario, a null pointer returns. 
+\begin{lstlisting}[language=c,frame=tlrb]
+if (array == NULL) {
+  fprintf(stderr, "failed");
+  return -1;
+}
+\end{lstlisting}
+After we finish the job and do not need the array anymore, it is possible to release the memory with the free() function.
+\begin{lstlisting}[language=c,frame=tlrb]
+free(array);
+\end{lstlisting}
+The malloc() is not clear the allocated memory, so it contains junk data. In order to allocate memory and clear at the same time, it is possible to use the calloc() function.
+\begin{lstlisting}[language=c,frame=tlrb]
+int *array = calloc(10, sizeof(int));
+\end{lstlisting}
 \section{Chunk}
 
 Allocation and free are not the only job of the heap manager. The heap manager needs some mechanism to keep track of the previous allocation and free space. Moreover, the heap manager needs to align memory in 8 bytes for a 32bit system and 16Byte in a 64bit system. To achieve this, the heap manager needs to store some metadata.
@@ -266,7 +266,7 @@ As we saw before, the main Arenas create and grow by the \lstinline{sbrk} system
 The main heap arena is located just after where the program started and expanded by \lstinline{sbrk}. We can conclude that in the multi-thread application, which has a secondary heap, \lstinline{sbrk} can not do this. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap works like the main heap; however, they have some differences. The main heap is located right after the program starts in memory; they grow with the \lstinline{sbrk} system call. Subheap can not contiguously allocate after the program begins because it creates by mmap; moreover, the heap manager expands them by 'protect.
 
 How heap manager create and manage the subheap? In the first step, the heap manager asks the Kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap; it just tells the Kernel, Do not use this area. Mmap by flags required page as \lstinline{PROT_NONE} achieve this goal.
-On the next step, when the main heap expands by \lstinline{sbrk}, the heap manager allocates the previously reserved area to subheap by calling \lstinline{mprotect}. What \lstinline{mprotect} do? It concerts \lstinline{PROT_NONE}\glnote{use lstinline for identifiers/function-names/etc; change everywhere} to \lstinline{PROT_READ}, \lstinline{PROT_WRITE}. In this way, at least the Kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
+On the next step, when the main heap expands by \lstinline{sbrk}, the heap manager allocates the previously reserved area to subheap by calling \lstinline{mprotect}. What \lstinline{mprotect} do? It concerts \lstinline{PROT_NONE}\glnote{DONE use lstinline for identifiers/function-names/etc; change everywhere} to \lstinline{PROT_READ}, \lstinline{PROT_WRITE}. In this way, at least the Kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
 
 \section{free}
 Whats happens when the user does not need allocated space anymore? , calling heap can free up space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but free() needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. send an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks before free up space:
@@ -483,7 +483,7 @@ if (__glibc_unlikely (size < MINSIZE || !aligned_OK (size))){
 \end{lstlisting}
 
 The free function checks if the size is bigger than the minimum allocation size; the chunk size must align too; otherwise, a memory corruption error rais.
-\section{mallopt()-NOT FINISH}
+\section{mallopt()}
 mallopt is a function used to tune the behavior of \libc{} memory allocation methods like malloc. In the below, we mention the parameters list, which mallopt can modify.
 
 \begin{enumerate}
@@ -492,6 +492,16 @@ mallopt is a function used to tune the behavior of \libc{} memory allocation met
 \item \lstinline{M_MMAP_MAX} Define the maximum number of sequential memory allocation which can handle by mmap.
 
 \item \lstinline{M_MMAP_THRESHOLD} The system uses the mmap to allocate larger memory than the
+\end{enumerate}
+
+Some of the \lstinline{mallopt} customizations can be performed by environment variable too. Using environment variables has the advantage that source code does not need change. Also, if the same parameter defines by \lstinline{mallopt} too, then the \lstinline{mallopt} has priority. 
+
+\begin{enumerate}
+\item \lstinline{MALLOC_ARENA_MAX} Controls the same parameter as \lstinline{mallopt()} \lstinline{M_ARENA_MAX }.
+
+\item \lstinline{MALLOC_MMAP_MAX_} Controls the same parameter as  \lstinline{mallopt()}  \lstinline{M_MMAP_MAX }.
+
+\item \lstinline{MALLOC_MMAP_THRESHOLD_} Controls the same parameter as \lstinline{mallopt()} \lstinline{M_MMAP_THRESHOLD}.
 \end{enumerate}
 
 \section{malloc\_consolidate()}
@@ -569,58 +579,61 @@ Gef has a lot of debugging tools; we focus on the heap utility of gef which call
 gef: heap <sub_commands>
 \end{lstlisting}
 
-\paragraph{heap chunks command}
+\paragraph{\lstinline{heap chunks} command}
 
-Display all of the heap chunks
+Display all of the heap chunks  ``Figure~\ref{fig:gefheapchunks}``
 \begin{lstlisting}[frame=tlrb]
 gef: heap chunks
 \end{lstlisting}
 
- \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb14}}
- \caption{heap chunks}
-	 \label{fig:chunks}
+\begin{figure}[h!]
+\makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb14}}
+\caption{heap chunks}
+\label{fig:gefheapchunks}
 \end{figure}
-\glnote{latex moves figures, so you can either include the graphics without using a figure, or you must add a \\ref to the figure. Eg, ``Figure~\ref{fig:chunks} shows an example of the command \lstinline{heap chunks}}
+\glnote{lDONE - atex moves figures, so you can either include the graphics without using a figure, or you must add a \\ref to the figure. Eg, ``Figure~\ref{fig:heapchunks} shows an example of the command \lstinline{heap chunks}}
 
 
-\paragraph{heap chunk command}
-This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.
+\paragraph{\lstinline{heap chunk} command}
+This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.``Figure~\ref{fig:gefheapchunk}``
 \begin{lstlisting}[frame=tlrb]
 gef: heap chunk <LOCATION>
 \end{lstlisting}
 
- \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb15}}
- \caption{heap chunk}
+\begin{figure}[h!]
+\makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb15}}
+\caption{heap chunk}
+\label{fig:gefheapchunk}
 \end{figure}
 
-\paragraph{heap arenas command}
-As we mention, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.
+\paragraph{\lstinline{heap arenas} command}
+As we mention, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.``Figure~\ref{fig:gefheaparena}``
 
 \begin{lstlisting}[frame=tlrb]
 gef: heap arenas
 \end{lstlisting}
 
- \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb16}}
- \caption{heap arenas}
+\begin{figure}[h!]
+\makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb16}}
+\caption{heap arenas}
+\label{fig:gefheaparena}
 \end{figure}
 
-\paragraph{heap bins command}
-\libc{} use bins to keep track of freed chunks. Gef provides a sun command to visualize the state of all bins of a running application.
+\paragraph{\lstinline{heap bins} command}
+\libc{} use bins to keep track of freed chunks. Gef provides a sun command to visualize the state of all bins of a running application.``Figure~\ref{fig:gefheapbins}``
 \begin{lstlisting}[frame=tlrb]
 gef: heap bins
 \end{lstlisting}
 
- \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb17}}
- \caption{heap bins}
+\begin{figure}[h!]
+\makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb17}}
+\caption{heap bins}
+\label{fig:gefheapbins}
 \end{figure}
 
-\subsection{PWNGDB}
-Pwngdb is a set of tools that aim us during debugging with GDB. It works like a GEF by providing us more tools to investigate a running program.
-To install pwngdb, clone the repository, then add it to the gdb initialize file:
+\subsection{PWNDBG}
+\emph{pwndbg} is a set of tools that aim us during debugging with GDB. It works like a GEF by providing us more tools to investigate a running program.
+To install pwndbg, clone the repository, then add it to the gdb initialize file:
 \begin{lstlisting}[frame=tlrb]
 cd ~/
 git clone https://github.com/scwuaptx/Pwngdb.git
@@ -629,29 +642,32 @@ cp ~/Pwngdb/.gdbinit ~/
 \subsubsection{commands}
 like gdb, it provides some commands to monitor the heap state. Unlike gef, it does not have subcommands.
 
-\paragraph{heap command}
-This command provides information about allocated and freed chunks, also the top chunk.
+\paragraph{\lstinline{heap} command}
+This command provides information about allocated and freed chunks, also the top chunk.``Figure~\ref{fig:pwnheap}``
 
- \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb18}}
- \caption{heap}
+\begin{figure}[h!]
+\makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb18}}
+\caption{pwndbg heap}
+\label{fig:pwnheap}
 \end{figure}
 
-\paragraph{bins command}
-Provide information about freed chunks inside every bin.
+\paragraph{\lstinline{bins} command}
+Provide information about freed chunks inside every bin.``Figure~\ref{fig:pwnbins}``
 
- \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb19}}
- \caption{heap}
+\begin{figure}[h!]
+\makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb19}}
+\caption{pwndbg bins}
+\label{fig:pwnbins}
 \end{figure}
 
-\paragraph{top\_chunk command}
+\paragraph{\lstinline{top_chunk command}}
 
-Show top chunk information.
+Show top chunk information.``Figure~\ref{fig:pwntopchunk}``
 
- \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb20}}
- \caption{heap}
+\begin{figure}[h!]
+\makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb20}}
+\caption{pwndbg top chunk}
+\label{fig:pwntopchunk}
 \end{figure}
 
 
@@ -855,7 +871,7 @@ head -> undefined [ forged chunk is returned to the victim ]
 \end{lstlisting}
 
 Take into consideration, another allocation on \fb{} could raise Segmentation faults.
-Now let us use double-free vulnerabilities in \libc{-2.23}; the below code is just an extended version of the Double Free attack which we examined. The extended version tricks \lstinline{malloc()} to return a controller memory location on the stack instead of a real chunk of the heap.
+In the next sample we use double-free vulnerabilities in \libc{-2.23}; the below code is just an extended version of the Double Free attack which we examined. The extended version tricks \lstinline{malloc()} to return a controller memory location on the stack instead of a real chunk of the heap.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long long stack_var;
@@ -879,7 +895,7 @@ As describe in the first part, we allocate three chunks and free one of them twi
 head -> a
 \end{lstlisting}
 
-\glnote{could you clarify/rephrase the following? The role of the 0x20 is unclear}
+\glnote{could you clarify/rephrase the following? The role of the 0x20 is unclear, IT IS ONE OF THE FAST BINS CHUNK SIZE , I MENTIONED ON FIRST SAMPLE " It must fall in \fb{} chunks "}
 The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affect \lstinline{a} at the top of the \fb{}) in an away point to right before 0x20 on the stack. In this way, we trick the heap into thinking there is an available free chunk.
  Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \lstinline{malloc()}, then, the final allocation returns a controller address on memory to the program is stack in this case.
 
@@ -925,7 +941,7 @@ Now it is clear that if we control the backward pointer, then, we can write data
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (__glibc_unlikely (bck->fd != victim))
-	malloc\_printerr ('malloc(): corrupted unsorted chunks 3');
+	malloc_printerr ('malloc(): corrupted unsorted chunks 3');
 \end{lstlisting}
 
 \section{\lb{} Attack}
@@ -1008,10 +1024,10 @@ free(p2).
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsorted_bins[0]: fw=0x555555559100, bk=0x555555559100
-Chunk(addr=0x555555559110, size=0x100, flags=PREV\_INUSE)
+Chunk(addr=0x555555559110, size=0x100, flags=PREV_INUSE)
 \end{lstlisting}
 
-\glnote{Check for the presence of backslash-underscore in lstlisting and lstinlne (I removed some, but there are others}
+\glnote{DONE Check for the presence of backslash-underscore in lstlisting and lstinlne (I removed some, but there are others}
 \begin{lstlisting}[language=c,frame=tlrb]
 Chunk(addr=0x555555559010, size=0x100, flags=PREV_INUSE)
  [0x0000555555559010 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 1111111111111111]
@@ -1019,7 +1035,7 @@ Chunk(addr=0x555555559110, size=0x100, flags=PREV_INUSE)
  [0x0000555555559110 78 1b dd f7 ff 7f 00 00 78 1b dd f7 ff 7f 00 00 x.......x.......]
 Chunk(addr=0x555555559210, size=0x80, flags=)
  [0x0000555555559210 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 3333333333333333]
-Chunk(addr=0x555555559290, size=0x20d80, flags=PREV\_INUSE) top chunk
+Chunk(addr=0x555555559290, size=0x20d80, flags=PREV_INUSE) top chunk
 
  \end{lstlisting}
 In the next step, as we did before, We have to change the chunk size by overflow:
@@ -1236,8 +1252,9 @@ free(fastbin_chunk);
 \end{lstlisting}
 
 \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb1}}
- \caption{the address of our fake arena overwritten on target location}
+\makebox[\textwidth][c]{\includegraphics[height=0.35\textwidth]{gdb1}}
+\caption{the address of our fake arena overwritten on target location}
+\label{fig:fakearens}
 \end{figure}
 
 \subsection{The house of Force}
@@ -1350,7 +1367,7 @@ free((void*)victim);
 void *p2 = malloc(1200);
 \end{lstlisting}
 
-To prevent merging the top chunk with a small one during free() we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{}. In the following step, we allocate another chunk big enough, so, heap manager can't use the chunk inside an \ub{} or \sbs{}.
+To prevent merging the top chunk with a small one during free() we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{} ``Figure~\ref{fig:gdb2}``. In the following step, we allocate another chunk big enough, so, heap manager can't use the chunk inside an \ub{} or \sbs{}.
 \begin{lstlisting}[language=c,frame=tlrb]
 victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
 \end{lstlisting}
@@ -1358,13 +1375,15 @@ victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb2}}
  \caption{Heap layout}
+ \label{fig:gdb2}
 \end{figure}
 After that, we need to abuse the vulnerability, so the bck pointer of the victim points to our controlled memory address.
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb3}}
  \caption{Heap layout}
+ \label{fig:gdb3}
 \end{figure}
-The victim is not in the \ub{} anymore; instead, the heap manager moves it to the \sbs{} after allocation of p2. As we remember, the heap manager checks all of the chunks inside the \ub{}. If the size is not suitable for the current allocation, they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
+The victim is not in the \ub{} anymore; instead, the heap manager moves it to the \sbs{} after allocation of p2 ``Figure~\ref{fig:gdb3}``. As we remember, the heap manager checks all of the chunks inside the \ub{}. If the size is not suitable for the current allocation, they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *p3 = malloc(0x100);
@@ -1372,11 +1391,12 @@ char *p4 = malloc(0x100);
 \end{lstlisting}
 
 \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb4}}
- \caption{The victime and p3 pointer}
+\makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb4}}
+\caption{The victime and p3 pointer}
+\label{fig:gdb4}
 \end{figure}
 
-Now we overwrite the victim \lstinline{bck} pointer also put the victim in the \sbs{}. The next allocation returns the victim from the \sbs{}; moreover, it write \lstinline{bck} pointer of the \lstinline{bin} in \lstinline{libc} to our controller location which is the \lstinline{bck} pointer of the \lstinline{victim}.
+Now we overwrite the victim \lstinline{bck} pointer also put the victim in the \sbs{}. The next allocation returns the victim from the \sbs{}; moreover, it write \lstinline{bck} pointer of the \lstinline{bin} in \lstinline{libc} to our controller location which is the \lstinline{bck} pointer of the \lstinline{victim} ``Figure~\ref{fig:gdb4}``.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 bin = bin_at (av, idx);
@@ -1384,11 +1404,12 @@ bck = victim->bk;
 bin->bk = bck;
 \end{lstlisting}
 
-Now the last allocation returns a chunk at our controlled location at the stack, which is now inside the bin's bck pointer.
+Now the last allocation returns a chunk at our controlled location at the stack, which is now inside the bin's bck pointer.``Figure~\ref{fig:gdb5}``
 
 \begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb5}}
- \caption{bck pointer}
+\makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb5}}
+\caption{bck pointer}
+\label{fig:gdb5}
 \end{figure}
 
 \subsection{The House of Spirits}
@@ -1483,11 +1504,12 @@ Our goal is to make \lstinline{_IO_flush_all_lockp} call \lstinline{_IO_OVERFLOW
 
 The first thing is to calculate the address of \lstinline{_io_list_all} inside the libc. Currently, we have one freed chunk inside the \ub{}, the \lstinline{bk} and \lstinline{fd} pointer is pointed to the main arena of the heap. we can use this address to calculate the \lstinline{_io_list_all} address.
 
-With the help of \emph{blukat} \footnote{\href{https://libc.blukat.me}{\texttt{libc database}}} website , we can find the offset of \lstinline{_io_list_all} based on the \libc{} version. This sample use \libc{-2.23} , so we search inside we site for this specific \libc{} version:
+With the help of \emph{blukat} \footnote{\href{https://libc.blukat.me}{\texttt{libc database}}} website , we can find the offset of \lstinline{_io_list_all} based on the \libc{} version. This sample use \libc{-2.23} , so we search inside we site for this specific \libc{} version ``Figure~\ref{fig:offset}``:
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb6}}
- \caption{\_IO\_LIST\_ALL offset}
+ \caption{\lstinline{_IO_LIST_ALL} offset}
+ \label{fig:offset}
 \end{figure}
 
 
@@ -1583,22 +1605,19 @@ free(b);
 a[-1]=0xa1;
 \end{lstlisting}
 
-Now if freed the chunks and use the UAF attack to change the size of the first one we have the below layout:
-
-\begin{figure}[h!]
- \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb7}}
- \caption{Heap data}
-\end{figure}
+Now if freed the chunks and use the UAF attack to change the size of the first one we have the below layout ``Figure~\ref{fig:gdb9}``.
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb8}}
  \caption{\fb{}}
+  \label{fig:gdb8}
 \end{figure}
 
-Now with a single big allocation we have:
+Now with a single big allocation we have ``Figure~\ref{fig:gdb9}``.
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.12\textwidth]{gdb9}}
  \caption{\sbs{}}
+  \label{fig:gdb9}
 \end{figure}
 
 As we can see, now we have two valid forged chunks inside the \sbs{} which have overlap with each other.
@@ -1615,11 +1634,12 @@ if (!prev_inuse(p)) {
 	unlink (off, p, bck, fwd);
 }
  \end{lstlisting}
-If the \lstinline{prev_inuse} flag is zero, in the time of free function calls, it tries to merge the current chunk with the previous chunk. The calculation of merged chunk size is the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned, \libc{} share metadata at the end of the chunk with metadata at the beginning of the next chunk:
+If the \lstinline{prev_inuse} flag is zero, in the time of free function calls, it tries to merge the current chunk with the previous chunk. The calculation of merged chunk size is the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned, \libc{} share metadata at the end of the chunk with metadata at the beginning of the next chunk ``Figure~\ref{fig:gdb10}``.
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb10}}
  \caption{chunk layout}
+ \label{fig:gdb10}
 \end{figure}
 
 By considering the merge code of the free function, we can tell if we have control over \lstinline{prev_size}, and \lstinline{prev_inuse} flag, we can have control over the new chunk location.
@@ -1706,7 +1726,7 @@ free(a);
 free(prev);
 \end{lstlisting}
 
-The result of the above is to consolidate the ‘prev’ chunk with the victim ‘a’. Attention to the size and the address of the chunk:
+The result of the above is to consolidate the ‘prev’ chunk with the victim ‘a’ ``Figure~\ref{fig:gdb11}``. Attention to the size and the address of the chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Before:
@@ -1721,6 +1741,7 @@ Chunk(addr=0x555555559a10, size=0x220, flags=PREV_INUSE)
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb11}}
  \caption{a and prev pointers}
+ \label{fig:gdb11}
 \end{figure}
 
 In the next step, with the help of UAF and double-free attack, we put back the victim in the \tch{}
@@ -1730,7 +1751,7 @@ malloc(0x100);
 free(a);
 \end{lstlisting}
 
-The above procedure has another result, too; now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the fd pointer pointing to the target, then two allocations. The last allocation has control over the target.
+The above procedure has another result, too; now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the fd pointer pointing to the target, then two allocations. The last allocation has control over the target.``Figure~\ref{fig:gdb12}``
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *b = malloc(0x120);
@@ -1742,6 +1763,7 @@ intptr_t *c = malloc(0x100);
  \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb12}}
  \caption{\tch{}}
+ \label{fig:gdb12}
 \end{figure}
 
 
@@ -1924,7 +1946,7 @@ In the third step, we freed the smaller chunk. Now we have one chunk inside the 
  Chunk(addr=0x5555555592a0, size=0x430, flags=PREV_INUSE)
 \end{lstlisting}
 
-The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nextsize} . As we mentioned before, Just \lb{} chunk chunks use this pointer, they point to the next biggest chunk in the link list.
+The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nextsize} . As we mentioned before, Just \lb{} chunks use this pointer, they point to the next biggest chunk in the link list.
 \begin{lstlisting}[language=c,frame=tlrb]
 p1[3] = (size_t)((&target)-4);
 size_t *g4 = malloc(0x438);
