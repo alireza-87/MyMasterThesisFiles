@@ -1,4 +1,4 @@
-V2.23 = house_of_roman
+V2.23 = house_of_roman house_of_roman_2
 PROGRAMS = $(V2.23)
 CFLAGS += -std=c99 -g -fPIE -pie
 LDLIBS += -Wl,--no-as-needed -ldl
