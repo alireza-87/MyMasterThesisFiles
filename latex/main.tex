@@ -18,8 +18,6 @@
 
 \lstset{frame=tb,
  backgroundcolor=\color{backcolour},
- aboveskip=3mm,
- belowskip=3mm,
  showstringspaces=false,
  columns=flexible,
  basicstyle={\small\ttfamily},
@@ -83,8 +81,8 @@ Every platform has a way to interact with heap memory. Our work specifically on 
 \chapter{Introduction to \libc{} Heap}
 
 In the following sections, we discuss how \libc{} manages heap memory space.
-The GNU C library, known as \libc{}, is GNU's implementation of the C standard library. \libc{} provides a wide variety of c standard functions and systems call wrapper. \libc{} is not just one '.so' library file; instead, It contains many library files. The most famous \libc{} library is the c standard library or Libc. Libc provides macro, type, or function for a task like memory management. 
-Libc provide memory management function like malloc(),calloc(),free(). Libc manages memory dynamic, static or automatic. The static one allocates in mani memory and exists during the execution. Automatic variable allocates on the stack like function variable. The dynamic one allocates during the execution; also, dynamic variable size is unknown during the compile time. We work especially on libc dynamic memory management mechanism.Consider the following code as an allocation sample:
+The GNU C library, known as \libc{}, is GNU's implementation of the C standard library. \libc{} provides a wide variety of C standard functions and systems call wrapper. \libc{} is not just one ``.so'' library file; instead, it contains many library files. The most famous \libc{} library is the C standard library or Libc. Libc provides macro, type, or function for a task like memory management. 
+Libc provide memory management functions like \lstinline{malloc}, \lstinline{calloc} and \lstinline{free}. Libc manages memory dynamic, static or automatic.\glnote{I don't understand; in which sense libc manages static or automatic memory?} The static one allocates in mani memory and exists during the execution. Automatic variable allocates on the stack like function variable. The dynamic one allocates during the execution; also, dynamic variable size is unknown during the compile time. We work especially on libc dynamic memory management mechanism. Consider the following code as an allocation sample:
 \begin{lstlisting}[language=c,frame=tlrb]
 int array[20];
 \end{lstlisting}
@@ -93,33 +91,34 @@ The above code statically allocates an array of ten integers. In the mentioned s
 \begin{lstlisting}[language=c,frame=tlrb]
 int *array = (int*)malloc(20 * sizeof(int));
 \end{lstlisting}
-The above code computes the number of bytes required to store 20 integers in memory, then requests that bytes from malloc. Malloc returns the pointer to that ten bytes in the memory. Sometimes may malloc cannot allocate memory; in such a scenario, a null pointer returns. 
+The above code computes the number of bytes required to store 20 integers in memory, then requests that number of bytes from \lstinline{malloc}\glnote{use lstinline for identifier in the text; I added some, check everywhere}. Function \lstinline{malloc} returns the pointer to that ten\glnote{ten?} bytes in the memory. Sometimes may malloc cannot allocate memory; in such a scenario, it returns a null pointer.
 \begin{lstlisting}[language=c,frame=tlrb]
 if (array == NULL) {
   fprintf(stderr, "failed");
   return -1;
 }
 \end{lstlisting}
-After we finish the job and do not need the array anymore, it is possible to release the memory with the free() function.
+After we finish the job and do not need the array anymore, it is possible to release the memory with the free() function.\glnote{I would not use ``()'', just ``function \lstinline{free}''}
 \begin{lstlisting}[language=c,frame=tlrb]
 free(array);
 \end{lstlisting}
-The malloc() is not clear the allocated memory, so it contains junk data. In order to allocate memory and clear at the same time, it is possible to use the calloc() function.
+The malloc() does not clear the allocated memory, so it contains junk data. In order to allocate memory and zero it at the same time, it is possible to use the calloc() function.
 \begin{lstlisting}[language=c,frame=tlrb]
 int *array = calloc(10, sizeof(int));
 \end{lstlisting}
 \section{Chunk}
 
-Allocation and free are not the only job of the heap manager. The heap manager needs some mechanism to keep track of the previous allocation and free space. Moreover, the heap manager needs to align memory in 8 bytes for a 32bit system and 16Byte in a 64bit system. To achieve this, the heap manager needs to store some metadata.
+Allocation and free are not the only job of the heap manager. The heap manager needs some mechanism to keep track of the previous allocation and free space.  To achieve this, the heap manager needs to store some metadata.  Moreover, the heap manager needs to align memory in 8 bytes for a 32-bit system and 16 bytes in a 64-bit system.
 
-This allocation metadata and padding store alongside the allocated memory by \emph{malloc} which returns to the user. For this reason, the heap manager uses a concept called \emph{chunk}, each chunk usually bigger than request memory allocation because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data and metadata, then, returns a pointer to the User's data section of the chunk. The below code shows the chunk data structure \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l1163}{\texttt{malloc.c}, line 1163}}:
+This allocation metadata and padding are stored alongside the allocated memory, which \lstinline{malloc} returns to the user. For this reason, the heap manager uses a data-structure called \emph{chunk}, each chunk is usually bigger than request memory allocation, because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk which big enough for user data plus metadata, then, returns a pointer to the user's data section of the chunk. The code below shows the chunk data structure \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l1163}{\texttt{malloc.c}, line 1163}}:
 
-\begin{lstlisting}[language=c,frame=tlrb]
+\begin{lstlisting}[language=c,frame=single]
 struct malloc_chunk {
  INTERNAL_SIZE_T mchunk_prev_size;
  INTERNAL_SIZE_T mchunk_size;
- struct malloc_chunk* fd; // Forward Pointer , Point to next freed chunk
- struct malloc_chunk* bk; // Backward Pointer , Point to previous freed chunk in double link list
+ struct malloc_chunk* fd; // Forward Pointer, points to next freed chunk
+ struct malloc_chunk* bk; // Backward Pointer, points to previous freed chunk
+                             // in double link list
  /* Only used for large blocks: pointer to next larger size. */
  struct malloc_chunk* fd_nextsize;
  struct malloc_chunk* bk_nextsize;
@@ -128,7 +127,9 @@ struct malloc_chunk {
 typedef struct malloc_chunk* mchunkptr;
 \end{lstlisting}
 
-An allocated chunk data structure is different than a free chunk. An allocated chunk just has the size field's, however, a freed chunk has two pointers to find the next free chunk, also, Because of metadata and alignment, the final size of a chunk is different than requested. Consider the following code which allocates 3 chunks of 8 bytes and free them after:
+An allocated chunk data structure is \emph{different} than a free chunk. An allocated chunk has just the size field (\lstinline{mchunk_size}), while, a freed chunk has also pointers to find the next free chunk.
+\emph{The memory area used for these pointers overlaps user's data, returned by \lstinline{malloc}}.
+Consider the following code which allocates 3 chunks of 8 bytes and free them after:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int main(){
@@ -161,7 +162,7 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-As you can see, after three allocations the heap has 4 chunks. The first three are requested by a user, the final chunk with a big size is the top chunk. The top chunk is the remaining free space in the current heap. now look at returned address by \libc{}:
+As you can see, after three allocations the heap has 4 chunks. The first three are requested by a user, the final chunk with a big size is the \emph{top chunk}. The top chunk is the remaining free space in the current heap. Now look at returned address by \libc{}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 pwndbg> p a
@@ -172,7 +173,7 @@ pwndbg> p c
 $5 = (int *) 0x5555555592e0
 \end{lstlisting}
 
-The returned address by \libc{} is not the address of chunk, but, the address of the data section. if We minus these two numbers we can see 16 bytes different which use for metadata. If you look at the chunk data structure, there are two \lstinline{INTERNAL_SIZE_T} is used to keep the size of the chunk. The \libc{} documentation said ' \lstinline{|INTERNAL_SIZE_T} is the word-size used for internal bookkeeping of chunk sizes'. The default size is equal to \sizet{}. Now if we take a look at inside the memory:
+As mentioned above, the returned address by \libc{} is not the address of chunk, but, the address of its data section. If we subtract these two numbers we can see a 16 bytes difference, which is used for metadata. If you look at the chunk data structure, there are two \lstinline{INTERNAL_SIZE_T} is used to keep the size of the chunk. The \libc{} documentation says that ``\lstinline{INTERNAL_SIZE_T} is the word-size used for internal bookkeeping of chunk sizes''. The default size is equal to \sizet{}. Now, if we take a look inside the memory:\glnote{replace with 64-bit word dump}
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/64h 0x0000555555559290
@@ -186,11 +187,11 @@ gef: x/64h 0x0000555555559290
 0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
 \end{lstlisting}
 
-In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation, which total allocation becomes 24 bytes. However, \libc{} must keep memory in 16-byte alignment; as a result, the final allocation is 32 bytes. Please look at the size field in an allocated chunk; we can see the size is not 32 but 33. The reason is three last bits of size parse differently:
+In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation, which total allocation becomes 24 bytes. However, \libc{} must keep memory in 16-byte alignment; as a result, the final allocation is 32 bytes. Please look at the size field in an allocated chunk; we can see the size is not 32 but 33. The reason is that the three least significant bits are used for special purposes (we will dicuss those details later):
 \begin{enumerate}
-	\item A (\lstinline{NON_MAIN_ARENA}): 0 for chunks in the main arena
-	\item M (\lstinline{IS_MMAPPED}): The chunk is obtained through mmap
-	\item P (\lstinline{PREV_INUSE}):
+	\item A (\lstinline{NON_MAIN_ARENA}): does the chunk belong to the main arena?
+	\item M (\lstinline{IS_MMAPPED}): was the chunk allocated through \lstinline{mmap}?
+	\item P (\lstinline{PREV_INUSE}): is the previous chunk in use?
 \end{enumerate}
 Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the chunk as a place to keep pointer metadata in the free chunk. Take a look at heap after call \lstinline{free()}:
 
@@ -215,7 +216,7 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-Also, retake a look at inside memory; we can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. Also, the forward pointers point to the beginning of the heap area in memory.
+Also, retake a look at inside memory; we can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. Also, the forward pointers point to the beginning of the heap area in memory.\glnote{again, dump 8-byte words, so pointers can be read more easily}
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/64h 0x0000555555559290
@@ -231,48 +232,48 @@ gef: x/64h 0x0000555555559290
 \glnote{size\_t is 8 bytes, and pointers are 8 bytes too, it would make more sense to dump/describe quadwords (same for the following memory dump)}
 \glnote{what is 0x555555559010? why all three blocks point to it?IT IS ALMOST THE HEAP ADDRESS , THE BIN IN THIS SAMPLE IS SINGLE LINK LIST }
 \section{Memory Allocation}
- First, we discuss the heap manager in a simple algorithm; then, we discuss each part in detail. The first question is, What is happen when the user requests a memory allocation:
+ First, we discuss the heap manager in a simple algorithm; then, we discuss each part in detail. The first question is, what happens when the user requests a memory allocation:
 \begin{enumerate}
-	\item heap manager cheek previously freed chunk, if there is a chunk which big enough, then, return it.
-	\item If the heap manager unable to find a previously freed chunk, then look at the top chunk. If there is available free space, then allocated a new chunk and returned it.
-	\item If there is not enough space in a heap anymore, then ask Kernel for new memory allocation to the end of the heap and allocate chunk from this new space.
-	\item If all the above space failed, then malloc returns NULL, which means we cannot allocate new space.
+	\item Heap manager checks previously freed chunk, if there is a chunk which big enough, then, return it.
+	\item If the heap manager is unable to find a previously freed chunk, then look at the top chunk. If there is enough available space, then allocates a new chunk and returns it.
+	\item If there is not enough space, then ask the kernel for new memory to extend the heap and allocate the chunk from this new space.
+	\item If all the above fails, then \lstinline{malloc} returns \lstinline{NULL}, which means we cannot allocate the requested memory.
 \end{enumerate}
 
-\subsection{Allocation from Freed Chunks}
-As we mention, Previously freed chunks are the first place search by the heap manager. Heap manager tracks of Freed chunks via some linked list call \emph{bins} when a new allocation request arrives; the heap manager looks at bins to find a big enough chunk. If the chunk has the same size, then the heap manager returns it. Otherwise, if the chunk is more significant than the request, then the heap manager split it. There are several different types of bins which we discuss later.
+\subsection{Allocation from Free Chunks}
+As we mentioned, previously freed chunks are the first place search by the heap manager. Heap manager tracks of freed chunks via some linked list call \emph{bins}. When a new allocation request arrives; the heap manager looks at bins to find a chunk big enough. If the chunk has the same size, then the heap manager returns it. Otherwise, if the chunk is larger than requested, then the heap manager split it. There are several different types of bins which we discuss later.
 
 \subsection{Allocation from Top Chunk}
-So what does happen if there were no suitable previously free space? In this situation, the heap manager checks the remaining space at the end of the heap. If there is enough space to create a chunk, then allocate a new chunk from the top of the heap space.
+So what does happen if there is no suitable free chunks? In this situation, the heap manager checks the remaining space at the end of the heap, that is, the \emph{top chunk}. If there is enough space to create a chunk for the request, then it is created and returned.
 
-\subsection{Ask Kernel for more memory}
-So, let us check what happens yet—first, the heap manager search through previously free chunk. Assume we do not have any suitable free chunk. As a result, the heap manager performs chunk creation from the top chunk; however, the request is bigger than the remaining space. If there is not enough space at the end of the heap, the heap manager asks Linux Kernel for more memory. Now we have to discuss another system called \emph{brk}. When a program executes, the heap manager calls \emph{sbrk} which used the brk system call. This system call allocates memory just after the program gets load which is the end of the heap.
-After a while, this system calls \lstinline{break} because the newly allocated region at the end of the program space collides with another thing in the process's space. Once this situation happens, the heap manager cannot allocate contiguous memory space by calling mmap to allocate non-contiguous memory space.
+\subsection{Asking for more memory}
+Assume we do not have any suitable free chunk, and the request is bigger than the remaining space in the top chunk. In this case, the heap manager asks the Linux kernel for more memory. Now we have to discuss another system call: \emph{brk}. When a program executes, the heap manager calls \emph{sbrk}, which used the brk system call. This system call allocates memory just after the program gets loaded.
+When the heap cannot be extended in this way, because the newly allocated region would collide with something else in the process's address space (e.g. a dynamic library), then the heap manager cannot allocate contiguous memory and calls \lstinline{mmap} to allocate non-contiguous memory space.
 
 \section{MMAP}
-The heap manager uses \emph{mmap} for large memory allocation instead of \lstinline{sbrk} If the user requests a too large memory space. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via mmap. After the user releases the memory by \lstinline{free()}, these chunks are \emph{unmmap}. By default, the \lstinline{mmap} threshold is 128KB to 512KB for 32-bit and 32MB for the 64-bit system.
+The heap manager uses \emph{mmap}\glnote{use lstinline not emph for function names}, instead of \lstinline{sbrk}, also for large memory allocations. That is, when the user requests a size larger than a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via mmap. When the user releases the memory by calling \lstinline{free()}, these chunks are \lstinline{unmmap}ed. By default, the \lstinline{mmap} threshold is 128KB to 512KB\glnote{which one? I don't understand} for 32-bit and 32MB for the 64-bit system.
 
-\section{ARENA}
-Concurrency is a challenge in multi-thread applications, so heap manager is not safe from this issue. There are many solutions to overcome this problem. In the early days' heap managers used a simple global lock before every heap operation to overcome this situation; However, this approach has a high cost. In multi-thread applications with heavy use of heap, this strategy leads to substantial performance issues because the heap needs to lock many times.
+\section{Arenas}
+Concurrency is a challenge in multi-thread applications, and heap manager is not safe from this issue. There are many solutions to handle race conditions. In the early days, the heap manager used a simple global lock before every heap operation to synchronize access to shared data. However, this approach has a high cost. In multi-thread applications with heavy use of the heap this strategy leads to substantial performance issues because the heap needs to lock many times.
 
-To improve the performance, \lstinline{ptmalloc2} introduces a concept called \emph{arena}. Different threads have their arena; also, Each arena manages its chunks. As a result, threads can work simultaneously in the different arenas without altering each other data.
+To improve the performance \emph{ptmalloc2}\glnote{in this case emph, because it's the name of the library, not an identifier} introduces a concept called \emph{arena}. Different threads may have their own arena, and each arena manages its chunks. As a result, threads can work simultaneously in the different arenas without the need to synchronize their access to a shared data structure.
 
-When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is (2* the number of CPU core) for 32-bit and (8* the number of CPU core) for 64-bit; also, you can tune this value by \emph{mallopt} function. So, what happens when we reach max number? Thread has to share the arena.
-\glnote{MALLOPT WILL ADD - DONE}
+When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is $(2\cdot\mathrm{number\ of\ CPU\ cores})$ for 32-bits, and $(8\cdot\mathrm{number\ of\ CPU\ cores})$ for 64-bits. You can tune this value by using \lstinline{mallopt} function. So, what happens when we reach max number? Thread has to share the arena.
 
-As we saw before, the main Arenas create and grow by the \lstinline{sbrk} system call; however, this is not true for the second heap. The second heap creates via \lstinline{mmap}.
+As we saw before, the main arena grows by using the \lstinline{sbrk} system call; however, this is not true for secondary arenas, which grow by calling \lstinline{mmap}.
 
-\section{Subheap}
-The main heap arena is located just after where the program started and expanded by \lstinline{sbrk}. We can conclude that in the multi-thread application, which has a secondary heap, \lstinline{sbrk} can not do this. This secondary arena emulates the main heap arena by using \emph{subheap}. subheap works like the main heap; however, they have some differences. The main heap is located right after the program starts in memory; they grow with the \lstinline{sbrk} system call. Subheap can not contiguously allocate after the program begins because it creates by mmap; moreover, the heap manager expands them by 'protect.
+\section{Subheaps}\glnote{this subsection was very confusing, I tried to rewrite it, please check}
+The main heap arena is located just after where the program has been loaded and expanded by \lstinline{sbrk}. We can conclude that in multi-thread applications, which have secondary heaps, \lstinline{sbrk} can not do this. This secondary arena emulates the main heap arena by using \emph{subheaps}. A subheap works like the main heap; however, there are some differences.
 
-How heap manager create and manage the subheap? In the first step, the heap manager asks the Kernel to reserve an area of memory for the \emph{subheap} by malloc. Reserving does not allocate memory to subheap; it just tells the Kernel, Do not use this area. Mmap by flags required page as \lstinline{PROT_NONE} achieve this goal.
-On the next step, when the main heap expands by \lstinline{sbrk}, the heap manager allocates the previously reserved area to subheap by calling \lstinline{mprotect}. What \lstinline{mprotect} do? It concerts \lstinline{PROT_NONE}\glnote{DONE use lstinline for identifiers/function-names/etc; change everywhere} to \lstinline{PROT_READ}, \lstinline{PROT_WRITE}. In this way, at least the Kernel allocates real physical memory to each subheap, subheap expand in mmap area until It fills all mmap reserve area.
+How the heap manager creates and manages a subheap? The heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by using \lstinline{mprotect}. Reserving does not allocate memory to subheap; it just tells the kernel: ``do not use this space''. Memory pages are requested with flags \lstinline{PROT_NONE} to achieve this goal.
 
-\section{free}
-Whats happens when the user does not need allocated space anymore? , calling heap can free up space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but free() needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. send an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks before free up space:
+Then, as the main heap is expanded by calling \lstinline{sbrk}, the heap manager expands the previously reserved area to subheap by calling \lstinline{mprotect} again, and changing the page flags to \lstinline{PROT_READ|PROT_WRITE}.
+
+\section{Free}
+Whats happens when the user does not need the allocated space anymore? By calling \lstinline{free}, the heap can free up the space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but free() needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. send an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks before free up space:
 
 \begin{enumerate}
-	\item Is chunk align?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}}
+	\item Is chunk aligned?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}}
 	\item Is chunk size valid?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}}
 	\item Is Chunk in the arena address space?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4171}}
 	\item Is it already free?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4266}}
@@ -447,7 +448,7 @@ We can see, this part starts with a security check. In this case, the request si
 This function checks if the system supports mmap allocation and the requested size is inside the mmap threshold. It allocates memory by using mmap. If it fails means there is no memory anymore, so malloc returns a null pointer.
 
 \section{calloc()}
-Calloc \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. Calloc and malloc have one important difference. Unlike malloc, calloc does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by calloc, the heap manager will not use them \glnote {DONE do not use contractions in formal writing; in this case, "will not" (instead of will not)}. Instead, create a new chunk from the top chunk. consider the following sample
+Calloc \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. Calloc and malloc have one important difference. Unlike malloc, calloc does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by calloc, the heap manager will not use them. Instead, create a new chunk from the top chunk. consider the following sample
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = malloc(8);
@@ -1962,7 +1963,7 @@ fwd->fd->bk_nextsize = victim->bk_nextsize->fd_nextsize = victim;
 This attack works on \libc{} below 3.0 .
 \chapter{Conclusion}
 
-\bibliographystyle{alphaurl}
-\bibliography{bib}
+% \bibliographystyle{alphaurl}
+% \bibliography{bib}
 
 \end{document}
