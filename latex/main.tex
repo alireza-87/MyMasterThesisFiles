@@ -258,7 +258,7 @@ Concurrency is a challenge in multi-thread applications, and heap manager is not
 
 To improve the performance \emph{ptmalloc2}\glnote{in this case emph, because it's the name of the library, not an identifier} introduces a concept called \emph{arena}. Different threads may have their own arena, and each arena manages its chunks. As a result, threads can work simultaneously in the different arenas without the need to synchronize their access to a shared data structure.
 
-When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is $(2\cdot\mathrm{number\ of\ CPU\ cores})$ for 32-bits, and $(8\cdot\mathrm{number\ of\ CPU\ cores})$ for 64-bits. You can tune this value by using \lstinline{mallopt} function. So, what happens when we reach max number? Thread has to share the arena.
+When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is $(2\cdot\mathrm{number\ of\ CPU\ cores})$ for 32-bits, and $(8\cdot\mathrm{number\ of\ CPU\ cores})$ for 64-bits. You can tune this value by using \lstinline{mallopt} function\glnote{add reference to the later section where you speak about mallopt}. So, what happens when we reach max number? Thread has to share the arena.
 
 As we saw before, the main arena grows by using the \lstinline{sbrk} system call; however, this is not true for secondary arenas, which grow by calling \lstinline{mmap}.
 
@@ -269,30 +269,32 @@ How the heap manager creates and manages a subheap? The heap manager asks the ke
 
 Then, as the main heap is expanded by calling \lstinline{sbrk}, the heap manager expands the previously reserved area to subheap by calling \lstinline{mprotect} again, and changing the page flags to \lstinline{PROT_READ|PROT_WRITE}.
 
+\glnote{Still not clear to me the relation between heaps, subheaps and arenas}
+
 \section{Free}
-Whats happens when the user does not need the allocated space anymore? By calling \lstinline{free}, the heap can free up the space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but free() needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. send an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks before free up space:
+Whats happens when the user does not need the allocated space anymore? By calling \lstinline{free}, the heap can free up the space. Now, the question is how free() works? First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but free() needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. Sending an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks before freeing up space:
 
 \begin{enumerate}
 	\item Is chunk aligned?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}}
-	\item Is chunk size valid?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}}
-	\item Is Chunk in the arena address space?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4171}}
+	\item Is chunk's size valid?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}}
+	\item Is the chunk in the arena address space?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4171}}
 	\item Is it already free?\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4266}}
 \end{enumerate}
 
 \section{Bins}
-	The heap manager requires a mechanism to manage and organize recently freed chunks for the following allocations. The simplest solution to keep track of freed space is to store them in a giant bin; although this could work, It is not a good solution. Malloc uses vary wildly, so this approach leads to a performance problem.
-To improve performance, the heap manager uses different types of bins. There is 5 different type of bins: \emph{\sbs{}}, \emph{\lb{}}, \emph{\fb{}}, \emph{\ub{}}, \emph{\tch{}}. All of the mentioned bins exist in the same area of heap manager source code. This is a list with 127 items, the index 0 is unused.
-Now, We want to discuss how the heap manager recycles a chunk for a new allocation. First, let us consider a simple schema:
+	The heap manager requires a mechanism to manage and organize recently freed chunks for the following allocations. The simplest solution to keep track of freed space is to store them in a giant bin; although this could work, it is not a good solution. Malloc uses vary wildly, so this approach leads to a performance problem.
+To improve performance, the heap manager uses different types of bins. There are five different type of bins: \emph{\sbs{}}, \emph{\lb{}}, \emph{\fb{}}, \emph{\ub{}} and \emph{\tch{}}. All of the mentioned bins exist in the same area of heap manager source code.\glnote{source code? Do you mean that they are allocated together in the source code? If this is the case, maybe you can add the snippet of code here to show what you mean} This is a list with 127 items, the index 0 is unused.
+Now, we want to discuss how the heap manager recycles a chunk for a new allocation. First, let us consider a simple schema:
 \begin{enumerate}
-	\item If the M-bit in metadata is set, then this chunk is allocated off-heap, so, It should be unmmap.
-	\item Otherwise, if the chunk right before this chunk is free, then they merge (the way they are merged depends on many factors, we will detail them in the following sections)
-	\item If the chunk right after this chunk is free, then they merge
-	\item After the merge, if the larger chunk is located at the top of the heap, then it absorbs into the end of the heap instead of adding to bins
-	\item Otherwise, the freed chunk add to the corresponding bin
+	\item If the M-bit in metadata is set, then this chunk is allocated off-heap, so, it should be freed by using unmmap.
+	\item Otherwise, if the chunk right before this chunk is free, then they merge (the way they are merged depends on many factors, we will detail them in the following sections).
+	\item If the chunk right after this chunk is free, then they merge.
+	\item After the merge, if the larger chunk is located at the top of the heap, then it absorbed by the top-chunk, instead of being added to bins.
+	\item Otherwise, the freed chunk is added to the corresponding bin.
 \end{enumerate}
 
 \subsection{\Sbs}
-There are 62 \sbs{}, Each of them stores the exact size of the chunk; as a result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. \sbs{} holds chunk below 512 bytes in the 32-bit and chunk below 1024 Byte in 64-bit with a double-link list.
+There are 62 \sbs{}, Each\glnote{check punctuation (space after, no space before) and uppercase/lowercase in all the thesis, there are many places like this} of them stores the exact size of the chunk; as a result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. \sbs{} holds chunk below 512 bytes in the 32-bit and chunk below 1024 Byte in 64-bit with a double-link list.
 
 \subsection{\Lb}
 For chunks over 512 bytes ( 1024 byte 64-bit ), the heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed length in \sbs{}, in a way, they do not overlap with each other.
