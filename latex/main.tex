@@ -102,7 +102,7 @@ After we finish the job and do not need the array anymore, it is possible to rel
 \begin{lstlisting}[language=c,frame=tlrb]
 free(array);
 \end{lstlisting}
-The \lstinline{malloc} does not clear the allocated memory, so it contains junk data. In order to allocate memory and zero it at the same time, it is possible to use the calloc() function.
+The \lstinline{malloc} does not clear the allocated memory, so it contains junk data. In order to allocate memory and zero it at the same time, it is possible to use the \lstinline{calloc} function.
 \begin{lstlisting}[language=c,frame=tlrb]
 int *array = calloc(10, sizeof(int));
 \end{lstlisting}
@@ -449,8 +449,8 @@ We can see, this part starts with a security check. In this case, the request si
 
 This function checks if the system supports mmap allocation and the requested size is inside the mmap threshold. It allocates memory by using mmap. If it fails means there is no memory anymore, so \lstinline{malloc} returns a null pointer.
 
-\section{calloc()}
-Calloc \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. Calloc and \lstinline{malloc} have one important difference. Unlike \lstinline{malloc}, calloc does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by calloc, the heap manager will not use them. Instead, create a new chunk from the top chunk. consider the following sample
+\section{calloc}
+\lstinline{Calloc} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. \lstinline{Calloc} and \lstinline{malloc} have one important difference. Unlike \lstinline{malloc}, \lstinline{calloc} does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by \lstinline{calloc}, the heap manager will not use them. Instead, create a new chunk from the top chunk. consider the following sample
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = malloc(8);
@@ -461,7 +461,7 @@ calloc(1,8);
 calloc(1,8);
 \end{lstlisting}
 
-If we look at the heap state after calloc, we can see heap manager create new chunks from the top chunk and \tch{} chunks remain.
+If we look at the heap state after \lstinline{calloc}, we can see heap manager create new chunks from the top chunk and \tch{} chunks remain.
 
 \section{Alignment()}
 As we mention, one of the heap manager's responsibilities is to keep memory in 16-byte alignment. In short form, the heap manager return aligned memory in the allocation phase, then, When a user calls free to request a chunk, the heap manager checks the alignment of memory for security reasons too. First, see the allocation part:
@@ -797,7 +797,7 @@ for (int i=0; i<7; i++) {
 }
 \end{lstlisting}
 
-A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of return freed \tch{} chunks. The above code allocated seven chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these seven freed chunks to add to \tch{}. \tch{} can keep up to 7 chunks. From this point, if we release other chunks, they add to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \lstinline{malloc} to allocate fresh chunks, the heap manager returns chunks from \tch{}, so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation, allocation can use calloc. Calloc does not use \tch{}, and \fb{} are free, so calloc gets memory from the top chunk.
+A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of return freed \tch{} chunks. The above code allocated seven chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these seven freed chunks to add to \tch{}. \tch{} can keep up to 7 chunks. From this point, if we release other chunks, they add to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \lstinline{malloc} to allocate fresh chunks, the heap manager returns chunks from \tch{}, so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation, allocation can use \lstinline{calloc}. \lstinline{Calloc} does not use \tch{}, and \fb{} are free, so \lstinline{calloc} gets memory from the top chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = calloc(1, 8);
@@ -805,7 +805,7 @@ int *b = calloc(1, 8);
 int *c = calloc(1, 8);
 \end{lstlisting}
 
-The result of the above code is allocated 3 new chunks of memory from the top chunk while \tch{} is still full of freed chunks. In another word, We force the heap manager to allocate memory from the top chunk instead of use freed chunks. The above approach use by other attacks to bypass the \tch{} policy too. The following steps are like the original approach, but calloc:
+The result of the above code is allocated 3 new chunks of memory from the top chunk while \tch{} is still full of freed chunks. In another word, We force the heap manager to allocate memory from the top chunk instead of use freed chunks. The above approach use by other attacks to bypass the \tch{} policy too. The following steps are like the original approach, but \lstinline{calloc}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(a);
