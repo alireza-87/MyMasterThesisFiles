@@ -316,7 +316,7 @@ As we can see, \lstinline{malloc} iterate over all items inside \ub{}. We can co
 
 \subsection{\Fb}
 \Fb{} bins keep recently freed small chunks in a list. As we mention \ub{} merge chunk before adding to bins, but, chunk in \ub{} does not merge with neighbors; instead, \fb{} keeps them alive, so, If the program sends the same size request, then heap manager can use this chunks.
-The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate()}.
+The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate}.
 
 \subsection{\Tch bins}
 since \libc{-2.26} \tch{} add ad the last optimization in the heap manager . Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}
@@ -500,17 +500,17 @@ The free function checks if the size is bigger than the minimum allocation size;
 Some of the \lstinline{mallopt} customizations can be performed by environment variable too. Using environment variables has the advantage that source code does not need change. Also, if the same parameter defines by \lstinline{mallopt} too, then the \lstinline{mallopt} has priority. 
 
 \begin{enumerate}
-\item \lstinline{MALLOC_ARENA_MAX} Controls the same parameter as \lstinline{mallopt()} \lstinline{M_ARENA_MAX }.
+\item \lstinline{MALLOC_ARENA_MAX} Controls the same parameter as \lstinline{mallopt} \lstinline{M_ARENA_MAX }.
 
-\item \lstinline{MALLOC_MMAP_MAX_} Controls the same parameter as  \lstinline{mallopt()}  \lstinline{M_MMAP_MAX }.
+\item \lstinline{MALLOC_MMAP_MAX_} Controls the same parameter as  \lstinline{mallopt}  \lstinline{M_MMAP_MAX }.
 
-\item \lstinline{MALLOC_MMAP_THRESHOLD_} Controls the same parameter as \lstinline{mallopt()} \lstinline{M_MMAP_THRESHOLD}.
+\item \lstinline{MALLOC_MMAP_THRESHOLD_} Controls the same parameter as \lstinline{mallopt} \lstinline{M_MMAP_THRESHOLD}.
 \end{enumerate}
 
 \section{malloc\_consolidate}
 As the \libc{} document said, It is a specialized version of the free function that tears down chunks held in the \fb{}. When a new allocation request has arrived, in some conditions, the heap manager calls this method to tears down \fb{} chunks.
 
-To find when \lstinline{malloc_consolidate()} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4440}{\texttt{malloc.c}, line 4440}} calls, we invest two different versions of \libc{}. the first one is 2.23 and the second one is 2.33 which is the latest \libc{} version. The first usage is the \lstinline{malloc} function , Consider the following code:
+To find when \lstinline{malloc_consolidate} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4440}{\texttt{malloc.c}, line 4440}} calls, we invest two different versions of \libc{}. the first one is 2.23 and the second one is 2.33 which is the latest \libc{} version. The first usage is the \lstinline{malloc} function , Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
@@ -1138,7 +1138,7 @@ public free(Void_t* mem){
  _int_free(ar_ptr, mem);
 }
  \end{lstlisting}
-As we mentioned, when the user requests a memory allocation \libc{} returns a pointer to the data section on the allocated chunk, however, to free chunk \libc{} needs a pointer to the beginning of the chunk. mem2chunk() responsible to convert mem pointer to chunk pointer by subtracting address from metadata size. Then this chunk passes to \lstinline{arena_for_chunk()} macro. Take a look at the code:
+As we mentioned, when the user requests a memory allocation \libc{} returns a pointer to the data section on the allocated chunk, however, to free chunk \libc{} needs a pointer to the beginning of the chunk. \lstinline{mem2chunk} responsible to convert mem pointer to chunk pointer by subtracting address from metadata size. Then this chunk passes to \lstinline{arena_for_chunk} macro. Take a look at the code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 #define HEAP_MAX_SIZE (1024*1024)
@@ -1149,7 +1149,7 @@ As we mentioned, when the user requests a memory allocation \libc{} returns a po
 (chunk_non_main_arena(ptr)?heap_for_ptr(ptr)->ar_ptr: &main_arena)
  \end{lstlisting}
 
-When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude , if the \lstinline{non_main_arena} is set , then \lstinline{chunk_non_main_arena()} return true ,as the result \lstinline{ar_ptr} in \lstinline{free} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
+When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude , if the \lstinline{non_main_arena} is set , then \lstinline{chunk_non_main_arena} return true ,as the result \lstinline{ar_ptr} in \lstinline{free} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
 This attack works by manipulating the heap in a way a fake \lstinline{ar_ptr} supply to \lstinline{_init_free}; as a result, an arbitrary overwrite happen. The Attacker has to allocate enough memory until it reaches \lstinline{non_main_arena} where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so max allocation never is more than 1MB.
 We saw It possible to hijack the \lstinline{heap_info} and supply an arbitrary \lstinline{ar_ptr} value, so, what value should we use for \lstinline{ar_ptr}? We have two options on that:
 
@@ -1492,7 +1492,7 @@ while (fp != NULL)
 	 && _IO_OVERFLOW (fp, EOF) == EOF)
 \end{lstlisting}
 
-As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the \lstinline{io_file} object. When libc allocate a new file structure and fopen() return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus} , if we take a look at \libc{} code we have:
+As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the \lstinline{io_file} object. When libc allocate a new file structure and \lstinline{fopen} return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus} , if we take a look at \libc{} code we have:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE_plus{
