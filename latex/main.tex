@@ -773,7 +773,7 @@ e = malloc(10); // 0xa04030
 f = malloc(10); // 0xa04010
 \end{lstlisting}
 
-At first, we requested 3 chunks of 10-byte. After that, we free \lstinline{a}\glnote{instead of single quotes, use lstinline for a, b, etc - DONE} and \lstinline{b} and at last \lstinline{a} again. You can see the fast bin structure after \lstinline{free} below step by step:
+At first, we requested 3 chunks of 10-byte. After that, we free \lstinline{a}\glnote{DONE - instead of single quotes, use lstinline for a, b, etc} and \lstinline{b} and at last \lstinline{a} again. You can see the fast bin structure after \lstinline{free} below step by step:
 
 \begin{lstlisting}[frame=tlrb]
 head -> a -> tail
@@ -903,7 +903,7 @@ As describe in the first part, we allocate three chunks and free one of them twi
 head -> a
 \end{lstlisting}
 
-\glnote{could you clarify/rephrase the following? The role of the 0x20 is unclear, IT IS ONE OF THE FAST BINS CHUNK SIZE , I MENTIONED ON FIRST SAMPLE " It must fall in \fb{} chunks "}
+\glnote{DONE - could you clarify/rephrase the following? The role of the 0x20 is unclear, IT IS ONE OF THE FAST BINS CHUNK SIZE , I MENTIONED ON FIRST SAMPLE " It must fall in \fb{} chunks "}
 The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affect \lstinline{a} at the top of the \fb{}) in an away point to right before 0x20 on the stack. In this way, we trick the heap into thinking there is an available free chunk.
  Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controller address on memory to the program is stack in this case.
 
