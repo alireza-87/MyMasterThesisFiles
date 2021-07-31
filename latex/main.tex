@@ -49,6 +49,7 @@
 \newcommand*\mallocc{\lstinline{malloc}}
 \newcommand*\callocc{\lstinline{calloc}}
 \newcommand*\freec{\lstinline{free}}
+\newcommand*\mmapc{\lstinline{mmap}}
 
 \newcommand{\kanote}[1]{\todo[color=blue!20]{#1}}
 \newcommand{\glnote}[1]{\todo[color=yellow!20]{#1}}
@@ -194,7 +195,7 @@ gef: x/64h 0x0000555555559290
 In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation, which total allocation becomes 24 bytes. However, \libc{} must keep memory in 16-byte alignment; as a result, the final allocation is 32 bytes. Please look at the size field in an allocated chunk; we can see the size is not 32 but 33. The reason is that the three least significant bits are used for special purposes (we will dicuss those details later):
 \begin{enumerate}
 	\item A (\lstinline{NON_MAIN_ARENA}): does the chunk belong to the main arena?
-	\item M (\lstinline{IS_MMAPPED}): was the chunk allocated through \lstinline{mmap}?
+	\item M (\lstinline{IS_MMAPPED}): was the chunk allocated through \mmapc{}?
 	\item P (\lstinline{PREV_INUSE}): is the previous chunk in use?
 \end{enumerate}
 Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the chunk as a place to keep pointer metadata in the free chunk. Take a look at heap after call \lstinline{free}:
@@ -252,10 +253,10 @@ So what does happen if there is no suitable free chunks? In this situation, the 
 
 \subsection{Asking for more memory}
 Assume we do not have any suitable free chunk, and the request is bigger than the remaining space in the top chunk. In this case, the heap manager asks the Linux kernel for more memory. Now we have to discuss another system call: \emph{brk}. When a program executes, the heap manager calls \emph{sbrk}, which used the brk system call. This system call allocates memory just after the program gets loaded.
-When the heap cannot be extended in this way, because the newly allocated region would collide with something else in the process's address space (e.g. a dynamic library), then the heap manager cannot allocate contiguous memory and calls \lstinline{mmap} to allocate non-contiguous memory space.
+When the heap cannot be extended in this way, because the newly allocated region would collide with something else in the process's address space (e.g. a dynamic library), then the heap manager cannot allocate contiguous memory and calls \mmapc{} to allocate non-contiguous memory space.
 
 \section{MMAP}
-The heap manager uses \emph{mmap}\glnote{use lstinline not emph for function names}, instead of \lstinline{sbrk}, also for large memory allocations. That is, when the user requests a size larger than a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via mmap. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}ed. By default, the \lstinline{mmap} threshold is 128KB to 512KB\glnote{which one? I don't understand} for 32-bit and 32MB for the 64-bit system.
+The heap manager uses \mmapc{}\glnote{use lstinline not emph for function names}, instead of \lstinline{sbrk}, also for large memory allocations. That is, when the user requests a size larger than a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}ed. By default, the \mmapc{} threshold is 128KB to 512KB\glnote{which one? I don't understand} for 32-bit and 32MB for the 64-bit system.
 
 \section{Arenas}
 Concurrency is a challenge in multi-thread applications, and heap manager is not safe from this issue. There are many solutions to handle race conditions. In the early days, the heap manager used a simple global lock before every heap operation to synchronize access to shared data. However, this approach has a high cost. In multi-thread applications with heavy use of the heap this strategy leads to substantial performance issues because the heap needs to lock many times.
@@ -264,7 +265,7 @@ To improve the performance \emph{ptmalloc2}\glnote{in this case emph, because it
 
 When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is $(2\cdot\mathrm{number\ of\ CPU\ cores})$ for 32-bits, and $(8\cdot\mathrm{number\ of\ CPU\ cores})$ for 64-bits. You can tune this value by using \lstinline{mallopt} function\glnote{add reference to the later section where you speak about mallopt}. So, what happens when we reach max number? Thread has to share the arena.
 
-As we saw before, the main arena grows by using the \lstinline{sbrk} system call; however, this is not true for secondary arenas, which grow by calling \lstinline{mmap}.
+As we saw before, the main arena grows by using the \lstinline{sbrk} system call; however, this is not true for secondary arenas, which grow by calling \mmapc{}.
 
 \section{Subheaps}\glnote{this subsection was very confusing, I tried to rewrite it, please check}
 The main heap arena is located just after where the program has been loaded and expanded by \lstinline{sbrk}. We can conclude that in multi-thread applications, which have secondary heaps, \lstinline{sbrk} can not do this. This secondary arena emulates the main heap arena by using \emph{subheaps}. A subheap works like the main heap; however, there are some differences.
@@ -451,7 +452,7 @@ We can see, this part starts with a security check. In this case, the request si
  void *p = sysmalloc (nb, av);
  \end{lstlisting}
 
-This function checks if the system supports mmap allocation and the requested size is inside the mmap threshold. It allocates memory by using mmap. If it fails means there is no memory anymore, so \mallocc{} returns a null pointer.
+This function checks if the system supports \mmapc{} allocation and the requested size is inside the \mmapc{} threshold. It allocates memory by using \mmapc{}. If it fails means there is no memory anymore, so \mallocc{} returns a null pointer.
 
 \section{calloc}
 \callocc{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. \callocc{} and \mallocc{} have one important difference. Unlike \mallocc{}, \callocc{} does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by \callocc{}, the heap manager will not use them. Instead, create a new chunk from the top chunk. consider the following sample
@@ -496,9 +497,9 @@ The free function checks if the size is bigger than the minimum allocation size;
 \begin{enumerate}
 \item \lstinline{M_ARENA_MAX} Defines the maximum number of arenas that heap managers can create. Programs usually have multiple threads, in which case an arena may receive multiple requests, so arenas must be thread-safe. Having more numbers arena means less thread concurrent; however, the higher memory needs.
 
-\item \lstinline{M_MMAP_MAX} Define the maximum number of sequential memory allocation which can handle by mmap.
+\item \lstinline{M_MMAP_MAX} Define the maximum number of sequential memory allocation which can handle by \mmapc{}.
 
-\item \lstinline{M_MMAP_THRESHOLD} The system uses the mmap to allocate larger memory than the
+\item \lstinline{M_MMAP_THRESHOLD} The system uses the \mmapc{} to allocate larger memory than the
 \end{enumerate}
 
 Some of the \lstinline{mallopt} customizations can be performed by environment variable too. Using environment variables has the advantage that source code does not need change. Also, if the same parameter defines by \lstinline{mallopt} too, then the \lstinline{mallopt} has priority. 
@@ -1088,7 +1089,7 @@ $14 = (intptr_t *) 0x555555559210
  \end{lstlisting}
 
 As you can see, p3 is not in the list of chunks anymore, however, the pointer still accessible inside the application. Now the p3 and p4 have overlap, so, write data on one of them overwrite the other one data
-What happened if the chunk size was so big? As we mentioned, the system uses mmap in this scenario. Take consider the following code:
+What happened if the chunk size was so big? As we mentioned, the system uses \mmapc{} in this scenario. Take consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int* ptr1 = malloc(0x10);
@@ -1193,7 +1194,7 @@ int HEAP_MAX_SIZE = 0x4000000;
 int MAX_SIZE = (128*1024) - 0x100;
 \end{lstlisting}
 
-The first line is maximum heap size, also, the second line is maximum chunk size. This is the threshold of mmap.
+The first line is maximum heap size, also, the second line is maximum chunk size. This is the threshold of \mmapc{}.
 \begin{lstlisting}[language=c,frame=tlrb]
 uint8_t* fake_arena = malloc(0x1000);
 uint8_t* target_loc = fake_arena + 0x30;
@@ -1303,7 +1304,7 @@ Now, we have a pointer to the top chunk, all we have to do overwrite the size fi
 *(intptr_t *)((char *)ptr_top + sizeof(long)) = -1
 \end{lstlisting}
 
-If you check the \libc{} above code, you can see the \libc{} convert the size to (unsigned long), so, \-1 is the largest number. Now we put a big number on size, so, \mallocc{} doesn’t call mmap to get more memory from os, instead, it uses the top chunk. All we have to do now is allocate a chunk from the top chunk to right before our target, then, the second chunk is be our target:
+If you check the \libc{} above code, you can see the \libc{} convert the size to (unsigned long), so, \-1 is the largest number. Now we put a big number on size, so, \mallocc{} doesn’t call \mmapc{} to get more memory from os, instead, it uses the top chunk. All we have to do now is allocate a chunk from the top chunk to right before our target, then, the second chunk is be our target:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long evil_size = (unsigned long)bss_var - sizeof(long)*4 - (unsigned long)ptr_top;
@@ -1446,7 +1447,7 @@ The result of such an action is, our fake chunk is at the top of the bin, so the
 \subsection{The House of Orange}
 The house of orange is different from previous attacks. As we remember, in the previous attack, we use \mallocc{} and free to abuse libc vulnerability, but, In the house of orange, we do not use the \freec{} function at all. In other words, we force the heap manager to free a chunk of the heap without calling the \freec{} function. The final layout of this attack is a combination of \ub{} attacks; also, in the end, we gain shell access.
 
-At first, there is one chunk in the application called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation; As we mentioned before, when a request has arrived, the heap manager first checks the bins. If there is no suitable chunk in the bins, the heap manager tries to create a new chunk from the top chunk, so what happens if the requested chunk size is bigger than the top chunk? There are two scenarios for such a situation: if the requested size is smaller than 0x21000, extend the top chunk; otherwise, use mmap. If we can make the heap manager extend instead of mmap, the old top chunk is inserted into an \ub{} without calling the free function.
+At first, there is one chunk in the application called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation; As we mentioned before, when a request has arrived, the heap manager first checks the bins. If there is no suitable chunk in the bins, the heap manager tries to create a new chunk from the top chunk, so what happens if the requested chunk size is bigger than the top chunk? There are two scenarios for such a situation: if the requested size is smaller than 0x21000, extend the top chunk; otherwise, use \mmapc{}. If we can make the heap manager extend instead of \mmapc{}, the old top chunk is inserted into an \ub{} without calling the free function.
 
 To achieve this, we have to meet some security conditions. There is a check for the top chunk inside the libc.
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1520,7 +1521,7 @@ With the help of \emph{blukat} \footnote{\href{https://libc.blukat.me}{\texttt{l
 \end{figure}
 
 
-Now we have the offset of \lstinline{io_list_all} inside \libc{}, in the next step, with the help of vmmap in gdb found the start address of \libc{}, then add offset to \libc{} address to found \lstinline{io_list_all} address in the current execution.
+Now we have the offset of \lstinline{io_list_all} inside \libc{}, in the next step, with the help of \lstinline{vmmap} command in gdb found the start address of \libc{}, then add offset to \libc{} address to found \lstinline{io_list_all} address in the current execution.
 \begin{lstlisting}[language=c,frame=tlrb]
 0x00007ffff7a36000 0x00007ffff7bce000 0x0000000000000000 r-x /mnt/vmshare/MasterThesis/libc223/libc.so.6
 0x00007ffff7a36000+0x39c520 = 0x7FFFF7DD2520
@@ -1854,7 +1855,7 @@ $14 = (intptr_t *) 0x555555559210
 \end{lstlisting}
 
 As you can see, p3 is not in the list of chunks anymore, however, the pointer still accessible inside the application.Now the p3 and p4 have overlap, so , write data on one of them could overwrite the other one data
-What happened if the chunk size was so big? As we mentioned, the system can use mmap in this scenario. Take consider the following code:
+What happened if the chunk size was so big? As we mentioned, the system can use \mmapc{} in this scenario. Take consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int* ptr1 = malloc(0x10);
