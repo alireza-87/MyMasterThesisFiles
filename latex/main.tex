@@ -95,14 +95,14 @@ The above code statically allocates an array of ten integers. In the mentioned s
 \begin{lstlisting}[language=c,frame=tlrb]
 int *array = (int*)malloc(20 * sizeof(int));
 \end{lstlisting}
-The above code computes the number of bytes required to store 20 integers in memory, then requests that number of bytes from \mallocc{} \glnote{use lstinline for identifier in the text; I added some, check everywhere}. Function \mallocc{} returns the pointer to that ten\glnote{ten?} bytes in the memory. Sometimes may \mallocc{} cannot allocate memory; in such a scenario, it returns a null pointer.
+The above code computes the number of bytes required to store 20 integers in memory, then requests that number of bytes from \mallocc{} \glnote{DONE - use lstinline for identifier in the text; I added some, check everywhere}. Function \mallocc{} returns the pointer to that twenty\glnote{DONE - ten?} integer in the memory. Sometimes may \mallocc{} cannot allocate memory; in such a scenario, it returns a null pointer.
 \begin{lstlisting}[language=c,frame=tlrb]
 if (array == NULL) {
   fprintf(stderr, "failed");
   return -1;
 }
 \end{lstlisting}
-After we finish the job and do not need the array anymore, it is possible to release the memory with the \lstinline{free} function.\glnote{I would not use ``()'', just ``function \lstinline{free}''}
+After we finish the job and do not need the array anymore, it is possible to release the memory with the \lstinline{free} function.\glnote{DONE - I would not use ``()'', just ``function \lstinline{free}''}
 \begin{lstlisting}[language=c,frame=tlrb]
 free(array);
 \end{lstlisting}
