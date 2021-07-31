@@ -463,7 +463,7 @@ calloc(1,8);
 
 If we look at the heap state after \lstinline{calloc}, we can see heap manager create new chunks from the top chunk and \tch{} chunks remain.
 
-\section{Alignment()}
+\section{Alignment}
 As we mention, one of the heap manager's responsibilities is to keep memory in 16-byte alignment. In short form, the heap manager return aligned memory in the allocation phase, then, When a user calls free to request a chunk, the heap manager checks the alignment of memory for security reasons too. First, see the allocation part:
 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -486,8 +486,8 @@ if (__glibc_unlikely (size < MINSIZE || !aligned_OK (size))){
 \end{lstlisting}
 
 The free function checks if the size is bigger than the minimum allocation size; the chunk size must align too; otherwise, a memory corruption error rais.
-\section{mallopt()}
-mallopt is a function used to tune the behavior of \libc{} memory allocation methods like \lstinline{malloc}. In the below, we mention the parameters list, which mallopt can modify.
+\section{mallopt}
+\lstinline{mallopt} is a function used to tune the behavior of \libc{} memory allocation methods like \lstinline{malloc}. In the below, we mention the parameters list, which \lstinline{mallopt} can modify.
 
 \begin{enumerate}
 \item \lstinline{M_ARENA_MAX} Defines the maximum number of arenas that heap managers can create. Programs usually have multiple threads, in which case an arena may receive multiple requests, so arenas must be thread-safe. Having more numbers arena means less thread concurrent; however, the higher memory needs.
