@@ -48,6 +48,7 @@
 
 \newcommand*\mallocc{\lstinline{malloc}}
 \newcommand*\callocc{\lstinline{calloc}}
+\newcommand*\freec{\lstinline{free}}
 
 \newcommand{\kanote}[1]{\todo[color=blue!20]{#1}}
 \newcommand{\glnote}[1]{\todo[color=yellow!20]{#1}}
@@ -969,7 +970,7 @@ free(p1);
 size_t *g3 = malloc(0x438);
 \end{lstlisting}
 
-In the second step, we free the most significant chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, \lstinline{free} added the freed chunk to \ub{} at first, so, The best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (Like other attacks).
+In the second step, we free the most significant chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, \freec{} added the freed chunk to \ub{} at first, so, The best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (Like other attacks).
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2);
@@ -1022,7 +1023,7 @@ Chunk(addr=0x555555559210, size=0x80, flags=)
  [0x0000555555559210 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 3333333333333333]
  \end{lstlisting}
 
-Now lets \lstinline{free} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
+Now lets \freec{} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2).
@@ -1128,7 +1129,7 @@ In this stage, if we allocate a new big chunk, this new big chunk has overlap wi
 It is time to talk about the House of XXX families' attack. In 2004 the authors of \libc{} published a series of patches over \mallocc{} to prevent previous attacks on heap manager. In late 2004 a person issued a paper \lstinline{The Malloc Maleficarum}, over the internet. 'It is for this reason, a small suggestion of impossibility, that I present the Malloc Maleficarum' As they said. The name came from a 14-century book written by a Catholic clergyman on witchcraft, cool:)
 
 \subsection{The House of Mind}
-The goal of this attack is to overwrite a memory location by abusing the \lstinline{free} function. Take a look at \lstinline{free} function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4154}{\texttt{malloc.c}, line 4154}}:
+The goal of this attack is to overwrite a memory location by abusing the \freec{} function. Take a look at \freec{} function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4154}{\texttt{malloc.c}, line 4154}}:
 \begin{lstlisting}[language=c,frame=tlrb]
 public free(Void_t* mem){
  mstate ar_ptr;
@@ -1152,7 +1153,7 @@ As we mentioned, when the user requests a memory allocation \libc{} returns a po
 (chunk_non_main_arena(ptr)?heap_for_ptr(ptr)->ar_ptr: &main_arena)
  \end{lstlisting}
 
-When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude , if the \lstinline{non_main_arena} is set , then \lstinline{chunk_non_main_arena} return true ,as the result \lstinline{ar_ptr} in \lstinline{free} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
+When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude , if the \lstinline{non_main_arena} is set , then \lstinline{chunk_non_main_arena} return true ,as the result \lstinline{ar_ptr} in \freec{} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
 This attack works by manipulating the heap in a way a fake \lstinline{ar_ptr} supply to \lstinline{_init_free}; as a result, an arbitrary overwrite happen. The Attacker has to allocate enough memory until it reaches \lstinline{non_main_arena} where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so max allocation never is more than 1MB.
 We saw It possible to hijack the \lstinline{heap_info} and supply an arbitrary \lstinline{ar_ptr} value, so, what value should we use for \lstinline{ar_ptr}? We have two options on that:
 
@@ -1373,7 +1374,7 @@ free((void*)victim);
 void *p2 = malloc(1200);
 \end{lstlisting}
 
-To prevent merging the top chunk with a small one during \lstinline{free} we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{} ``Figure~\ref{fig:gdb2}``. In the following step, we allocate another chunk big enough, so, heap manager can't use the chunk inside an \ub{} or \sbs{}.
+To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{} ``Figure~\ref{fig:gdb2}``. In the following step, we allocate another chunk big enough, so, heap manager can't use the chunk inside an \ub{} or \sbs{}.
 \begin{lstlisting}[language=c,frame=tlrb]
 victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
 \end{lstlisting}
@@ -1443,7 +1444,7 @@ free(a);
 The result of such an action is, our fake chunk is at the top of the bin, so the next \mallocc{} return to the attacker's controlled location.
 
 \subsection{The House of Orange}
-The house of orange is different from previous attacks. As we remember, in the previous attack, we use \mallocc{} and free to abuse libc vulnerability, but, In the house of orange, we do not use the \lstinline{free} function at all. In other words, we force the heap manager to free a chunk of the heap without calling the \lstinline{free} function. The final layout of this attack is a combination of \ub{} attacks; also, in the end, we gain shell access.
+The house of orange is different from previous attacks. As we remember, in the previous attack, we use \mallocc{} and free to abuse libc vulnerability, but, In the house of orange, we do not use the \freec{} function at all. In other words, we force the heap manager to free a chunk of the heap without calling the \freec{} function. The final layout of this attack is a combination of \ub{} attacks; also, in the end, we gain shell access.
 
 At first, there is one chunk in the application called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation; As we mentioned before, when a request has arrived, the heap manager first checks the bins. If there is no suitable chunk in the bins, the heap manager tries to create a new chunk from the top chunk, so what happens if the requested chunk size is bigger than the top chunk? There are two scenarios for such a situation: if the requested size is smaller than 0x21000, extend the top chunk; otherwise, use mmap. If we can make the heap manager extend instead of mmap, the old top chunk is inserted into an \ub{} without calling the free function.
 
@@ -1591,7 +1592,7 @@ Finally, we trigger the attack by one allocation.
 \subsection{The House of roman = NOT FINISH YET}
 This attack is a combination of \fb{} attack, \ub{} attack, and Use after the free attack, also, The goal is to open a shell. However, the chance of a successful attack is so slight because we need to brute force 12-bit of randomness. The attack consists of three steps.
 
-The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}, but what is the \lstinline{malloc_hook}? \lstinline{malloc_hook} lets us modify the behavior of \mallocc{} and \lstinline{free} with a hook function. To achieve this, we use a \fb{} attack in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
+The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}, but what is the \lstinline{malloc_hook}? \lstinline{malloc_hook} lets us modify the behavior of \mallocc{} and \freec{} with a hook function. To achieve this, we use a \fb{} attack in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
 
 \subsection{The House of Rabbit}
 
@@ -1603,7 +1604,7 @@ unsigned long *b = malloc(0x40);
 unsigned long *c = malloc(0x10);
 \end{lstlisting}
 
-First, we allocate two chunks with the third chunk to prevent merging chunks with the top chunk after calling \lstinline{free}.
+First, we allocate two chunks with the third chunk to prevent merging chunks with the top chunk after calling \freec{}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(a);
@@ -1791,7 +1792,7 @@ Chunk(addr=0x555555559210, size=0x80, flags=)
  [0x0000555555559210  33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 3333333333333333]
 \end{lstlisting}
 
-Now lets \lstinline{free} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
+Now lets \freec{} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2).
