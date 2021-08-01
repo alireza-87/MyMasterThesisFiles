@@ -87,7 +87,7 @@ Every platform has a way to interact with heap memory. Our work specifically on 
 
 In the following sections, we discuss how \libc{} manages heap memory space.
 The GNU C library, known as \libc{}, is GNU's implementation of the C standard library. \libc{} provides a wide variety of C standard functions and systems call wrapper. \libc{} is not just one ``.so'' library file; instead, it contains many library files. The most famous \libc{} library is the C standard library or Libc. Libc provides macro, type, or function for a task like memory management. 
-Libc provide memory management functions like \mallocc, \callocc{} and \lstinline{free}. In \lstinline{c} , there is two way to allocate memory; static allocation and automatic allocation\footnote{\href{https://renenyffenegger.ch/notes/development/languages/C-C-plus-plus/C/libc/alloc/index}{\texttt{https://renenyffenegger.ch}}}.\glnote{I don't understand; in which sense libc manages static or automatic memory?} The static one allocates in mani memory and exists during the execution. Automatic variable allocates on the stack like function variable. \libc{} dynamicaly allocate memory; it allocates during the execution; also, dynamic variable size is unknown during the compile time. We work especially on libc dynamic memory management mechanism. Consider the following code as an allocation sample:
+Libc provide memory management functions like \mallocc, \callocc{} and \lstinline{free}. In \lstinline{c}, there is two way to allocate memory; static allocation and automatic allocation\footnote{\href{https://renenyffenegger.ch/notes/development/languages/C-C-plus-plus/C/libc/alloc/index}{\texttt{https://renenyffenegger.ch}}}.\glnote{DONE-I don't understand; in which sense libc manages static or automatic memory?} The static one allocates in mani memory and exists during the execution. Automatic variable allocates on the stack like function variable. \libc{} dynamicaly allocate memory; it allocates during the execution; also, dynamic variable size is unknown during the compile time. We work especially on libc dynamic memory management mechanism. Consider the following code as an allocation sample:
 \begin{lstlisting}[language=c,frame=tlrb]
 int array[20];
 \end{lstlisting}
@@ -235,7 +235,7 @@ gef: x/64h 0x0000555555559290
 0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
 \end{lstlisting}
 \glnote{size\_t is 8 bytes, and pointers are 8 bytes too, it would make more sense to dump/describe quadwords (same for the following memory dump)}
-\glnote{what is 0x555555559010? why all three blocks point to it?IT IS ALMOST THE HEAP ADDRESS , THE BIN IN THIS SAMPLE IS SINGLE LINK LIST }
+\glnote{DONE-what is 0x555555559010? why all three blocks point to it?IT IS ALMOST THE HEAP ADDRESS, THE BIN IN THIS SAMPLE IS SINGLE LINK LIST }
 \section{Memory Allocation}
  First, we discuss the heap manager in a simple algorithm; then, we discuss each part in detail. The first question is, what happens when the user requests a memory allocation:
 \begin{enumerate}
@@ -256,7 +256,7 @@ Assume we do not have any suitable free chunk, and the request is bigger than th
 When the heap cannot be extended in this way, because the newly allocated region would collide with something else in the process's address space (e.g. a dynamic library), then the heap manager cannot allocate contiguous memory and calls \mmapc{} to allocate non-contiguous memory space.
 
 \section{MMAP}
-The heap manager uses \mmapc{}\glnote{DONE - use lstinline not emph for function names}, instead of \lstinline{sbrk}, also for large memory allocations. That is, when the user requests a size larger than a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}ed. By default, the \mmapc{} threshold is 128KB to 512KB\glnote{which one? I don't understand} for 32-bit and 32MB for the 64-bit system.
+The heap manager uses \mmapc{}\glnote{DONE - use lstinline not emph for function names}, instead of \lstinline{sbrk}, also for large memory allocations. That is, when the user requests a size larger than a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}ed. By default, the \mmapc{} threshold is 128KB, then dynamically grows to 512KB \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l3263}{\texttt{malloc.c}, line 3263}} \glnote{DONE-which one? I don't understand} for 32-bit and 32MB for the 64-bit system.
 
 \section{Arenas}
 Concurrency is a challenge in multi-thread applications, and heap manager is not safe from this issue. There are many solutions to handle race conditions. In the early days, the heap manager used a simple global lock before every heap operation to synchronize access to shared data. However, this approach has a high cost. In multi-thread applications with heavy use of the heap this strategy leads to substantial performance issues because the heap needs to lock many times.
@@ -317,7 +317,7 @@ Now, we want to discuss how the heap manager recycles a chunk for a new allocati
 \end{enumerate}
 
 \subsection{\Sbs}
-There are 62 \sbs{}, Each\glnote{check punctuation (space after, no space before) and uppercase/lowercase in all the thesis, there are many places like this} of them stores the exact size of the chunk; as a result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. \sbs{} holds chunk below 512 bytes in the 32-bit and chunk below 1024 Byte in 64-bit with a double-link list.
+There are 62 \sbs{}, each\glnote{check punctuation (space after, no space before) and uppercase/lowercase in all the thesis, there are many places like this} of them stores the exact size of the chunk; as a result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. \sbs{} holds chunk below 512 bytes in the 32-bit and chunk below 1024 Byte in 64-bit with a double-link list.
 
 \subsection{\Lb}
 For chunks over 512 bytes ( 1024 byte 64-bit ), the heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed length in \sbs{}, in a way, they do not overlap with each other.
@@ -533,7 +533,7 @@ Some of the \lstinline{mallopt} customizations can be performed by environment v
 \section{malloc\_consolidate}
 As the \libc{} document said, It is a specialized version of the free function that tears down chunks held in the \fb{}. When a new allocation request has arrived, in some conditions, the heap manager calls this method to tears down \fb{} chunks.
 
-To find when \lstinline{malloc_consolidate} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4440}{\texttt{malloc.c}, line 4440}} calls, we invest two different versions of \libc{}. the first one is 2.23 and the second one is 2.33 which is the latest \libc{} version. The first usage is the \mallocc{} function , Consider the following code:
+To find when \lstinline{malloc_consolidate} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4440}{\texttt{malloc.c}, line 4440}} calls, we invest two different versions of \libc{}. the first one is 2.23 and the second one is 2.33 which is the latest \libc{} version. The first usage is the \mallocc{} function, Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
@@ -728,11 +728,11 @@ npm start
 
 
 \section{Lib dataBase}
-We deal with different versions on \libc{} that are different from our machine version during the exploitation , so , we need to download different versions of \libc{}. the libc-database project has all of \libc{} for different machines , also , the corresponding dynamic loader . To use libc-database simply clone it first:
+We deal with different versions on \libc{} that are different from our machine version during the exploitation, so, we need to download different versions of \libc{}. the libc-database project has all of \libc{} for different machines, also, the corresponding dynamic loader . To use libc-database simply clone it first:
 \begin{lstlisting}[frame=tlrb]
 git clone git@github.com:niklasb/libc-database.git
 \end{lstlisting}
-then with the help of download script file , we can download any version of \libc{}
+then with the help of download script file, we can download any version of \libc{}
 \begin{lstlisting}[frame=tlrb]
 ./download libc6_2.23-0ubuntu10_amd64
 Getting libc6_2.23-0ubuntu10_amd64
@@ -761,7 +761,7 @@ If you are using another version of \libc{}, you must download the desired versi
 \begin{lstlisting}[frame=tlrb]
 git clone https://sourceware.org/git/glibc.git
 \end{lstlisting}
-with the help of \emph{tag} command , we can see all version of \libc{} , then \emph{checkout} to desired version
+with the help of \emph{tag} command, we can see all version of \libc{}, then \emph{checkout} to desired version
 \begin{lstlisting}[frame=tlrb]
 git tag
 git checkout glibc-2.27
@@ -777,7 +777,7 @@ Inside the gdb, we can set debug symbols directory. After waiting a while, we ru
 Implementation of the \libc{} has changed and improved over the years, with various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more versions.
 
 \section{Double Free}
-This is the first attack that we want to discuss which use by other attacks too. What is happen if an allocated chunk of data frees twice? In this situation, the heap data structure is corrupted and finally lead to a memory leak that the attacker can use. As we discussed before, after the user frees an allocated space, this chunk adds to corresponding bins. In the simplest scenario in \libc{-2.23} , it adds to \fb{}. Consider the following sample code:
+This is the first attack that we want to discuss which use by other attacks too. What is happen if an allocated chunk of data frees twice? In this situation, the heap data structure is corrupted and finally lead to a memory leak that the attacker can use. As we discussed before, after the user frees an allocated space, this chunk adds to corresponding bins. In the simplest scenario in \libc{-2.23}, it adds to \fb{}. Consider the following sample code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 a = malloc(10); // 0xa04010
@@ -921,7 +921,7 @@ As describe in the first part, we allocate three chunks and free one of them twi
 head -> a
 \end{lstlisting}
 
-\glnote{DONE - could you clarify/rephrase the following? The role of the 0x20 is unclear, IT IS ONE OF THE FAST BINS CHUNK SIZE , I MENTIONED ON FIRST SAMPLE " It must fall in \fb{} chunks "}
+\glnote{DONE - could you clarify/rephrase the following? The role of the 0x20 is unclear, IT IS ONE OF THE FAST BINS CHUNK SIZE, I MENTIONED ON FIRST SAMPLE " It must fall in \fb{} chunks "}
 The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affect \lstinline{a} at the top of the \fb{}) in an away point to right before 0x20 on the stack. In this way, we trick the heap into thinking there is an available free chunk.
  Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controller address on memory to the program is stack in this case.
 
@@ -1172,7 +1172,7 @@ As we mentioned, when the user requests a memory allocation \libc{} returns a po
 (chunk_non_main_arena(ptr)?heap_for_ptr(ptr)->ar_ptr: &main_arena)
  \end{lstlisting}
 
-When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude , if the \lstinline{non_main_arena} is set , then \lstinline{chunk_non_main_arena} return true ,as the result \lstinline{ar_ptr} in \freec{} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
+When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, Also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude, if the \lstinline{non_main_arena} is set, then \lstinline{chunk_non_main_arena} return true,as the result \lstinline{ar_ptr} in \freec{} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
 This attack works by manipulating the heap in a way a fake \lstinline{ar_ptr} supply to \lstinline{_init_free}; as a result, an arbitrary overwrite happen. The Attacker has to allocate enough memory until it reaches \lstinline{non_main_arena} where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so max allocation never is more than 1MB.
 We saw It possible to hijack the \lstinline{heap_info} and supply an arbitrary \lstinline{ar_ptr} value, so, what value should we use for \lstinline{ar_ptr}? We have two options on that:
 
@@ -1241,7 +1241,7 @@ while((long long)user_mem < new_arena_value){
 }
 \end{lstlisting}
 
-As we told, this approach use the \fb{} approach , so, we need a chunk in range of the \fb{} chunk , also, a pointer to chunk:
+As we told, this approach use the \fb{} approach, so, we need a chunk in range of the \fb{} chunk, also, a pointer to chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 uint64_t* fastbin_chunk = malloc(0x50)
@@ -1515,7 +1515,7 @@ while (fp != NULL)
 	 && _IO_OVERFLOW (fp, EOF) == EOF)
 \end{lstlisting}
 
-As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the \lstinline{io_file} object. When libc allocate a new file structure and \lstinline{fopen} return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus} , if we take a look at \libc{} code we have:
+As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the \lstinline{io_file} object. When libc allocate a new file structure and \lstinline{fopen} return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus}, if we take a look at \libc{} code we have:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE_plus{
@@ -1530,7 +1530,7 @@ Our goal is to make \lstinline{_IO_flush_all_lockp} call \lstinline{_IO_OVERFLOW
 
 The first thing is to calculate the address of \lstinline{_io_list_all} inside the libc. Currently, we have one freed chunk inside the \ub{}, the \lstinline{bk} and \lstinline{fd} pointer is pointed to the main arena of the heap. we can use this address to calculate the \lstinline{_io_list_all} address.
 
-With the help of \emph{blukat} \footnote{\href{https://libc.blukat.me}{\texttt{libc database}}} website , we can find the offset of \lstinline{_io_list_all} based on the \libc{} version. This sample use \libc{-2.23} , so we search inside we site for this specific \libc{} version ``Figure~\ref{fig:offset}``:
+With the help of \emph{blukat} \footnote{\href{https://libc.blukat.me}{\texttt{libc database}}} website, we can find the offset of \lstinline{_io_list_all} based on the \libc{} version. This sample use \libc{-2.23}, so we search inside we site for this specific \libc{} version ``Figure~\ref{fig:offset}``:
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb6}}
@@ -1737,7 +1737,7 @@ intptr_t *a = malloc(0x100);
 malloc(0x10);
 \end{lstlisting}
 
-As we mention, we need to fill up \tch{}, so , we perform the free function on the 7 chunks, as the result, heap manager force to use the \ub{} and other bins:
+As we mention, we need to fill up \tch{}, so, we perform the free function on the 7 chunks, as the result, heap manager force to use the \ub{} and other bins:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 for(int i=0; i<7; i++){
@@ -1848,7 +1848,7 @@ unsorted_bins[0]: fw=0x555555559100, bk=0x555555559100
  Chunk(addr=0x555555559110, size=0x180, flags=PREV_INUSE)
  \end{lstlisting}
 
-As you remember, currently , p2 located at the \ub{} , also, we change the size of p2, so, when the heap manager receives an allocation request it return p2, as the result, it have overlap with previous chunks:
+As you remember, currently, p2 located at the \ub{}, also, we change the size of p2, so, when the heap manager receives an allocation request it return p2, as the result, it have overlap with previous chunks:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p4 = malloc(evil_region_size);
@@ -1872,7 +1872,7 @@ gef p p3
 $14 = (intptr_t *) 0x555555559210
 \end{lstlisting}
 
-As you can see, p3 is not in the list of chunks anymore, however, the pointer still accessible inside the application.Now the p3 and p4 have overlap, so , write data on one of them could overwrite the other one data
+As you can see, p3 is not in the list of chunks anymore, however, the pointer still accessible inside the application.Now the p3 and p4 have overlap, so, write data on one of them could overwrite the other one data
 What happened if the chunk size was so big? As we mentioned, the system can use \mmapc{} in this scenario. Take consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1935,11 +1935,11 @@ b[0] = (intptr_t)&stack_var;
 Tcachebins[idx=7, size=0x90] count=2 Chunk(addr=0x555555559330, size=0x90, flags=PREV_INUSE) Chunk(addr=0x7fffffffde68, size=0x7ffff7fc7fc8, flags=) Chunk(addr=0x555555555410, size=0x9066c3c9fffffcc0, flags=NON_MAIN_ARENA) [Corrupted chunk at 0x8d4c5741fa1e0ff3]
 \end{lstlisting}
 
-Now, as you can see in the final layout of \tch{} , the previous chunk is not valid anymore , it is a controller located in the stack:
+Now, as you can see in the final layout of \tch{}, the previous chunk is not valid anymore, it is a controller located in the stack:
 \begin{lstlisting}[language=c,frame=tlrb]
 [ 0x555555559330 -> 0x7fffffffdee8 ]
 \end{lstlisting}
-In the final step with one allocation , we can remove top chunk from the \tch{} , so , the next allocation return our controller location (the size must be the same):
+In the final step with one allocation, we can remove top chunk from the \tch{}, so, the next allocation return our controller location (the size must be the same):
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc(128)
 intptr_t *c = malloc(128);
@@ -1977,7 +1977,7 @@ The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nexts
 p1[3] = (size_t)((&target)-4);
 size_t *g4 = malloc(0x438);
 \end{lstlisting}
-The last step is to allocate a bigger chunk , so , \lstinline{p2} move to a larger chunk . When \lstinline{p2} move to large chunk , the heap manager write the address of \lstinline{p2} inside \lstinline{p1->bk_nextsize->fd_nextsize} as the code of \libc{} show:
+The last step is to allocate a bigger chunk, so, \lstinline{p2} move to a larger chunk . When \lstinline{p2} move to large chunk, the heap manager write the address of \lstinline{p2} inside \lstinline{p1->bk_nextsize->fd_nextsize} as the code of \libc{} show:
 \begin{lstlisting}[language=c,frame=tlrb]
 fwd = bck;
 bck = bck->bk;
