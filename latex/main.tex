@@ -50,11 +50,15 @@
 \newcommand*\callocc{\lstinline{calloc}}
 \newcommand*\freec{\lstinline{free}}
 \newcommand*\mmapc{\lstinline{mmap}}
+\newcommand*\sbrkc{\lstinline{sbrk}}
+\newcommand*\brkc{\lstinline{brk}}
 
 \newcommand*\Mallocc{\lstinline{Malloc}\xspace}
 \newcommand*\Callocc{\lstinline{Calloc}\xspace}
 \newcommand*\Freec{\lstinline{Free}\xspace}
 \newcommand*\Mmapc{\lstinline{Mmap}\xspace}
+\newcommand*\Sbrkc{\lstinline{Sbrk}\xspace}
+\newcommand*\Brkc{\lstinline{Brk}\xspace}
 
 \newcommand{\kanote}[1]{\todo[color=blue!20]{#1}}
 \newcommand{\glnote}[1]{\todo[color=yellow!20]{#1}}
@@ -257,11 +261,11 @@ As we mentioned, previously freed chunks are the first place search by the heap 
 So what does happen if there is no suitable free chunks? In this situation, the heap manager checks the remaining space at the end of the heap, that is, the \emph{top chunk}. If there is enough space to create a chunk for the request, then it is created and returned.
 
 \subsection{Asking for more memory}
-Assume we do not have any suitable free chunk, and the request is bigger than the remaining space in the top chunk. In this case, the heap manager asks the Linux kernel for more memory. Now we have to discuss another system call: \emph{brk}. When a program executes, the heap manager calls \emph{sbrk}, which used the brk system call. This system call allocates memory just after the program gets loaded.
+Assume we do not have any suitable free chunk, and the request is bigger than the remaining space in the top chunk. In this case, the heap manager asks the Linux kernel for more memory. Now we have to discuss another system call \brkc. When a program executes, the heap manager calls \sbrkc, which used the \brkc system call. This system call allocates memory just after the program gets loaded.
 When the heap cannot be extended in this way, because the newly allocated region would collide with something else in the process's address space (e.g. a dynamic library), then the heap manager cannot allocate contiguous memory and calls \mmapc{} to allocate non-contiguous memory space.
 
 \section{MMAP}
-The heap manager uses \mmapc{}\glnote{DONE - use lstinline not emph for function names}, instead of \lstinline{sbrk}, also for large memory allocations. That is, when the user requests a size larger than a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}ed. By default, the \mmapc{} threshold is 128KB, then dynamically grows to 512KB \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l3263}{\texttt{malloc.c}, line 3263}} \glnote{DONE-which one? I don't understand} for 32-bit and 32MB for the 64-bit system.
+The heap manager uses \mmapc{}\glnote{DONE - use lstinline not emph for function names}, instead of \sbrkc, also for large memory allocations. That is, when the user requests a size larger than a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}ed. By default, the \mmapc{} threshold is 128KB, then dynamically grows to 512KB \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l3263}{\texttt{malloc.c}, line 3263}} \glnote{DONE-which one? I don't understand} for 32-bit and 32MB for the 64-bit system.
 
 \section{Arenas}
 Concurrency is a challenge in multi-thread applications, and heap manager is not safe from this issue. There are many solutions to handle race conditions. In the early days, the heap manager used a simple global lock before every heap operation to synchronize access to shared data. However, this approach has a high cost. In multi-thread applications with heavy use of the heap this strategy leads to substantial performance issues because the heap needs to lock many times.
@@ -270,14 +274,14 @@ To improve the performance \emph{ptmalloc2}\glnote{DONE-in this case emph, becau
 
 When the process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is $(2\cdot\mathrm{number\ of\ CPU\ cores})$ for 32-bits, and $(8\cdot\mathrm{number\ of\ CPU\ cores})$ for 64-bits. You can tune this value by using \lstinline{mallopt} function\glnote{add reference to the later section where you speak about mallopt}. So, what happens when we reach max number? Thread has to share the arena.
 
-As we saw before, the main arena grows by using the \lstinline{sbrk} system call; however, this is not true for secondary arenas, which grow by calling \mmapc{}.
+As we saw before, the main arena grows by using the \sbrkc system call; however, this is not true for secondary arenas, which grow by calling \mmapc{}.
 
 \section{Subheaps}\glnote{this subsection was very confusing, I tried to rewrite it, please check}
-The main heap arena is located just after where the program has been loaded and expanded by \lstinline{sbrk}. We can conclude that in multi-thread applications, which have secondary heaps, \lstinline{sbrk} can not do this. This secondary arena emulates the main heap arena by using \emph{subheaps}. A subheap works like the main heap; however, there are some differences.
+The main heap arena is located just after where the program has been loaded and expanded by \sbrkc. We can conclude that in multi-thread applications, which have secondary heaps, \sbrkc can not do this. This secondary arena emulates the main heap arena by using \emph{subheaps}. A subheap works like the main heap; however, there are some differences.
 
 How the heap manager creates and manages a subheap? The heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by using \lstinline{mprotect}. Reserving does not allocate memory to subheap; it just tells the kernel: ``do not use this space''. Memory pages are requested with flags \lstinline{PROT_NONE} to achieve this goal.
 
-Then, as the main heap is expanded by calling \lstinline{sbrk}, the heap manager expands the previously reserved area to subheap by calling \lstinline{mprotect} again, and changing the page flags to \lstinline{PROT_READ|PROT_WRITE}.
+Then, as the main heap is expanded by calling \sbrkc, the heap manager expands the previously reserved area to subheap by calling \lstinline{mprotect} again, and changing the page flags to \lstinline{PROT_READ|PROT_WRITE}.
 
 \glnote{Still not clear to me the relation between heaps, subheaps and arenas}
 
