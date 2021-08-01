@@ -342,7 +342,7 @@ As we can see, \mallocc{} iterate over all items inside \ub{}. We can conclude t
 The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate}.
 
 \subsection{\Tch bins}
-since \libc{-2.26} \tch{} add ad the last optimization in the heap manager . Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}
+since \libc{-2.26} \tch{} add ad the last optimization in the heap manager. Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}
 
 \begin{lstlisting}[frame=tlrb]
 Free chunk (tcache)
@@ -372,7 +372,7 @@ Lets consider \libc{-2.31}, In these particular version \tch{} is the first plac
 }
 \end{lstlisting}
 
-The above code is inside the \lstinline{libc_malloc} . It is responsible for checking and returns a chunk from \tch{} before locking the arena and search for a chunk. If the \tch{} fail, In the next step, two situations may happen. There is no need to lock at the arena in a single-thread application because there is no concurrency. Instead, in a multi\-thread application heap manager, first, get the corresponding arena and then lock it first. The following code is responsible to check the mentioned situation \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3056}{\texttt{malloc.c}, line 3056}}:
+The above code is inside the \lstinline{libc_malloc}. It is responsible for checking and returns a chunk from \tch{} before locking the arena and search for a chunk. If the \tch{} fail, In the next step, two situations may happen. There is no need to lock at the arena in a single-thread application because there is no concurrency. Instead, in a multi\-thread application heap manager, first, get the corresponding arena and then lock it first. The following code is responsible to check the mentioned situation \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3056}{\texttt{malloc.c}, line 3056}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */
@@ -547,7 +547,7 @@ To find when \lstinline{malloc_consolidate} \footnote{\href{https://sourceware.o
  }
 \end{lstlisting}
 
-As we tell, small/\lb{} are one of the places which \mallocc{} search to find free chunk at the first phase. During this check, the heap manager performs flush to move \fb{} chunk too. If we check mentioned section in the latest \libc{} version, we see a \sbs{} check does not contain \lstinline{malloc_consolidate} anymore \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3635}{\texttt{malloc.c}, line 3635}} .
+As we tell, small/\lb{} are one of the places which \mallocc{} search to find free chunk at the first phase. During this check, the heap manager performs flush to move \fb{} chunk too. If we check mentioned section in the latest \libc{} version, we see a \sbs{} check does not contain \lstinline{malloc_consolidate} anymore \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3635}{\texttt{malloc.c}, line 3635}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
  if (in_smallbin_range (nb)){
@@ -600,7 +600,7 @@ $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 \end{lstlisting}
 
 \subsubsection{heap}
-Gef has a lot of debugging tools; we focus on the heap utility of gef which call \emph{heap} .The heap command provide us information on Glibc heap memory allocation . Syntax to the subcommands is straight forward:
+Gef has a lot of debugging tools; we focus on the heap utility of gef which call \emph{heap} .The heap command provide us information on Glibc heap memory allocation. Syntax to the subcommands is straight forward:
 \begin{lstlisting}[frame=tlrb]
 gef: heap <sub_commands>
 \end{lstlisting}
@@ -728,7 +728,7 @@ npm start
 
 
 \section{Lib dataBase}
-We deal with different versions on \libc{} that are different from our machine version during the exploitation, so, we need to download different versions of \libc{}. the libc-database project has all of \libc{} for different machines, also, the corresponding dynamic loader . To use libc-database simply clone it first:
+We deal with different versions on \libc{} that are different from our machine version during the exploitation, so, we need to download different versions of \libc{}. the libc-database project has all of \libc{} for different machines, also, the corresponding dynamic loader. To use libc-database simply clone it first:
 \begin{lstlisting}[frame=tlrb]
 git clone git@github.com:niklasb/libc-database.git
 \end{lstlisting}
@@ -853,7 +853,7 @@ The thirds \mallocc{} have a significant memory allocation; this allocation trig
 Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use \mallocc{} with a big size instead of free another chunk in the middle of two free. The third \mallocc{} moves chunk from fast bin to unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have \lstinline{P1} on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
 
 \section{Forged Chunk}
-Freeing up a chunk does not prevent access to it because the pointer still exists in the application, so we can implement an attack on the heap data structure by controlling the pointer . Below code shows how we can return our forged chunk instead of a real heap chunk:
+Freeing up a chunk does not prevent access to it because the pointer still exists in the application, so we can implement an attack on the heap data structure by controlling the pointer. Below code shows how we can return our forged chunk instead of a real heap chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct forged_chunk {
@@ -1172,7 +1172,7 @@ As we mentioned, when the user requests a memory allocation \libc{} returns a po
 (chunk_non_main_arena(ptr)?heap_for_ptr(ptr)->ar_ptr: &main_arena)
  \end{lstlisting}
 
-When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude, if the \lstinline{non_main_arena} is set, then \lstinline{chunk_non_main_arena} return true,as the result \lstinline{ar_ptr} in \freec{} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr} .
+When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude, if the \lstinline{non_main_arena} is set, then \lstinline{chunk_non_main_arena} return true,as the result \lstinline{ar_ptr} in \freec{} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr}.
 This attack works by manipulating the heap in a way a fake \lstinline{ar_ptr} supply to \lstinline{_init_free}; as a result, an arbitrary overwrite happen. The Attacker has to allocate enough memory until it reaches \lstinline{non_main_arena} where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so max allocation never is more than 1MB.
 We saw It possible to hijack the \lstinline{heap_info} and supply an arbitrary \lstinline{ar_ptr} value, so, what value should we use for \lstinline{ar_ptr}? We have two options on that:
 
@@ -1972,12 +1972,12 @@ In the third step, we freed the smaller chunk. Now we have one chunk inside the 
  Chunk(addr=0x5555555592a0, size=0x430, flags=PREV_INUSE)
 \end{lstlisting}
 
-The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nextsize} . As we mentioned before, Just \lb{} chunks use this pointer, they point to the next biggest chunk in the link list.
+The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nextsize}. As we mentioned before, Just \lb{} chunks use this pointer, they point to the next biggest chunk in the link list.
 \begin{lstlisting}[language=c,frame=tlrb]
 p1[3] = (size_t)((&target)-4);
 size_t *g4 = malloc(0x438);
 \end{lstlisting}
-The last step is to allocate a bigger chunk, so, \lstinline{p2} move to a larger chunk . When \lstinline{p2} move to large chunk, the heap manager write the address of \lstinline{p2} inside \lstinline{p1->bk_nextsize->fd_nextsize} as the code of \libc{} show:
+The last step is to allocate a bigger chunk, so, \lstinline{p2} move to a larger chunk. When \lstinline{p2} move to large chunk, the heap manager write the address of \lstinline{p2} inside \lstinline{p1->bk_nextsize->fd_nextsize} as the code of \libc{} show:
 \begin{lstlisting}[language=c,frame=tlrb]
 fwd = bck;
 bck = bck->bk;
@@ -1985,7 +1985,7 @@ victim->fd_nextsize = fwd->fd;
 victim->bk_nextsize = fwd->fd->bk_nextsize;
 fwd->fd->bk_nextsize = victim->bk_nextsize->fd_nextsize = victim;
 \end{lstlisting}
-This attack works on \libc{} below 3.0 .
+This attack works on \libc{} below 3.0.
 \chapter{Conclusion}
 
 % \bibliographystyle{alphaurl}
