@@ -51,6 +51,11 @@
 \newcommand*\freec{\lstinline{free}}
 \newcommand*\mmapc{\lstinline{mmap}}
 
+\newcommand*\Mallocc{\lstinline{Malloc}\xspace}
+\newcommand*\Callocc{\lstinline{Calloc}\xspace}
+\newcommand*\Freec{\lstinline{Free}\xspace}
+\newcommand*\Mmapc{\lstinline{Mmap}\xspace}
+
 \newcommand{\kanote}[1]{\todo[color=blue!20]{#1}}
 \newcommand{\glnote}[1]{\todo[color=yellow!20]{#1}}
 
@@ -287,7 +292,7 @@ Whats happens when the user does not need the allocated space anymore? By callin
 \end{enumerate}
 
 \section{Bins}
-	The heap manager requires a mechanism to manage and organize recently freed chunks for the following allocations. The simplest solution to keep track of freed space is to store them in a giant bin; although this could work, it is not a good solution. \mallocc{} uses vary wildly, so this approach leads to a performance problem.
+	The heap manager requires a mechanism to manage and organize recently freed chunks for the following allocations. The simplest solution to keep track of freed space is to store them in a giant bin; although this could work, it is not a good solution. \Mallocc{} uses vary wildly, so this approach leads to a performance problem.
 To improve performance, the heap manager uses different types of bins. There are five different type of bins: \emph{\sbs{}}, \emph{\lb{}}, \emph{\fb{}}, \emph{\ub{}} and \emph{\tch{}}. All of the mentioned bins exist in the same area of heap manager source code\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l1677}{\texttt{malloc.c}, line 1677}}
 .\glnote{DONE - source code? Do you mean that they are allocated together in the source code? If this is the case, maybe you can add the snippet of code here to show what you mean} This is a list with 127 items, the index 0 is unused.
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -317,14 +322,14 @@ Now, we want to discuss how the heap manager recycles a chunk for a new allocati
 \end{enumerate}
 
 \subsection{\Sbs}
-There are 62 \sbs{}, each\glnote{check punctuation (space after, no space before) and uppercase/lowercase in all the thesis, there are many places like this} of them stores the exact size of the chunk; as a result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. \sbs{} holds chunk below 512 bytes in the 32-bit and chunk below 1024 Byte in 64-bit with a double-link list.
+There are 62 \sbs{}, each\glnote{check punctuation (space after, no space before) and uppercase/lowercase in all the thesis, there are many places like this} of them stores the exact size of the chunk; as a result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. \Sbs{} holds chunk below 512 bytes in the 32-bit and chunk below 1024 Byte in 64-bit with a double-link list.
 
 \subsection{\Lb}
 For chunks over 512 bytes ( 1024 byte 64-bit ), the heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed length in \sbs{}, in a way, they do not overlap with each other.
-The other difference is \lb{} needs to sort during the insertion of a chunk manually. As the result \lb{} are slower than \sbs{}, however, \lb{} used less than \sbs{} in a real program, so, this is not a big problem. \lb{} uses double-link list like \sbs{}.
+The other difference is \lb{} needs to sort during the insertion of a chunk manually. As the result \lb{} are slower than \sbs{}, however, \lb{} used less than \sbs{} in a real program, so, this is not a big problem. \Lb{} uses double-link list like \sbs{}.
 
 \subsection{\Ub}
-Usually \lstinline{free} follow by an allocation of the same size in a real program. The heap manager introduced another optimization call \ub{}. In this optimization, the heap manager merges freed chunk with its neighbors and puts it inside a general bin call \ub{} instead of finding the corresponding bin. When a new allocation request arrives, the heap manager iterates the overall item in \ub{}, compares the request to each item, If an item is big enough for request, the heap manager returns it, otherwise move an item to the corresponding bin. consider following \mallocc{} code from \libc{} 2.23 \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;hb=ad372e296b6b944884f14fb5d8f3a6195bfba22b\#l3467}{\texttt{malloc.c}, line 3467}}:
+Usually \lstinline{free} follow by an allocation of the same size in a real program. The heap manager introduced another optimization call \ub{}. In this optimization, the heap manager merges freed chunk with its neighbors and puts it inside a general bin call \ub{} instead of finding the corresponding bin. When a new allocation request arrives, the heap manager iterates the overall item in \ub{}, compares the request to each item, If an item is big enough for request, the heap manager returns it, otherwise move an item to the corresponding bin. Consider following \mallocc{} code from \libc{} 2.23 \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;hb=ad372e296b6b944884f14fb5d8f3a6195bfba22b\#l3467}{\texttt{malloc.c}, line 3467}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 for (;; ){
@@ -342,7 +347,7 @@ As we can see, \mallocc{} iterate over all items inside \ub{}. We can conclude t
 The main difference between \fb{} and \sbs{} is \fb{} do not merge chunks with neighbors. How \fb{} do that? The heap manager does not free up this chunk by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate}.
 
 \subsection{\Tch bins}
-since \libc{-2.26} \tch{} add ad the last optimization in the heap manager. Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}
+since \libc{-2.26} \tch{} add ad the last optimization in the heap manager. Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \Tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}
 
 \begin{lstlisting}[frame=tlrb]
 Free chunk (tcache)
@@ -435,7 +440,7 @@ for (;; ) {
  while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av))
  /* ... */
 \end{lstlisting}
-This adds and removes chunks that need to alter the forward and backward pointer of chunks which some times abused by an attacker to write data in a location. this part of code has some security check to find if the chunk and heap corrupted or not by checking the pointers and chunk size \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3734}{\texttt{malloc.c}, line 3734}}:
+This adds and removes chunks that need to alter the forward and backward pointer of chunks which some times abused by an attacker to write data in a location. This part of code has some security check to find if the chunk and heap corrupted or not by checking the pointers and chunk size \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3734}{\texttt{malloc.c}, line 3734}}:
 \begin{lstlisting}[language=c,frame=tlrb]
  if (__glibc_unlikely (size <= 2 * SIZE_SZ)
  || __glibc_unlikely (size > av->system_mem))
@@ -473,7 +478,7 @@ We can see, this part starts with a security check. In this case, the request si
 This function checks if the system supports \mmapc{} allocation and the requested size is inside the \mmapc{} threshold. It allocates memory by using \mmapc{}. If it fails means there is no memory anymore, so \mallocc{} returns a null pointer.
 
 \section{calloc}
-\callocc{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. \callocc{} and \mallocc{} have one important difference. Unlike \mallocc{}, \callocc{} does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by \callocc{}, the heap manager will not use them. Instead, create a new chunk from the top chunk. consider the following sample
+\Callocc{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. \Callocc{} and \mallocc{} have one important difference. Unlike \mallocc{}, \callocc{} does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by \callocc{}, the heap manager will not use them. Instead, create a new chunk from the top chunk. Consider the following sample
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = malloc(8);
@@ -559,7 +564,7 @@ As we tell, small/\lb{} are one of the places which \mallocc{} search to find fr
  }
 \end{lstlisting}
 
-The second usage is when the heap manager wants to use the top chunk in \mallocc{}. consider the following code in \mallocc{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4128}{\texttt{malloc.c}, line 4128}}:
+The second usage is when the heap manager wants to use the top chunk in \mallocc{}. Consider the following code in \mallocc{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4128}{\texttt{malloc.c}, line 4128}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */
@@ -570,7 +575,7 @@ use_top:
 	}
 \end{lstlisting}
 
-The third usage is not in the \mallocc{}, instead, it is about free function. consider the following code from the free function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4398}{\texttt{malloc.c}, line 4398}}:
+The third usage is not in the \mallocc{}, instead, it is about free function. Consider the following code from the free function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4398}{\texttt{malloc.c}, line 4398}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
@@ -600,7 +605,7 @@ $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 \end{lstlisting}
 
 \subsubsection{heap}
-Gef has a lot of debugging tools; we focus on the heap utility of gef which call \emph{heap} .The heap command provide us information on Glibc heap memory allocation. Syntax to the subcommands is straight forward:
+Gef has a lot of debugging tools; we focus on the heap utility of gef which call \emph{heap} .The heap command provide us information on \libc{} heap memory allocation. Syntax to the subcommands is straight forward:
 \begin{lstlisting}[frame=tlrb]
 gef: heap <sub_commands>
 \end{lstlisting}
@@ -728,7 +733,7 @@ npm start
 
 
 \section{Lib dataBase}
-We deal with different versions on \libc{} that are different from our machine version during the exploitation, so, we need to download different versions of \libc{}. the libc-database project has all of \libc{} for different machines, also, the corresponding dynamic loader. To use libc-database simply clone it first:
+We deal with different versions on \libc{} that are different from our machine version during the exploitation, so, we need to download different versions of \libc{}. The libc-database project has all of \libc{} for different machines, also, the corresponding dynamic loader. To use libc-database simply clone it first:
 \begin{lstlisting}[frame=tlrb]
 git clone git@github.com:niklasb/libc-database.git
 \end{lstlisting}
@@ -799,7 +804,7 @@ head -> b -> a -> tail
 head -> a -> b -> a -> tail
 \end{lstlisting}
 
-As you can see, we have \lstinline{a} twice in the \fb{} now. what is happen if the \lstinline{a} frees twice continuous? double \lstinline{a} can not free continuous instead the \lstinline{b} frees in the middle of them. As one of the \fb{} security checks if double \lstinline{a} free continuous the fast bin can detect the \lstinline{a} is on the top of the list right now, the program crashes. To bypass the \fb{} security check, it is mandatory to free another chunk in the middle. 3 new chunks of data allocated in the following. You can see the fast bin state below step-by-step during the second allocation:
+As you can see, we have \lstinline{a} twice in the \fb{} now. What is happen if the \lstinline{a} frees twice continuous? double \lstinline{a} can not free continuous instead the \lstinline{b} frees in the middle of them. As one of the \fb{} security checks if double \lstinline{a} free continuous the fast bin can detect the \lstinline{a} is on the top of the list right now, the program crashes. To bypass the \fb{} security check, it is mandatory to free another chunk in the middle. 3 new chunks of data allocated in the following. You can see the fast bin state below step-by-step during the second allocation:
 
 \begin{lstlisting}[frame=tlrb]
 head -> b -> a -> tail [ 'a' is returned ]
@@ -808,7 +813,7 @@ head -> tail [ 'a' is returned ]
 \end{lstlisting}
 
 In the end, \lstinline{d} and \lstinline{f} point to the exact memory location; as a result, any change in one leads to another. We should pay attention to both allocations having the same chunk size; otherwise, the heap manager creates a new chunk from the top chunk instead of return \fb{} freed chunks.
-This method needs to be modified since \libc{-2.26} introduced \tch{}. On the new \libc{}, freed chunks add to \tch{} instead of \fb{}, as the result, we need to do some modification to this attack. consider the following code:
+This method needs to be modified since \libc{-2.26} introduced \tch{}. On the new \libc{}, freed chunks add to \tch{} instead of \fb{}, as the result, we need to do some modification to this attack. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *ptrs[8];
@@ -820,7 +825,7 @@ for (int i=0; i<7; i++) {
 }
 \end{lstlisting}
 
-A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of return freed \tch{} chunks. The above code allocated seven chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these seven freed chunks to add to \tch{}. \tch{} can keep up to 7 chunks. From this point, if we release other chunks, they add to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \mallocc{} to allocate fresh chunks, the heap manager returns chunks from \tch{}, so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation, allocation can use \callocc{}. \callocc{} does not use \tch{}, and \fb{} are free, so \callocc{} gets memory from the top chunk.
+A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of return freed \tch{} chunks. The above code allocated seven chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these seven freed chunks to add to \tch{}. \Tch{} can keep up to 7 chunks. From this point, if we release other chunks, they add to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \mallocc{} to allocate fresh chunks, the heap manager returns chunks from \tch{}, so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation, allocation can use \callocc{}. \Callocc{} does not use \tch{}, and \fb{} are free, so \callocc{} gets memory from the top chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = calloc(1, 8);
@@ -849,7 +854,7 @@ void* p3 = malloc(0x400);
 free(p1);
 \end{lstlisting}
 
-The thirds \mallocc{} have a significant memory allocation; this allocation triggers another method call \lstinline{malloc_consolidate} automatically. \mallocc{} In this situation, consolidate chunks in the fast bin before continuing, then put the resulting merged chunks on the \ub{}.
+The thirds \mallocc{} have a significant memory allocation; this allocation triggers another method call \lstinline{malloc_consolidate} automatically. \Mallocc{} In this situation, consolidate chunks in the fast bin before continuing, then put the resulting merged chunks on the \ub{}.
 Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use \mallocc{} with a big size instead of free another chunk in the middle of two free. The third \mallocc{} moves chunk from fast bin to unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have \lstinline{P1} on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
 
 \section{Forged Chunk}
@@ -1329,7 +1334,7 @@ unsigned long evil_size = (unsigned long)bss_var - sizeof(long)*4 - (unsigned lo
 void *new_ptr = malloc(evil_size);
 \end{lstlisting}
 
-The above code calculates the distance between the top chunk beginning and the target \lstinline{bss_var}. In the following, allocate enough memory space to reach the target. this chunk does not point to target; instead, this chunk point to the start of the top chunk, so we need to allocate the second chunk:
+The above code calculates the distance between the top chunk beginning and the target \lstinline{bss_var}. In the following, allocate enough memory space to reach the target. This chunk does not point to target; instead, this chunk point to the start of the top chunk, so we need to allocate the second chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void* ctr_chunk = malloc(100);
@@ -1367,7 +1372,7 @@ set_inuse_bit_at_offset(victim, nb);
 bck->fd = bin;
 \end{lstlisting}
 
-AS you can see if we have control over the victim bck pointer and bypass the security check, libc return our fake chunk on the next smallbin allocation. in other words, we can return a chunk to any address. now we explain it in a real sample:
+AS you can see if we have control over the victim bck pointer and bypass the security check, libc return our fake chunk on the next smallbin allocation. In other words, we can return a chunk to any address. Now we explain it in a real sample:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  intptr_t* stack_buffer_1[4] = {0};
@@ -1615,7 +1620,7 @@ The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}, but wh
 
 \subsection{The House of Rabbit}
 
-This attack used a \Fb{} and \lstinline{UAF} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call \mallocc{} inorder to consolidate, this chunk merge and split into \sbs{}. as a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
+This attack used a \Fb{} and \lstinline{UAF} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call \mallocc{} inorder to consolidate, this chunk merge and split into \sbs{}. As a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long *a = malloc(0x40);
