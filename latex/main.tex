@@ -187,18 +187,18 @@ pwndbg> p c
 $5 = (int *) 0x5555555592e0
 \end{lstlisting}
 
-As mentioned above, the returned address by \libc{} is not the address of chunk, but, the address of its data section. If we subtract these two numbers we can see a 16 bytes difference, which is used for metadata. If you look at the chunk data structure, there are two \lstinline{INTERNAL_SIZE_T} is used to keep the size of the chunk. The \libc{} documentation says that ``\lstinline{INTERNAL_SIZE_T} is the word-size used for internal bookkeeping of chunk sizes''. The default size is equal to \sizet{}. Now, if we take a look inside the memory:\glnote{replace with 64-bit word dump}
+As mentioned above, the returned address by \libc{} is not the address of chunk, but, the address of its data section. If we subtract these two numbers we can see a 16 bytes difference, which is used for metadata. If you look at the chunk data structure, there are two \lstinline{INTERNAL_SIZE_T} is used to keep the size of the chunk. The \libc{} documentation says that ``\lstinline{INTERNAL_SIZE_T} is the word-size used for internal bookkeeping of chunk sizes''. The default size is equal to \sizet{}. Now, if we take a look inside the memory:\glnote{DONE-replace with 64-bit word dump}
 
 \begin{lstlisting}[frame=tlrb]
-gef: x/64h 0x0000555555559290
-0x555555559290:	0x00000000	0x00000000	0x00000021	0x00000000
-0x5555555592a0:	0x00000000	0x00000000	0x00000000	0x00000000
-0x5555555592b0:	0x00000000	0x00000000	0x00000021	0x00000000
-0x5555555592c0:	0x00000000	0x00000000	0x00000000	0x00000000
-0x5555555592d0:	0x00000000	0x00000000	0x00000021	0x00000000
-0x5555555592e0:	0x00000000	0x00000000	0x00000000	0x00000000
-0x5555555592f0:	0x00000000	0x00000000	0x00020d11	0x00000000
-0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
+gef: x/16xg 0x0000555555559290
+0x555555559290:	0x0000000000000000	0x0000000000000021
+0x5555555592a0:	0x0000000000000000	0x0000000000000000
+0x5555555592b0:	0x0000000000000000	0x0000000000000021
+0x5555555592c0:	0x0000000000000000	0x0000000000000000
+0x5555555592d0:	0x0000000000000000	0x0000000000000021
+0x5555555592e0:	0x0000000000000000	0x0000000000000000
+0x5555555592f0:	0x0000000000000000	0x0000000000020d11
+0x555555559300:	0x0000000000000000	0x0000000000000000
 \end{lstlisting}
 
 In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation, which total allocation becomes 24 bytes. However, \libc{} must keep memory in 16-byte alignment; as a result, the final allocation is 32 bytes. Please look at the size field in an allocated chunk; we can see the size is not 32 but 33. The reason is that the three least significant bits are used for special purposes (we will dicuss those details later):
