@@ -326,7 +326,7 @@ Now, we want to discuss how the heap manager recycles a chunk for a new allocati
 \end{enumerate}
 
 \subsection{\Sbs}
-There are 62 \sbs{}, each\glnote{check punctuation (space after, no space before) and uppercase/lowercase in all the thesis, there are many places like this} of them stores the exact size of the chunk; as a result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. \Sbs{} holds chunk below 512 bytes in the 32-bit and chunk below 1024 Byte in 64-bit with a double-link list.
+There are 62 \sbs{}, each\glnote{DONE -check punctuation (space after, no space before) and uppercase/lowercase in all the thesis, there are many places like this} of them stores the exact size of the chunk; as a result, each list is sorted by default, also, store and retrieve chunk from \sbs{} is fast. \Sbs{} holds chunk below 512 bytes in the 32-bit and chunk below 1024 Byte in 64-bit with a double-link list.
 
 \subsection{\Lb}
 For chunks over 512 bytes ( 1024 byte 64-bit ), the heap manager uses another strategy call \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} store chunk with a unique size range instead of fixed length in \sbs{}, in a way, they do not overlap with each other.
