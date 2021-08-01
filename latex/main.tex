@@ -230,18 +230,18 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-Also, retake a look at inside memory; we can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. Also, the forward pointers point to the beginning of the heap area in memory.\glnote{again, dump 8-byte words, so pointers can be read more easily}
+Also, retake a look at inside memory; we can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. Also, the forward pointers point to the beginning of the heap area in memory.\glnote{DONE-again, dump 8-byte words, so pointers can be read more easily}
 
 \begin{lstlisting}[frame=tlrb]
-gef: x/64h 0x0000555555559290
-0x555555559290:	0x00000000	0x00000000	0x00000021	0x00000000
-0x5555555592a0:	0x00000000	0x00000000	0x55559010	0x00005555
-0x5555555592b0:	0x00000000	0x00000000	0x00000021	0x00000000
-0x5555555592c0:	0x555592a0	0x00005555	0x55559010	0x00005555
-0x5555555592d0:	0x00000000	0x00000000	0x00000021	0x00000000
-0x5555555592e0:	0x555592c0	0x00005555	0x55559010	0x00005555
-0x5555555592f0:	0x00000000	0x00000000	0x00020d11	0x00000000
-0x555555559300:	0x00000000	0x00000000	0x00000000	0x00000000
+gef: x/16xg 0x0000555555559290
+0x555555559290:	0x0000000000000000	0x0000000000000021
+0x5555555592a0:	0x0000000000000000	0x0000555555559010
+0x5555555592b0:	0x0000000000000000	0x0000000000000021
+0x5555555592c0:	0x00005555555592a0	0x0000555555559010
+0x5555555592d0:	0x0000000000000000	0x0000000000000021
+0x5555555592e0:	0x00005555555592c0	0x0000555555559010
+0x5555555592f0:	0x0000000000000000	0x0000000000020d11
+0x555555559300:	0x0000000000000000	0x0000000000000000
 \end{lstlisting}
 \glnote{size\_t is 8 bytes, and pointers are 8 bytes too, it would make more sense to dump/describe quadwords (same for the following memory dump)}
 \glnote{DONE-what is 0x555555559010? why all three blocks point to it?IT IS ALMOST THE HEAP ADDRESS, THE BIN IN THIS SAMPLE IS SINGLE LINK LIST }
