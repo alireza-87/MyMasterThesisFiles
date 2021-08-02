@@ -243,7 +243,7 @@ gef: x/16xg 0x0000555555559290
 0x5555555592f0:	0x0000000000000000	0x0000000000020d11
 0x555555559300:	0x0000000000000000	0x0000000000000000
 \end{lstlisting}
-\glnote{size\_t is 8 bytes, and pointers are 8 bytes too, it would make more sense to dump/describe quadwords (same for the following memory dump)}
+\glnote{DONE-size\_t is 8 bytes, and pointers are 8 bytes too, it would make more sense to dump/describe quadwords (same for the following memory dump)}
 \glnote{DONE-what is 0x555555559010? why all three blocks point to it?IT IS ALMOST THE HEAP ADDRESS, THE BIN IN THIS SAMPLE IS SINGLE LINK LIST }
 \section{Memory Allocation}
  First, we discuss the heap manager in a simple algorithm; then, we discuss each part in detail. The first question is, what happens when the user requests a memory allocation:
