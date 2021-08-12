@@ -234,7 +234,7 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-Also, retake a look at inside memory; we can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. Also, the forward pointers point to the beginning of the heap area in memory.
+Also, retake a look at inside memory; we can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. The forward pointers point to the first chunk which generate by heap manager automatically. In \libc{-2.31} this location store some data about \tch{}.
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/16xg 0x0000555555559290
