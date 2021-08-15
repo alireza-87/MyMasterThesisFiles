@@ -322,7 +322,7 @@ Now, we want to discuss how the heap manager recycles a chunk for a new allocati
 	\item After the merge, if the larger chunk is located at the top of the heap, then it absorbed by the top-chunk, instead of being added to bins.
 	\item Otherwise, the freed chunk is added to the corresponding bin.
 \end{enumerate}
-\glnote{you should expand point 5, by describing the logic/policy of how bins are selected/used (similarly to what you did for malloc in section 2.8, linking the corresponding section; moreover, it's probably better to re-order the section in the same order}
+\glnote{DONE, THE FREE REWRITE AND MORE DETAIL ADDED LIKE MALLOCyou should expand point 5, by describing the logic/policy of how bins are selected/used (similarly to what you did for malloc in section 2.8, linking the corresponding section; moreover, it's probably better to re-order the section in the same order}
 \glnote{2.7 (bins) should be probably a subsection of 2.6? and, in turn, its subsections would become subsubsections and so on}
 
 \subsection{\Sbs}
