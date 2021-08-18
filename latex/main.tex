@@ -290,9 +290,50 @@ The heap manager asks the kernel to reserve an area of memory for the \emph{subh
 Then, as the main heap is expanded by calling \sbrkc, the heap manager expands the previously reserved area to subheap by calling \lstinline{mprotect} again, and changing the page flags to \lstinline{PROT_READ|PROT_WRITE}.
 
 \section{Free}
-By calling \lstinline{free}, the heap can free up the space. First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but \lstinline{free} needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. In the following, the heap manager checks if the chunk is \lstinline{mmap}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3104}{\texttt{malloc.c}, line 3104}}. When the chunk does not allocate by \lstinline{mmap}, the corresponding arena is found\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3124}{\texttt{malloc.c}, line 3124}} and \lstinline{_int_free}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3125}{\texttt{malloc.c}, line 3125}} calls. Sending an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks on pointer alignment\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4171}{\texttt{malloc.c}, line 4171}} and size\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4176}{\texttt{malloc.c}, line 4176}} before freeing up space:
+By calling \lstinline{free}, the heap can free up the space. First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but \lstinline{free} needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. In the following, the heap manager checks if the chunk is \lstinline{mmap}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3104}{\texttt{malloc.c}, line 3104}}. When the chunk does not allocate by \lstinline{mmap}, the corresponding arena is found\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3124}{\texttt{malloc.c}, line 3124}} and \lstinline{_int_free}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3125}{\texttt{malloc.c}, line 3125}} calls. 
 
-The library in question is version \libc{2.31}, so the first place to put free chunk is \tch{}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4181}{\texttt{malloc.c}, line 4181}}. If the chunk does not fit into \tch{} check the \fb{} as the second place\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4220}{\texttt{malloc.c}, line 4220}}. In the third step, if the chunk does not eligible to \fb{}, it merges by neighbors in the small, large, and unsorted bin\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4304}{\texttt{malloc.c}, line 4304}}. As the final step if the merged chunk locates at top of the heap, it merges with the top chunk instead of putting it back inside bins\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4336}{\texttt{malloc.c}, line 4336}}. We should mention in the case of release a chunk with the size bigger than \lstinline{FASTBIN_CONSOLIDATION_THRESHOLD}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4398}{\texttt{malloc.c}, line 4398}}, the heap manager call \lstinline{malloc_consolidate} to merge \fb{} chunks, then put them back inside the \ub{}.
+\begin{lstlisting}[language=c,frame=single]
+ /* ... */
+ar_ptr = arena_for_chunk (p);
+_int_free (ar_ptr, p, 0);
+ /* ... */
+\end{lstlisting}
+
+Sending an invalid pointer may lead to memory corruption; as a result, the heap manager does some security checks on pointer alignment\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4171}{\texttt{malloc.c}, line 4171}} and size\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4176}{\texttt{malloc.c}, line 4176}} before freeing up space.
+
+\begin{lstlisting}[language=c,frame=single]
+ /* ... */
+if (__builtin_expect ((uintptr_t) p > (uintptr_t) -size, 0) || __builtin_expect (misaligned_chunk (p), 0))
+	malloc_printerr ("free(): invalid pointer");
+if (__glibc_unlikely (size < MINSIZE || !aligned_OK (size)))
+	malloc_printerr ("free(): invalid size");
+/* ... */
+\end{lstlisting}
+
+The library in question is version \libc{2.31}, so the first place to put free chunk is \tch{}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4181}{\texttt{malloc.c}, line 4181}}. 
+\begin{lstlisting}[language=c,frame=single]
+/* ... */
+size_t tc_idx = csize2tidx (size);
+if (tcache != NULL && tc_idx < mp_.tcache_bins)
+/* ... */
+\end{lstlisting}
+
+If the chunk does not fit into \tch{} check the \fb{} as the second place\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4220}{\texttt{malloc.c}, line 4220}}. 
+
+\begin{lstlisting}[language=c,frame=single]
+/* ... */
+if ((unsigned long)(size) <= (unsigned long)(get_max_fast ())
+/* ... */
+\end{lstlisting}
+
+In the third step, if the chunk does not eligible to \fb{}, it merges by neighbors in the small, large, and unsorted bin\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4304}{\texttt{malloc.c}, line 4304}}. As the final step if the merged chunk locates at top of the heap, it merges with the top chunk instead of putting it back inside bins\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4336}{\texttt{malloc.c}, line 4336}}. 
+\begin{lstlisting}[language=c,frame=single]
+/* ... */
+if (nextchunk != av->top)
+/* ... */
+\end{lstlisting}
+
+We should mention in the case of release a chunk with the size bigger than \lstinline{FASTBIN_CONSOLIDATION_THRESHOLD} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4398}{\texttt{malloc.c}, line 4398}}, the heap manager call \lstinline{malloc_consolidate} to merge \fb{} chunks, then put them back inside the \ub{}.
 
 \section{Bins}
 The heap manager requires a mechanism to manage and organize recently freed chunks for the following allocations. The simplest solution to keep track of freed space would be to store them in a single, giant, bin; although this could work, it is not a good solution. \Mallocc{} uses vary wildly, so this approach leads to a performance problem.
