@@ -234,7 +234,7 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-Also, retake a look at inside memory; we can see, \libc{} keep pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. The forward pointers point to the first chunk which generate by heap manager automatically. In \libc{-2.31} this location store some data about \tch{}.
+Also, retake a look at inside memory; we can see, \libc{} keeps pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. The forward pointers point to some data about \tch{}, discussed later.
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/16xg 0x0000555555559290
@@ -247,7 +247,7 @@ gef: x/16xg 0x0000555555559290
 0x5555555592f0:	0x0000000000000000	0x0000000000020d11
 0x555555559300:	0x0000000000000000	0x0000000000000000
 \end{lstlisting}
-\glnote{DONE-NOT SURE ABOUT THIS .... -what is 0x555555559010? why all three blocks point to it? }
+
 \section{Memory Allocation}
  First, we discuss the heap manager in a simple algorithm; then, we discuss each part in detail. The first question is, what happens when the user requests a memory allocation:
 \begin{enumerate}
@@ -333,7 +333,7 @@ if (nextchunk != av->top)
 /* ... */
 \end{lstlisting}
 
-We should mention in the case of release a chunk with the size bigger than \lstinline{FASTBIN_CONSOLIDATION_THRESHOLD} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4398}{\texttt{malloc.c}, line 4398}}, the heap manager call \lstinline{malloc_consolidate} to merge \fb{} chunks, then put them back inside the \ub{}.
+We should mention in the case of release a chunk with the size bigger than \linebreak \lstinline{FASTBIN_CONSOLIDATION_THRESHOLD} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4398}{\texttt{malloc.c}, line 4398}}, the heap manager call \lstinline{malloc_consolidate} to merge \fb{} chunks, then put them back inside the \ub{}.
 
 \section{Bins}
 The heap manager requires a mechanism to manage and organize recently freed chunks for the following allocations. The simplest solution to keep track of freed space would be to store them in a single, giant, bin; although this could work, it is not a good solution. \Mallocc{} uses vary wildly, so this approach leads to a performance problem.
@@ -363,8 +363,6 @@ Now, we want to discuss how the heap manager recycles a chunk for a new allocati
 	\item After the merge, if the larger chunk is located at the top of the heap, then it absorbed by the top-chunk, instead of being added to bins.
 	\item Otherwise, the freed chunk is added to the corresponding bin.
 \end{enumerate}
-\glnote{DONE, THE FREE REWRITE AND MORE DETAIL ADDED LIKE MALLOCyou should expand point 5, by describing the logic/policy of how bins are selected/used (similarly to what you did for malloc in section 2.8, linking the corresponding section; moreover, it's probably better to re-order the section in the same order}
-\glnote{2.7 (bins) should be probably a subsection of 2.6? and, in turn, its subsections would become subsubsections and so on}
 
 \subsection{\Sbs}
 There are 62 \sbs{}, each of them stores chunks of a fixed size; as a result, each list is ``sorted by size'' automatically; also, storing and retrieving chunk from \sbs{} is fast. \Sbs{} holds chunks below 512 bytes in the 32-bit systems, and chunks below 1024 bytes in 64-bit systems, with a double-link list.
@@ -391,7 +389,7 @@ for (;; ){
 As we can see, \mallocc{} iterate over all items inside \ub{}. We can conclude that when the heap manager tries to find chunks in \ub{}, all of the \ub{} chunks move to corresponding bins.
 
 \subsection{\Fb}
-Each \Fb{} keep recently freed chunks in a single-linked list. We have 10's \fb{}, each of them keeps just one chunk size. Chunks in \fb{} do not merge with neighbors; instead, \fb{} keeps them alive, so, if the program sends the same size request, then the heap manager can use these chunks.\glnote{DONE-I DO SOME REPHRASES - I am not sure I understand}
+Each bin keeps recently freed chunks in a single-linked list. We have 10 \fb{}, each of them keeps just one chunk size. Chunks in \fb{} do not merge with neighbors; instead, \fb{} keeps them alive, so, if the program sends the same size request, then the heap manager can use these chunks.
 
 The heap manager does not free up \fb{} chunks by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate}.
 
@@ -672,8 +670,6 @@ gef: heap chunks
 \caption{heap chunks}
 \label{fig:gefheapchunks}
 \end{figure}
-\glnote{lDONE - atex moves figures, so you can either include the graphics without using a figure, or you must add a \\ref to the figure. Eg, ``Figure~\ref{fig:heapchunks} shows an example of the command \lstinline{heap chunks}}
-
 
 \paragraph{\lstinline{heap chunk} command}
 This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.``Figure~\ref{fig:gefheapchunk}``
@@ -846,7 +842,7 @@ e = malloc(10); // 0xa04030
 f = malloc(10); // 0xa04010
 \end{lstlisting}
 
-At first, we requested 3 chunks of 10-byte. After that, we free \lstinline{a}\glnote{DONE - instead of single quotes, use lstinline for a, b, etc} and \lstinline{b} and at last \lstinline{a} again. You can see the fast bin structure after \lstinline{free} below step by step:
+At first, we requested 3 chunks of 10-byte. After that, we free \lstinline{a} and \lstinline{b} and at last \lstinline{a} again. You can see the fast bin structure after \lstinline{free} below step by step:
 
 \begin{lstlisting}[frame=tlrb]
 head -> a -> tail
@@ -976,7 +972,6 @@ As describe in the first part, we allocate three chunks and free one of them twi
 head -> a
 \end{lstlisting}
 
-\glnote{DONE - could you clarify/rephrase the following? The role of the 0x20 is unclear, IT IS ONE OF THE FAST BINS CHUNK SIZE, I MENTIONED ON FIRST SAMPLE " It must fall in \fb{} chunks "}
 The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affect \lstinline{a} at the top of the \fb{}) in an away point to right before 0x20 on the stack. In this way, we trick the heap into thinking there is an available free chunk.
  Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controller address on memory to the program is stack in this case.
 
@@ -1108,7 +1103,6 @@ unsorted_bins[0]: fw=0x555555559100, bk=0x555555559100
 Chunk(addr=0x555555559110, size=0x100, flags=PREV_INUSE)
 \end{lstlisting}
 
-\glnote{DONE Check for the presence of backslash-underscore in lstlisting and lstinlne (I removed some, but there are others}
 \begin{lstlisting}[language=c,frame=tlrb]
 Chunk(addr=0x555555559010, size=0x100, flags=PREV_INUSE)
  [0x0000555555559010 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 1111111111111111]
