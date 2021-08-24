@@ -634,19 +634,22 @@ if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
 
 The rest of the usage located inside \lstinline{malloc_trim} and \lstinline{malloc_opt}
 \chapter{Tools }
-Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depends on different platforms. These tools allow us to display any memory like stack and heap, disassemble binary code, execute and debug a binary program.
+Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depend on different platforms. These tools allow us to display any memory like stack and heap, disassemble binary code, execute and debug a binary program.
 
-We worked exclusively on \libc{} as the heap manager on the x86 machine, so the primary tool is \emph{gdb}. In addition to gdb, we use some utilities like \emph{gef} and \emph{heappy} to have better memory visualization.
+We worked exclusively on \libc{} as the heap manager on the x86 machine, so the primary tool is \emph{gdb}, as explained in \refToSection{GDB}. In addition to gdb, we use some utilities like its extension \emph{GEF}, introduced in \refToSection{GEF}, and \emph{heappy}, discussed in \refToSection{heappy}, to have better memory visualization.\glnote{added references to (sub)sections}
 
+\glnote{you shoud list all sections here: heappy, libc db, patchelf, \ldots}
 
 \section{GDB}
-The gdb is a portable debugger that works on Unix-like os. Gdb allows us to execute, debug and modify inside an executable program while running, even without the source code. Gdb supports a wide variety of programming languages like c/c++, go, rust, assembly. The installation process is easy; all we have to do is use the apt package manager.
+\label{sect:GDB}
+Gdb is a portable debugger that works on Unix-like operating systems. Gdb allows us to execute, debug and modify inside an executable program while running, even without the source code. Gdb supports a wide variety of programming languages like C/C++, Go, Rust, and various assembly dialects. The installation process is easy; all we have to do is use the apt package manager:
 \begin{lstlisting}[frame=tlrb]
 sudo apt-get install gdb
 \end{lstlisting}
 
 \subsection{GEF}
-Gdb allows us to debug and watch inside a running program, but we need more tools to investigate a running program. Gef is a set of tools that give us more functionality when using gdb using the Python API to assist in the dynamic analysis process. To install gef, clone the repository, then add the python script to the gdb initialize file:
+\label{sect:GEF}
+Gdb allows us to debug and watch inside a running program, but we need more tools to investigate a running program. Gef is a set of tools that give us more functionality when using gdb using the Python API to assist in the dynamic analysis process. To install gef, clone the repository, then add the python script to the gdb initialization file:
 \begin{lstlisting}[frame=tlrb]
 $ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
@@ -658,21 +661,27 @@ Gef has a lot of debugging tools; we focus on the heap utility of gef which call
 gef: heap <sub_commands>
 \end{lstlisting}
 
-\paragraph{\lstinline{heap chunks} command}
+\paragraph*{\lstinline{heap chunks} command}
+\glnote{I'd use paragraph* (that is, with the star) to avoid something like 3.1.1.1.1}
 
-Display all of the heap chunks  ``Figure~\ref{fig:gefheapchunks}``
+Display all heap chunks:
 \begin{lstlisting}[frame=tlrb]
 gef: heap chunks
 \end{lstlisting}
 
-\begin{figure}[h!]
-\makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb14}}
-\caption{heap chunks}
-\label{fig:gefheapchunks}
-\end{figure}
+\begin{center}
+\includegraphics[height=0.2\textwidth]{gdb14}
+\end{center}
+
+\glnote{I'd remove the floating figures/references and simply include the graphics between begin-center/end-center, see the latex}
+% \begin{figure}[h!]
+% \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb14}}
+% \caption{heap chunks}
+% \label{fig:gefheapchunks}
+% \end{figure}
 
 \paragraph{\lstinline{heap chunk} command}
-This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.``Figure~\ref{fig:gefheapchunk}``
+This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.``Figure~\ref{fig:gefheapchunk}``\glnote{for closing quotes you should use two single-quote characters: ''; please change everywhere}
 \begin{lstlisting}[frame=tlrb]
 gef: heap chunk <LOCATION>
 \end{lstlisting}
@@ -684,7 +693,7 @@ gef: heap chunk <LOCATION>
 \end{figure}
 
 \paragraph{\lstinline{heap arenas} command}
-As we mention, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.``Figure~\ref{fig:gefheaparena}``
+As we mentioned\glnote{this is mentioned in another chapter, in cases like this, it's better to add a reference to the other section}, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.``Figure~\ref{fig:gefheaparena}``
 
 \begin{lstlisting}[frame=tlrb]
 gef: heap arenas
@@ -708,20 +717,20 @@ gef: heap bins
 \label{fig:gefheapbins}
 \end{figure}
 
-\subsection{PWNDBG}
-\emph{pwndbg} is a set of tools that aim us during debugging with GDB. It works like a GEF by providing us more tools to investigate a running program.
-To install pwndbg, clone the repository, then add it to the gdb initialize file:
+\subsection{PWNDBG}\glnote{this tool is not mentioned at the beginning of the chapter! Please add it}
+\emph{pwndbg} is a set of tools that aim at helping us during debugging with GDB. It works like a GEF by providing us with more tools to investigate a running program.
+To install pwndbg, clone the repository, then add it to the gdb initialization file:
 \begin{lstlisting}[frame=tlrb]
 cd ~/
 git clone https://github.com/scwuaptx/Pwngdb.git
 cp ~/Pwngdb/.gdbinit ~/
 \end{lstlisting}
 \subsubsection{commands}
-like gdb, it provides some commands to monitor the heap state. Unlike gef, it does not have subcommands.
+Like gdb, it provides some commands to monitor the heap state. Unlike gef, it does not have subcommands.
 
 \paragraph{\lstinline{heap} command}
 This command provides information about allocated and freed chunks, also the top chunk.``Figure~\ref{fig:pwnheap}``
-
+\glnote{same thing as before, regarding the figures}
 \begin{figure}[h!]
 \makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb18}}
 \caption{pwndbg heap}
@@ -749,6 +758,7 @@ Show top chunk information.``Figure~\ref{fig:pwntopchunk}``
 
 
 \section{Heappy}
+\label{sect:heappy}
 Unlike previously mentioned tools, heappy focuses on heap layout presentation. This utility is an editor which presents a graphical layout of the heap. To install heappy, first, we have to download requirements:
 
 \begin{lstlisting}[frame=tlrb]
@@ -778,16 +788,16 @@ npm start
 \end{lstlisting}
 
 
-\section{Lib dataBase}
-We deal with different versions on \libc{} that are different from our machine version during the exploitation, so, we need to download different versions of \libc{}. The libc-database project has all of \libc{} for different machines, also, the corresponding dynamic loader. To use libc-database simply clone it first:
+\section{Libc database}
+We deal with different versions on \libc{}, which are different from our machine version, during the exploitation. So, we need to download different versions of \libc{}. The \emph{libc-database} project has all of \libc{} for different machines, also, the corresponding dynamic loader. To use libc-database simply clone it first:
 \begin{lstlisting}[frame=tlrb]
 git clone git@github.com:niklasb/libc-database.git
 \end{lstlisting}
-then with the help of download script file, we can download any version of \libc{}
+then with the help of the download script file, we can download any version of \libc{}; e.g.:
 \begin{lstlisting}[frame=tlrb]
 ./download libc6_2.23-0ubuntu10_amd64
 Getting libc6_2.23-0ubuntu10_amd64
- -> Location: http://security.ubuntu.com/ubuntu/pool/main/g/glibc/libc6_2.23-0ubuntu10_amd64.deb
+ -> Location: http://security.ubuntu.com/ubuntu/.../glibc/libc6_2.23-0ubuntu10_amd64.deb
  -> Downloading package
  -> Extracting package
  -> Package saved to libs/libc6_2.23-0ubuntu10_amd64
@@ -796,7 +806,7 @@ ld-2.23.so ... libc.so.6 ... libpthread.so.0 ...
 \end{lstlisting}
 
 \section{Patchelf}
-It is easy to compile an application for a specific version of \libc{} and dynamic loader when we have the source code. However, we do not have the source code always actually we have just the executable file must time. In such a situation, we have to set \libc{}, and dynamic load path for executable file; otherwise file uses the machine \libc{}
+It is easy to compile an application for a specific version of \libc{} and dynamic loader when we have the source code. However, we do not always have the source code; often, we have just the executable file. In such situations, we have to set \libc{} and dynamic-loader path for the executable file, otherwise the program uses the machine \libc{}:
 \begin{lstlisting}[frame=tlrb]
 patchelf --set-interpreter <DYNALIC_LOADER_FILE.so> --set-rpath <LIBC FOLDER> <EXECUTABLE FILE>
 \end{lstlisting}
@@ -823,12 +833,11 @@ after that, we have to compile the source code
 \end{lstlisting}
 Inside the gdb, we can set debug symbols directory. After waiting a while, we run the make command to make the \libc{}. The final result is the \libc{} and debugging symbols.
 
-\chapter{Heap Exploitation }
-
+\chapter{Heap Exploitation}
 Implementation of the \libc{} has changed and improved over the past years, because of various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more versions.
 
 \section{Double Free}
-This is the first attack that we want to discuss which use by other attacks too. What happens if an allocated chunk of data free twice? In this situation, the heap data structure is corrupted and finally leads to a memory leak that the attacker can use. As we discussed before, after the user frees an allocated space, this chunk adds to corresponding bins. In the simplest scenario in \libc{-2.23}, it adds to \fb{}. Consider the following sample code:
+This is the first attack that we want to discuss, since it is used by other attacks too. What happens if an allocated chunk of data gets freed twice? In this situation, the heap data structure is corrupted and it leads to a memory \emph{leak} that an attacker can leverage. As we discussed before, after the user frees an allocated space, this chunk is added to a corresponding bin. In the simplest scenario in \libc{-2.23}, it is added to \fb{}. Consider the following sample code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 a = malloc(10); // 0xa04010
@@ -842,7 +851,7 @@ e = malloc(10); // 0xa04030
 f = malloc(10); // 0xa04010
 \end{lstlisting}
 
-At first, we requested 3 chunks of 10-byte. After that, we free \lstinline{a} and \lstinline{b} and at last \lstinline{a} again. You can see the fast bin structure after \lstinline{free} below step by step:
+At first, we requested 3 chunks of 10-bytes each. After that, we free \lstinline{a} and \lstinline{b} and, finally, \lstinline{a} again. You can see the fast bin structure after \lstinline{free} below step by step:
 
 \begin{lstlisting}[frame=tlrb]
 head -> a -> tail
@@ -850,7 +859,8 @@ head -> b -> a -> tail
 head -> a -> b -> a -> tail
 \end{lstlisting}
 
-As you can see, we have \lstinline{a} twice in the \fb{} now. What is happen if the \lstinline{a} frees twice continuous? double \lstinline{a} can not free continuous instead the \lstinline{b} frees in the middle of them. As one of the \fb{} security checks if double \lstinline{a} free continuous the fast bin can detect the \lstinline{a} is on the top of the list right now, the program crashes. To bypass the \fb{} security check, it is mandatory to free another chunk in the middle. 3 new chunks of data allocated in the following. You can see the fast bin state below step-by-step during the second allocation:
+As you can see, we have \lstinline{a} twice in the \fb{} now.
+Why we freed \lstinline{b} in the middle? As one of the \fb{} security checks, if \lstinline{a} is doubly freed, the fast bin can detect that \lstinline{a} is on the top of the list right now, and the program is terminated by the heap manager. To bypass this \fb{} security check, it is mandatory to free another chunk in the middle. Then, three new chunks of data are allocated in the following. You can see the fast bin state below step-by-step during the second allocation:
 
 \begin{lstlisting}[frame=tlrb]
 head -> b -> a -> tail [ 'a' is returned ]
@@ -858,8 +868,9 @@ head -> a -> tail [ 'b' is returned ]
 head -> tail [ 'a' is returned ]
 \end{lstlisting}
 
-In the end, \lstinline{d} and \lstinline{f} point to the exact memory location; as a result, any change in one leads to another. We should pay attention to both allocations having the same chunk size; otherwise, the heap manager creates a new chunk from the top chunk instead of return \fb{} freed chunks.
-This method needs to be modified since \libc{-2.26} introduced \tch{}. On the new \libc{}, freed chunks add to \tch{} instead of \fb{}, as the result, we need to do some modification to this attack. Consider the following code:
+In the end, \lstinline{d} and \lstinline{f} point to the exactly same memory location. We should pay attention to both allocations having the same chunk size; otherwise, the heap manager creates a new chunk from the top chunk instead of returning \fb{} freed chunks.
+
+Currently, this method needs to be modified since \libc{-2.26} introduced the \tch{}. On the new \libc{}, freed chunks are added to the \tch{} instead of \fb{}, as the result, we need to do some modification to this attack. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *ptrs[8];
@@ -871,7 +882,7 @@ for (int i=0; i<7; i++) {
 }
 \end{lstlisting}
 
-A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of return freed \tch{} chunks. The above code allocated seven chunks of 8 bytes then free all of them. In the new version of \libc{}, all of these seven freed chunks to add to \tch{}. \Tch{} can keep up to 7 chunks. From this point, if we release other chunks, they add to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \mallocc{} to allocate fresh chunks, the heap manager returns chunks from \tch{}, so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation, allocation can use \callocc{}. \Callocc{} does not use \tch{}, and \fb{} are free, so \callocc{} gets memory from the top chunk.
+A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of returning freed \tch{} chunks. The above code allocates seven chunks of 8 bytes, then free all of them. In the new version of \libc{}, all of these seven freed chunks goes to the \tch{}. The \Tch{} can keep up to 7 chunks. From this point, if we release other chunks, they are added to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \mallocc{} to allocate fresh chunks, the heap manager returns chunks from \tch{}; so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation an attacker could leverage \callocc{}, since that function does not use \tch{}, and \fb{} are free, so \callocc{} gets memory from the top chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = calloc(1, 8);
@@ -879,7 +890,7 @@ int *b = calloc(1, 8);
 int *c = calloc(1, 8);
 \end{lstlisting}
 
-The result of the above code is allocated 3 new chunks of memory from the top chunk while \tch{} is still full of freed chunks. In another word, we force the heap manager to allocate memory from the top chunk instead of use freed chunks. The above approach use by other attacks to bypass the \tch{} policy too. The following steps are like the original approach, but \callocc{}:
+The result of the above code is 3 new chunks of allocated memory from the top chunk, while \tch{} is still full of freed chunks. In other words, we force the heap manager to allocate memory from the top chunk instead of using freed chunks. The above approach is used by other attacks to bypass the \tch{} policy too. The following steps are like the original approach, but using \callocc{}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(a);
@@ -890,7 +901,7 @@ b = calloc(1, 8);
 c = calloc(1, 8);
 \end{lstlisting}
 
-In the previous example, we used small chunk allocation. What is happen if we request a larger chunk? considering below example on \libc{-2.23}:
+In the previous example, we used small chunk allocation. What does it happen when we request a larger chunk? Consider the example below on \libc{-2.23}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void* p1 = malloc(0x40);
@@ -900,19 +911,19 @@ void* p3 = malloc(0x400);
 free(p1);
 \end{lstlisting}
 
-The thirds \mallocc{} have a significant memory allocation; this allocation triggers another method call \lstinline{malloc_consolidate} automatically. \Mallocc{} In this situation, consolidate chunks in the fast bin before continuing, then put the resulting merged chunks on the \ub{}.
-Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use \mallocc{} with a big size instead of free another chunk in the middle of two free. The third \mallocc{} moves chunk from fast bin to unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have \lstinline{P1} on both \fb{} and \ub{}. Move \fb{} chunks to \ub{} by a big size memory allocation is a simple approach which uses by other attack methods too.
+The third \mallocc{} ask for a significant memory allocation; this allocation triggers another method call \lstinline{malloc_consolidate} automatically. \Mallocc{} in this situation, consolidate chunks in the fast bin before continuing, then put the resulting merged chunks on the \ub{}.
+Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use \mallocc{} with a big size instead of freeing another chunk in the middle of two free. The third \mallocc{} moves a chunk from fast bin to the unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have \lstinline{p1} on both \fb{} and \ub{}. Moving \fb{} chunks to \ub{} by asking for a big size memory allocation is a simple approach used by other attack methods too.
 
 \section{Forged Chunk}
-Freeing up a chunk does not prevent access to it because the pointer still exists in the application, so we can implement an attack on the heap data structure by controlling the pointer. Below code shows how we can return our forged chunk instead of a real heap chunk:
+Freeing up a chunk does not prevent access to it because the pointer still exists in the application, so we can implement an attack on the heap data structure by controlling the pointer. The code below shows how we can return our forged chunk instead of a real heap chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct forged_chunk {
-size_t prev_size;
-size_t size;
-struct forged_chunk *fd;
-struct forged_chunk *bck;
-char buf[10];  // padding
+	size_t prev_size;
+	size_t size;
+	struct forged_chunk *fd;
+	struct forged_chunk *bck;
+	char buf[10];  // padding
 };
 a = malloc(10);  // 'a' points to 0x219c010
 
@@ -933,22 +944,24 @@ malloc(10);   // Will return 0x219c010
 victim = malloc(10);  // Points to 0x7ffc6de966a0
 \end{lstlisting}
 
-In the first step, we allocate a memory \lstinline{a} with 10-Byte size, also, create our fake chunk with size 0x20. Chunk size is essential. It must fall in \fb{} chunks because \fb{} has a security check on chunk size while removing it from the list.
-Now by call free(a), the real chunk is put back in the \fb{}. As we tell, we free up space, but the pointer still points to chunk memory location. We make the forward pointer of freed chunk \lstinline{a} to point to the forged chunk by accessing the pointer. The current layout of the heap is like below now:
+In the first step, we allocate a memory \lstinline{a} with 10-byte size, also, create our fake chunk with size 0x20. Chunk size is essential. It must fall in \fb{} range because \fb{} has a security check on chunk size while removing it from the list.
+Now by calling \lstinline{free(a)}, the real chunk is put back in the \fb{}. As we tell, we free up space, but the pointer still points to chunk memory location. We make the forward pointer of freed chunk \lstinline{a} to point to our forged chunk. The current layout of the heap is like below now:
 
-\begin{lstlisting}[language=c,frame=tlrb]
-head -> a -> forged chunk -> undefined (forward of the forged chunk be holding attacker's data)
+\begin{lstlisting}[language=,frame=tlrb]
+head -> a -> forged chunk -> undefined (forward of the forged chunk is holding
+                                             the string "attacker's data")
 \end{lstlisting}
 
-In the following, by first allocated \lstinline{a} again, the heap manager returns the \lstinline{a} from the fast bin; following that, our forged chunk be at the head, so subsequent allocation return it instead of a real chunk.
+In the following, by first allocating \lstinline{a} again, the heap manager returns the \lstinline{a} from the fast bin; following that, our forged chunk will be at the head, so a subsequent allocation returns it instead of a real chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> forged chunk -> undefined
 head -> undefined [ forged chunk is returned to the victim ]
 \end{lstlisting}
 
-Take into consideration, another allocation on \fb{} could raise Segmentation faults.
-In the next sample we use double-free vulnerabilities in \libc{-2.23}; the below code is just an extended version of the Double Free attack which we examined. The extended version tricks \mallocc{} to return a controller memory location on the stack instead of a real chunk of the heap.
+Taking this into consideration, another allocation on \fb{} could raise a \emph{segmentation fault}, but also returning \emph{any value} the attacker chooses.
+
+In the next sample we use double-free vulnerabilities in \libc{-2.23}; the below code is just an extended version of the Double Free attack which we examined. The extended version tricks \mallocc{} into returning a controlled memory location on the stack instead of a real chunk of the heap.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long long stack_var;
@@ -972,14 +985,14 @@ As describe in the first part, we allocate three chunks and free one of them twi
 head -> a
 \end{lstlisting}
 
-The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affect \lstinline{a} at the top of the \fb{}) in an away point to right before 0x20 on the stack. In this way, we trick the heap into thinking there is an available free chunk.
- Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controller address on memory to the program is stack in this case.
+The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affects \lstinline{a} at the top of the \fb{}) in a way to point to right before the value 0x20 on the stack. In this way, we trick the heap manager into thinking there is an available free chunk.
+Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controlled address. In this case, a pointer into the stack.\glnote{I rephrased, please check if this is what you meant}
 
-\section{\ub{} Attack}
+\section{\Ub{} attack}
 
-In previous sections, we see how to implement an attack on \fb{}, now, we want to demonstrate an attack on the \ub{} as the name suggests this attack abuse \ub{} to conduct an attack. The mechanism of this attack is to take control of backward pointer chunks in the \ub{}. This attack aims to modify a value; as a result, this attack can combine with others.
+In previous sections, we saw how to implement an attack on \fb{}. Now, we want to demonstrate an attack on the \ub{}. As the name suggests, this attack abuses \ub{} to conduct the attack. The mechanism of this attack is to take control of the backward pointer of chunks in the \ub{}. This attack aims to modify a value; as a result, this attack can be combined with others.
 
-Let’s start with a sample and consider the following code. This code tries to write a big value in the stack:
+Let's start with an example and consider the following code. This code tries to write a big value in the stack:\glnote{I don't understand in which sense is trying to write ``a big'' value\ldots}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long stack_var=0;
@@ -991,20 +1004,20 @@ p[1]=(unsigned long)(&stack_var-2);
 //------------------------------------
 malloc(400);
 \end{lstlisting}
- At the first line, we define our target \lstinline{stack_var} where we want to write the great value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap; otherwise, when we free \lstinline{p} the heap manager merges it with the top of the heap automatically. At least, we have to write our target address in the backward pointer of \lstinline{p}. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list; in \mallocc{}, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3738}{\texttt{malloc.c}, line 3738}}:
+ At the first line, we define our target \lstinline{stack_var} where we want to write the great value. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top of the heap; otherwise, when we free \lstinline{p} the heap manager merges it with the top of the heap automatically. Finally, we have to write our target address in the backward pointer of \lstinline{p}. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list; in \mallocc{}, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3738}{\texttt{malloc.c}, line 3738}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsorted_chunks (av)->bk = bck;
 bck->fd = unsorted_chunks (av);
 \end{lstlisting}
 
-The last \mallocc{} tries to allocate 400-Byte of memory, so the heap manager checks the \ub{} to find a fair chunk of memory. Also, move the \ub{} chunk to corresponding bins. If we check the \mallocc{} source code, we can see \mallocc{} check every item to achieve this goal. At first, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3728}{\texttt{malloc.c}, line 3728}} :
+The last \mallocc{} tries to allocate 400 bytes of memory, so the heap manager checks the \ub{} to find a fair chunk of memory. Also, move the \ub{} chunk to corresponding bins. If we check the \mallocc{} source code, we can see \mallocc{} checks every item to achieve this goal. At first, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3728}{\texttt{malloc.c}, line 3728}} :
 \begin{lstlisting}[language=c,frame=tlrb]
 
 while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
 bck = victim->bk;
 \end{lstlisting}
-‘Av’ is arena and \lstinline{unsorted_chunks (av)} is the head of the \ub{} and Victim is our current item. You can see, \mallocc{} checks items from the head of the \ub{} and removes them one by one. Put it all to gather:
+Variable \lstinline{av} is the arena, \lstinline{unsorted_chunks (av)} is the head of the \ub{}, and \lstinline{victim} is our current item. You can see, \mallocc{} checks items from the head of the \ub{} and removes them one by one. Putting it all together:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 victim = unsorted_chunks (av) -> bk = p
@@ -1013,14 +1026,16 @@ unsorted_chunks(av)->bk = bck = target addr-16
 bck->fd = *(target addr -16+16) = unsorted_chunks(av);
 \end{lstlisting}
 
-Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable. In the recent versions of \libc{} the following check was added to prevent this attack \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3785}{\texttt{malloc.c}, line 3785}}:
+Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable.\glnote{this could be useful to defeat ASLR! You should say so}
+
+In the recent versions of \libc{} the following check was added to prevent this attack \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3785}{\texttt{malloc.c}, line 3785}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (__glibc_unlikely (bck->fd != victim))
 	malloc_printerr ('malloc(): corrupted unsorted chunks 3');
 \end{lstlisting}
 
-\section{\lb{} Attack}
+\section{\Lb{} attack}
 
 As the name suggests, this attack is about the \lb{}. The goal is to force a \lb{} to write data in a controlled location.
 
@@ -1032,20 +1047,20 @@ size_t *p2 = malloc(0x418);
 size_t *g2 = malloc(0x18);
 \end{lstlisting}
 
-The first step is to define the target; also, we need to define two chunks in the range size of \lb{}; moreover, we need to define two chunks between them to prevent them from merging or the top chunk.
+The first step is to define the target; also, we need to define two chunks in the range size of \lb{}; moreover, we need to define two chunks in the middle to prevent them from merging with each other or with the top chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p1);
 size_t *g3 = malloc(0x438);
 \end{lstlisting}
 
-In the second step, we free the most significant chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, \freec{} added the freed chunk to \ub{} at first, so, The best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (Like other attacks).
+In the second step, we free the most significant\glnote{most significant?} chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, \freec{} adds the freed chunk to \ub{} at first; so, the best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (like other attacks).
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2);
 \end{lstlisting}
 
-In the third step, we freed the smaller chunk. Now we have one chunk inside the \lb{} and one chunk in the \ub{}.
+In the third step, we free the smaller chunk. Now we have one chunk inside the \lb{} and one chunk in the \ub{}.
 
 \begin{lstlisting}[frame=tlrb]
 unsorted_bins[0]: fw=0x5555555596e0, bk=0x5555555596e0
@@ -1055,7 +1070,7 @@ large_bins[63]: fw=0x555555559290, bk=0x555555559290
 Chunk(addr=0x5555555592a0, size=0x430, flags=PREV_INUSE)
  \end{lstlisting}
 
- The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nextsize}. As we mentioned before, Just \lb{} chunk chunks use this pointer; they point to the next biggest chunk in the link list.
+ The next step is to put the target address - 0x20 in the \lstinline{p1->bk_nextsize}. As we mentioned before, just \lb{} chunks use this pointer; they point to the next biggest chunk in the link list.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p1[3] = (size_t)((&target)-4);
