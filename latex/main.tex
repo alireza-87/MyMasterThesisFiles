@@ -234,7 +234,7 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-Also, retake a look at inside memory; we can see, \libc{} keeps pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. The forward pointers point to some data about \tch{}, discussed later.
+Also, retake a look at inside memory; we can see, \libc{} keeps pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. The forward pointers point to some data about \tch{}, which discussed in \refToSubSection{tcache}.
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/16xg 0x0000555555559290
@@ -279,7 +279,7 @@ As we will see, each arena consists of one or more (sub)heaps, as detailed in \r
 
 When a process creates a new thread, the heap manager finds a new arena up to the maximum allowed number. The default value from the maximum number of the arena is $(2\cdot\mathrm{number\ of\ CPU\ cores})$ for 32-bits, and $(8\cdot\mathrm{number\ of\ CPU\ cores})$ for 64-bits. You can tune this value by using \lstinline{mallopt} function, as discussed in \refToSection{mallopt}. So, what happens when we reach max number? Thread has to share the arena.
 
-As we saw before, the main arena grows by using the \sbrkc system call. This is not true for secondary arenas, which grow by calling \mmapc{}.
+As we saw before, the main arena grows by using the \sbrkc system call. This is not true for secondary arenas \refToSection{subheaps}, which grow by calling \mmapc{}.
 
 \section{Subheaps}
 \label{sect:subheaps}
@@ -394,6 +394,7 @@ Each bin keeps recently freed chunks in a single-linked list. We have 10 \fb{}, 
 The heap manager does not free up \fb{} chunks by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate}.
 
 \subsection{\Tch bins}
+\label{subsect:tcache}
 Since \libc{-2.26} \tch{} add the last optimization in the heap manager. Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called \lstinline{race condition}. As we mentioned before, a simple strategy to overcome race conditions is \lstinline{lock} The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \Tch{} speeds up the allocation by having per-threat bins of a small chunk. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call free; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}. \libc{} provide 64 \tch{}, each of which stores up to 7 chunks of the same size. 
 
 \begin{lstlisting}[frame=tlrb]
@@ -636,9 +637,9 @@ The rest of the usage located inside \lstinline{malloc_trim} and \lstinline{mall
 \chapter{Tools }
 Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depend on different platforms. These tools allow us to display any memory like stack and heap, disassemble binary code, execute and debug a binary program.
 
-We worked exclusively on \libc{} as the heap manager on the x86 machine, so the primary tool is \emph{gdb}, as explained in \refToSection{GDB}. In addition to gdb, we use some utilities like its extension \emph{GEF}, introduced in \refToSection{GEF}, and \emph{heappy}, discussed in \refToSection{heappy}, to have better memory visualization.\glnote{added references to (sub)sections}
+We worked exclusively on \libc{} as the heap manager on the x86 machine, so the primary tool is \emph{gdb}, as explained in \refToSection{GDB}. In addition to gdb, we use some utilities like its extension \emph{GEF}, introduced in \refToSection{GEF}, and \emph{heappy}, discussed in \refToSection{heappy}, to have better memory visualization. \glnote{DONE-added references to (sub)sections} \emph{pwndbg} , introduce in \refToSection{PWNDBG} , to improve \lstinline{gdb} visualization ,  \emph{Libc Database}, discuss in \refToSection{LibcDatabase}, to have all necessary versions of \libc{} and related files. \emph{Patchelf}, discuse in \refToSection{Patchelf} to modify the dynamic loader and RPATH of executable files, also in \refToSection{DebugLibc} we discuss how to debug executable and library inside the \lstinline{gdb}.
 
-\glnote{you shoud list all sections here: heappy, libc db, patchelf, \ldots}
+\glnote{DONE-you shoud list all sections here: heappy, libc db, patchelf, \ldots}
 
 \section{GDB}
 \label{sect:GDB}
@@ -662,7 +663,7 @@ gef: heap <sub_commands>
 \end{lstlisting}
 
 \paragraph*{\lstinline{heap chunks} command}
-\glnote{I'd use paragraph* (that is, with the star) to avoid something like 3.1.1.1.1}
+\glnote{DONE-I'd use paragraph* (that is, with the star) to avoid something like 3.1.1.1.1}
 
 Display all heap chunks:
 \begin{lstlisting}[frame=tlrb]
@@ -673,51 +674,46 @@ gef: heap chunks
 \includegraphics[height=0.2\textwidth]{gdb14}
 \end{center}
 
-\glnote{I'd remove the floating figures/references and simply include the graphics between begin-center/end-center, see the latex}
+\glnote{DONE-I'd remove the floating figures/references and simply include the graphics between begin-center/end-center, see the latex}
 % \begin{figure}[h!]
 % \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb14}}
 % \caption{heap chunks}
 % \label{fig:gefheapchunks}
 % \end{figure}
 
-\paragraph{\lstinline{heap chunk} command}
-This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.``Figure~\ref{fig:gefheapchunk}``\glnote{for closing quotes you should use two single-quote characters: ''; please change everywhere}
+\paragraph*{\lstinline{heap chunk} command}
+This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.\glnote{ok-for closing quotes you should use two single-quote characters: ''; please change everywhere}
 \begin{lstlisting}[frame=tlrb]
 gef: heap chunk <LOCATION>
 \end{lstlisting}
 
-\begin{figure}[h!]
-\makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb15}}
-\caption{heap chunk}
-\label{fig:gefheapchunk}
-\end{figure}
+\begin{center}
+\includegraphics[height=0.2\textwidth]{gdb15}
+\end{center}
 
-\paragraph{\lstinline{heap arenas} command}
-As we mentioned\glnote{this is mentioned in another chapter, in cases like this, it's better to add a reference to the other section}, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.``Figure~\ref{fig:gefheaparena}``
+\paragraph*{\lstinline{heap arenas} command}
+As we mentioned in \refToSection{subheaps}\glnote{DONE-this is mentioned in another chapter, in cases like this, it's better to add a reference to the other section}, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.
 
 \begin{lstlisting}[frame=tlrb]
 gef: heap arenas
 \end{lstlisting}
 
-\begin{figure}[h!]
-\makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb16}}
-\caption{heap arenas}
-\label{fig:gefheaparena}
-\end{figure}
+\begin{center}
+\includegraphics[height=0.1\textwidth]{gdb16}
+\end{center}
 
-\paragraph{\lstinline{heap bins} command}
-\libc{} use bins to keep track of freed chunks. Gef provides a sun command to visualize the state of all bins of a running application.``Figure~\ref{fig:gefheapbins}``
+\paragraph*{\lstinline{heap bins} command}
+\libc{} use bins to keep track of freed chunks. Gef provides a sun command to visualize the state of all bins of a running application.
 \begin{lstlisting}[frame=tlrb]
 gef: heap bins
 \end{lstlisting}
 
-\begin{figure}[h!]
-\makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb17}}
-\caption{heap bins}
-\label{fig:gefheapbins}
-\end{figure}
+\begin{center}
+\includegraphics[height=0.2\textwidth]{gdb17}
+\end{center}
 
-\subsection{PWNDBG}\glnote{this tool is not mentioned at the beginning of the chapter! Please add it}
+\subsection{PWNDBG}\glnote{DONE-this tool is not mentioned at the beginning of the chapter! Please add it}
+\label{sect:PWNDBG}
 \emph{pwndbg} is a set of tools that aim at helping us during debugging with GDB. It works like a GEF by providing us with more tools to investigate a running program.
 To install pwndbg, clone the repository, then add it to the gdb initialization file:
 \begin{lstlisting}[frame=tlrb]
@@ -728,33 +724,28 @@ cp ~/Pwngdb/.gdbinit ~/
 \subsubsection{commands}
 Like gdb, it provides some commands to monitor the heap state. Unlike gef, it does not have subcommands.
 
-\paragraph{\lstinline{heap} command}
-This command provides information about allocated and freed chunks, also the top chunk.``Figure~\ref{fig:pwnheap}``
-\glnote{same thing as before, regarding the figures}
-\begin{figure}[h!]
-\makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb18}}
-\caption{pwndbg heap}
-\label{fig:pwnheap}
-\end{figure}
+\paragraph*{\lstinline{heap} command}
+This command provides information about allocated and freed chunks, also the top chunk.
+\glnote{DONE-same thing as before, regarding the figures}
 
-\paragraph{\lstinline{bins} command}
-Provide information about freed chunks inside every bin.``Figure~\ref{fig:pwnbins}``
+\begin{center}
+\includegraphics[height=0.4\textwidth]{gdb18}
+\end{center}
 
-\begin{figure}[h!]
-\makebox[\textwidth][c]{\includegraphics[height=0.4\textwidth]{gdb19}}
-\caption{pwndbg bins}
-\label{fig:pwnbins}
-\end{figure}
+\paragraph*{\lstinline{bins} command}
+Provide information about freed chunks inside every bin.
 
-\paragraph{\lstinline{top_chunk command}}
+\begin{center}
+\includegraphics[height=0.4\textwidth]{gdb19}
+\end{center}
 
-Show top chunk information.``Figure~\ref{fig:pwntopchunk}``
+\paragraph*{\lstinline{top_chunk command}}
 
-\begin{figure}[h!]
-\makebox[\textwidth][c]{\includegraphics[height=0.1\textwidth]{gdb20}}
-\caption{pwndbg top chunk}
-\label{fig:pwntopchunk}
-\end{figure}
+Show top chunk information.
+
+\begin{center}
+\includegraphics[height=0.1\textwidth]{gdb20}
+\end{center}
 
 
 \section{Heappy}
@@ -789,6 +780,7 @@ npm start
 
 
 \section{Libc database}
+\label{sect:LibcDatabase}
 We deal with different versions on \libc{}, which are different from our machine version, during the exploitation. So, we need to download different versions of \libc{}. The \emph{libc-database} project has all of \libc{} for different machines, also, the corresponding dynamic loader. To use libc-database simply clone it first:
 \begin{lstlisting}[frame=tlrb]
 git clone git@github.com:niklasb/libc-database.git
@@ -806,12 +798,14 @@ ld-2.23.so ... libc.so.6 ... libpthread.so.0 ...
 \end{lstlisting}
 
 \section{Patchelf}
+\label{sect:Patchelf}
 It is easy to compile an application for a specific version of \libc{} and dynamic loader when we have the source code. However, we do not always have the source code; often, we have just the executable file. In such situations, we have to set \libc{} and dynamic-loader path for the executable file, otherwise the program uses the machine \libc{}:
 \begin{lstlisting}[frame=tlrb]
 patchelf --set-interpreter <DYNALIC_LOADER_FILE.so> --set-rpath <LIBC FOLDER> <EXECUTABLE FILE>
 \end{lstlisting}
 
 \section{Debug Libc}
+\label{sect:DebugLibc}
 
 Debugging inside the \libc{} source code is essential while investigating an attack. To debug the \libc{} we need debugging symbols; otherwise, gdb could not show us the source code. If we compile the program with our machine \libc{}, it is possible to install the symbols with the apt package manager.
 \begin{lstlisting}[frame=tlrb]
@@ -986,13 +980,13 @@ head -> a
 \end{lstlisting}
 
 The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affects \lstinline{a} at the top of the \fb{}) in a way to point to right before the value 0x20 on the stack. In this way, we trick the heap manager into thinking there is an available free chunk.
-Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controlled address. In this case, a pointer into the stack.\glnote{I rephrased, please check if this is what you meant}
+Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controlled address. In this case, a pointer into the stack.\glnote{DONE-I rephrased, please check if this is what you meant}
 
 \section{\Ub{} attack}
 
 In previous sections, we saw how to implement an attack on \fb{}. Now, we want to demonstrate an attack on the \ub{}. As the name suggests, this attack abuses \ub{} to conduct the attack. The mechanism of this attack is to take control of the backward pointer of chunks in the \ub{}. This attack aims to modify a value; as a result, this attack can be combined with others.
 
-Let's start with an example and consider the following code. This code tries to write a big value in the stack:\glnote{I don't understand in which sense is trying to write ``a big'' value\ldots}
+Let's start with an example and consider the following code. This code tries to write an address inside the heap area in the stack.\glnote{DONE-I don't understand in which sense is trying to write ``a big'' value\ldots} In \refToSection{houseofroman}, we talk about using this type of vulnerability in a real attack.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long stack_var=0;
@@ -1026,7 +1020,7 @@ unsorted_chunks(av)->bk = bck = target addr-16
 bck->fd = *(target addr -16+16) = unsorted_chunks(av);
 \end{lstlisting}
 
-Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable.\glnote{this could be useful to defeat ASLR! You should say so}
+Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable.In the case of \emph{ASLR}, this vulnerability can help to find an address inside the heap area.\glnote{DONE-this could be useful to defeat ASLR! You should say so}
 
 In the recent versions of \libc{} the following check was added to prevent this attack \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3785}{\texttt{malloc.c}, line 3785}}:
 
@@ -1054,7 +1048,7 @@ free(p1);
 size_t *g3 = malloc(0x438);
 \end{lstlisting}
 
-In the second step, we free the most significant\glnote{most significant?} chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, \freec{} adds the freed chunk to \ub{} at first; so, the best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (like other attacks).
+In the second step, we free the biggest\glnote{DONE-most significant?} chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, \freec{} adds the freed chunk to \ub{} at first; so, the best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (like other attacks).
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2);
@@ -1673,6 +1667,7 @@ Finally, we trigger the attack by one allocation.
 \end{lstlisting}
 
 \subsection{The House of roman}
+\label{houseofroman}
 The main goal of this attack is to get shell access by point the FD pointer to \lstinline{malloc_hock} and write \emph{one-gadget} to \lstinline{malloc_hock} with a combination of \ub{} attack , \fb{}attack and Use after the free attack.
 
 The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}. \lstinline{malloc_hook} lets us modify the behavior of \lstinline{malloc} and \lstinline{free} with a hook function. To achieve this, we create a \fb{} chunk in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
