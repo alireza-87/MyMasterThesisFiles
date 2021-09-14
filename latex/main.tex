@@ -841,7 +841,9 @@ Inside the gdb, we can set debug symbols directory. After waiting a while, we ru
 \chapter{Heap Exploitation}
 Implementation of the \libc{} has changed and improved over the past years, because of various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more versions.
 
-In \refToSection{useafterfree} we interduce \lstinline{use after free} as a classic heap vullnerability.\lstinline{Double free} attack disscus in \refToSection{doublefree} , then,\lstinline{forged chunk} attack present in \refToSection{forgedchunk}. \lstinline{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \lstinline{larg bin attack} in \refToSection{lbattack}. The next attack is \lstinline{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attack introduces in \refToSection{thehouses}. In following \lstinline{House of mind} inroduce in \refToSubSection{housemind} ,\lstinline{House of force} inroduce in \refToSubSection{houseforce}, \lstinline{House of lore} inroduce in \refToSubSection{houselore}   , \lstinline{House of spirits} discues in \refToSubSection{housespirits}, \lstinline{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \lstinline{House of roman}, \lstinline{House of rabbit}, \lstinline{House of orange}, \lstinline{House of Einherjar} and \lstinline{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}.The last attack is \lstinline{tcach poisoning} intorduces in \refToSection{tchpoison}
+\glnote{spellcheck the document! And check the English: singulars/plurals etc}
+In \refToSection{useafterfree} we interduce \lstinline{use after free} as a classic heap vulnerability. Double \lstinline{free} attack disscus in \refToSection{doublefree} , then,\lstinline{forged chunk} attack present in \refToSection{forgedchunk}. \lstinline{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \lstinline{larg bin attack} in \refToSection{lbattack}. The next attack is \lstinline{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attack introduces in \refToSection{thehouses}. In following \lstinline{House of mind} inroduce in \refToSubSection{housemind} ,\lstinline{House of force} inroduce in \refToSubSection{houseforce}, \lstinline{House of lore} inroduce in \refToSubSection{houselore}   , \lstinline{House of spirits} discues in \refToSubSection{housespirits}, \lstinline{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \lstinline{House of roman}, \lstinline{House of rabbit}, \lstinline{House of orange}, \lstinline{House of Einherjar} and \lstinline{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}.The last attack is \lstinline{tcach poisoning} intorduces in \refToSection{tchpoison}
+\glnote{you should use lstinline only for identifiers/function names; the names of techniques are better in emph}
 
 \section{Use After Free-NOT COMPILITED}
 \label{sect:useafterfree}
@@ -998,13 +1000,13 @@ head -> a
 \end{lstlisting}
 
 The final step is to write 0x20 on the stack, overwrite the first 8 bytes of data at \lstinline{a} (any change on \lstinline{d} affects \lstinline{a} at the top of the \fb{}) in a way to point to right before the value 0x20 on the stack. In this way, we trick the heap manager into thinking there is an available free chunk.
-Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controlled address. In this case, a pointer into the stack.\glnote{DONE-I rephrased, please check if this is what you meant}
+Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a call to \mallocc{}, then, the final allocation returns a controlled address. In this case, a pointer into the stack.
 
 \section{\Ub{} attack}
 \label{sect:ubattack}
 In previous sections, we saw how to implement an attack on \fb{}. Now, we want to demonstrate an attack on the \ub{}. As the name suggests, this attack abuses \ub{} to conduct the attack. The mechanism of this attack is to take control of the backward pointer of chunks in the \ub{}. This attack aims to modify a value; as a result, this attack can be combined with others.
 
-Let's start with an example and consider the following code. This code tries to write an address inside the heap area in the stack.\glnote{DONE-I don't understand in which sense is trying to write ``a big'' value\ldots} In \refToSection{houseofroman}, we talk about using this type of vulnerability in a real attack.
+Let's start with an example and consider the following code. This code tries to write an address inside the heap area in the stack. In \refToSection{houseofroman}, we talk about using this type of vulnerability in a real attack.\glnote{Undefined reference; check the cross-references}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long stack_var=0;
@@ -1038,7 +1040,7 @@ unsorted_chunks(av)->bk = bck = target addr-16
 bck->fd = *(target addr -16+16) = unsorted_chunks(av);
 \end{lstlisting}
 
-Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable.In the case of \emph{ASLR}, this vulnerability can help to find an address inside the heap area.\glnote{DONE-this could be useful to defeat ASLR! You should say so}
+Now it is clear that if we control the backward pointer, then, we can write data to any address, however, we do not have control over data. In this case, the linked list header was written on a stack variable. In the case of \emph{ASLR}, this vulnerability can help to find an address inside the heap area.
 
 In the recent versions of \libc{} the following check was added to prevent this attack \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3785}{\texttt{malloc.c}, line 3785}}:
 
@@ -1066,7 +1068,7 @@ free(p1);
 size_t *g3 = malloc(0x438);
 \end{lstlisting}
 
-In the second step, we free the biggest\glnote{DONE-most significant?} chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, \freec{} adds the freed chunk to \ub{} at first; so, the best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (like other attacks).
+In the second step, we free the biggest chunk; however, the freed chunk is not in the \lb{} yet. As we discussed, \freec{} adds the freed chunk to \ub{} at first; so, the best way to move it into the \lb{} is to allocate a new bigger chunk. In this way, the heap manager checks the chunk inside the \ub{}, then adds them into the corresponding bins (like other attacks).
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2);
@@ -1103,7 +1105,7 @@ This attack works on \libc{} below 3.0.
 
 \section{Overlapping chunks}
 \label{sect:overlappingchunk}
-The goal is to have two chunks that write data in one of them and overwrite the other one data. We discuss this attack on a sample, first lest start 3 chunk of memory:
+The goal is to have two chunks, writing data in one of them and overwriting the other one data. We discuss this attack on a sample, first let us start 3 chunk of memory:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p1 = malloc(0x100 - 8);
@@ -1120,7 +1122,7 @@ Chunk(addr=0x555555559210, size=0x80, flags=)
  [0x0000555555559210 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 3333333333333333]
  \end{lstlisting}
 
-Now lets \freec{} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
+ Now lets\glnote{``let us'', do not use contractions in formal writing} \freec{} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2).
@@ -1222,7 +1224,7 @@ In this stage, if we allocate a new big chunk, this new big chunk has overlap wi
 
 \section{The Houses}
 \label{sect:thehouses}
-It is time to talk about the House of XXX families' attack. In 2004 the authors of \libc{} published a series of patches over \mallocc{} to prevent previous attacks on heap manager. In late 2004 a person issued a paper \lstinline{The Malloc Maleficarum}, over the internet. 'It is for this reason, a small suggestion of impossibility, that I present the Malloc Maleficarum' As they said. The name came from a 14-century book written by a Catholic clergyman on witchcraft, cool:)
+It is time to talk about the House of \emph{something} families' attack. In 2004 the authors of \libc{} published a series of patches over \mallocc{} to prevent previous attacks on heap manager. In late 2004 a person issued a paper \emph{The Malloc Maleficarum}, over the internet. ``It is for this reason, a small suggestion of impossibility, that I present the Malloc Maleficarum'' As they said. The name came from a 14-century book written by a Catholic clergyman on witchcraft, cool:)
 
 \subsection{The House of Mind}
 \label{subsect:housemind}
@@ -1363,7 +1365,7 @@ free(fastbin_chunk);
 
 \subsection{The house of Force}
 \label{subsect:houseforce}
-The house of Force is the first attack of House of X, which we want to discuss. We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, \libc{} uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size? The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
+The house of Force is the first attack of House of X, which we want to discuss.\glnote{It comes after the House of Mind, though\ldots} We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, \libc{} uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size? The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */
 use_top:
@@ -1472,7 +1474,7 @@ free((void*)victim);
 void *p2 = malloc(1200);
 \end{lstlisting}
 
-To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{} ``Figure~\ref{fig:gdb2}``. In the following step, we allocate another chunk big enough, so, heap manager can't use the chunk inside an \ub{} or \sbs{}.
+To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{} ``Figure~\ref{fig:gdb2}``\glnote{don't use quotes for figures; just say something like ``as shown in\ldots'' or ''Figure\ldots shows\ldots}. In the following step, we allocate another chunk big enough, so, heap manager can't\glnote{no contractions} use the chunk inside an \ub{} or \sbs{}.
 \begin{lstlisting}[language=c,frame=tlrb]
 victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
 \end{lstlisting}
@@ -1912,7 +1914,7 @@ free(a);
 free(prev);
 \end{lstlisting}
 
-The result of the above is to consolidate the ‘prev’ chunk with the victim ‘a’ ``Figure~\ref{fig:gdb11}``. Attention to the size and the address of the chunk:
+The result of the above is to consolidate the ‘prev’ chunk with the victim ‘a’\glnote{Again, use lstinline for identifiers, not single quotes; be consistent} ``Figure~\ref{fig:gdb11}``. Attention to the size and the address of the chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Before:
@@ -1989,6 +1991,7 @@ malloc(128)
 intptr_t *c = malloc(128);
 \end{lstlisting}
 \chapter{In real world}
+\glnote{I think it's better to present real-world cases in the introduction, as motivating examples of why this research is important}
 \section{Heap-Based Buffer Overflow in Sudo}
 \chapter{Conclusion}
 
