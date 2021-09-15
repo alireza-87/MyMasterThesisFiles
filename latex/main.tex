@@ -1992,7 +1992,9 @@ intptr_t *c = malloc(128);
 \end{lstlisting}
 \chapter{In real world}
 \glnote{I think it's better to present real-world cases in the introduction, as motivating examples of why this research is important}
+In this chapter we have a brief overview on some of the must new founded vulnerability inside \emph{sudo}.
 \section{Heap-Based Buffer Overflow in Sudo}
+Its great importance is not hidden from anyone, \lstinline{sudo} stood for \emph{supper user do}. As the name suggests , it is an application for \lstinline{unix-like} operating system which allow users to execute program under a root user privilege. The \lstinline{Qyalys} \footnote{\href{https://blog.qualys.com/vulnerabilities-threat-research/2021/01/26/cve-2021-3156-heap-based-buffer-overflow-in-sudo-baron-samedit}{\texttt{CVE-2021-3156}}}. researcher recently found a heap overflow vulnerability inside the \lstinline{sudo}. This vulnerability cause that a normal privilege user get root privileges without authorisation. sounds really dangerous especially when we know the vulnerability available in many major \lstinline{unix-like} operating system like \lstinline{MacOs}. First we discuss how they found it while no one else could for almost decades, then we introduced the technical detail about exploitation.
 \chapter{Conclusion}
 
 % \bibliographystyle{alphaurl}
