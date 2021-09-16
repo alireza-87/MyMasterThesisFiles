@@ -2019,7 +2019,7 @@ Now, it's time to discuss how this vulnerability works. There is a loop inside t
 
 The \lstinline{sudo} sanitizes every input. The function which sanitizes sudo arguments is \lstinline{parse_args}. This function adds another backsplash after special characters, so, It is impossible to have one backslash anymore, the exploitation would not work. The attackers were looking for a way to bypass \lstinline{pars_argc}. They understood if we pass \lstinline{-s} with \lstinline{sudoedit} instead of \lstinline{sudo}, the \lstinline{parse_argv} does not sanitize the input argument.
 
-The next step is abuse the overflow vulnerability to execute arbitrary code.
+The next step is to abuse the overflow vulnerability to execute arbitrary code. This part is comprehensive. The researchers propose a couple of techniques for arbitrary code execution. We explain number 2. Buffer Overflow gave the attacker ability to overwrite what's come after the buffer. The teams figure out if we overwrite the value of \lstinline{name} property inside \lstinline{servie_user} structure, in future \lstinline{nss_load_library} use this structure to load an external library with \lstinline{dlopen} which is a perfect target for any explorations.
 
 \chapter{Conclusion}
 
