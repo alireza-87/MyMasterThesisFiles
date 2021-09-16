@@ -362,7 +362,7 @@ mchunkptr bins[NBINS * 2 - 2];
     /* ... */
 \end{lstlisting}
 
-Now, we want to discuss how the heap manager recycles a chunk for a new allocation. First, let us consider a simple schema:
+Now, we want to discuss how the heap manager recycles a chunk for a new allocation. First, consider a simple schema:
 \begin{enumerate}
 	\item If the M-bit in metadata is set, then this chunk is allocated off-heap, so, it should be freed by using \lstinline{unmmap}.
 	\item Otherwise, if the chunk right before this chunk is free, then they merge (the way they are merged depends on many factors, we will detail them in the following sections).
@@ -423,8 +423,8 @@ fd: 0x5555555592c0
 
 \section{malloc}
 \label{sect:malloc}
-Let us put all it together to find out how \mallocc{} works. When a new allocation request arrives, \mallocc{} does the following procedure:
-Lets consider \libc{-2.31}, In these particular version \tch{} is the first place. If \tch{} have a chunk with the same size, the heap manager return it immediately. If the chunk is bigger than the request, \tch{} will not split it, instead, the heap manager keep it for future requests. In this case, the arena does not need to lock because the chunk returns from \tch{} immediately. Consider the following code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3047}{\texttt{malloc.c}, line 3047}}:
+it is time to put all it together to find out how \mallocc{} works. When a new allocation request arrives, \mallocc{} does the following procedure:
+By consider \libc{-2.31}, In these particular version \tch{} is the first place. If \tch{} have a chunk with the same size, the heap manager return it immediately. If the chunk is bigger than the request, \tch{} will not split it, instead, the heap manager keep it for future requests. In this case, the arena does not need to lock because the chunk returns from \tch{} immediately. Consider the following code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3047}{\texttt{malloc.c}, line 3047}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */
@@ -446,7 +446,7 @@ victim = _int_malloc (ar_ptr, bytes);
  /* ... */
 \end{lstlisting}
 
-Now we discuss the \lstinline{_int_malloc} function. This function gets the request size, and the arena then tries to allocate a chunk and return it from bins or top chunks. Let us consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk; as a result, remove and add a chunk to the fast bin is fast \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
+Now we discuss the \lstinline{_int_malloc} function. This function gets the request size, and the arena then tries to allocate a chunk and return it from bins or top chunks. Consider \tch{} fails in the previous step. The next place to check is the \fb{}. Also, As we mention, each fast bin keeps just one size of the chunk; as a result, remove and add a chunk to the fast bin is fast \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3577}{\texttt{malloc.c}, line 3577}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
@@ -842,8 +842,8 @@ Inside the gdb, we can set debug symbols directory. After waiting a while, we ru
 Implementation of the \libc{} has changed and improved over the past years, because of various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more versions.
 
 \glnote{spellcheck the document! And check the English: singulars/plurals etc}
-In \refToSection{useafterfree} we interduce \lstinline{use after free} as a classic heap vulnerability. Double \lstinline{free} attack disscus in \refToSection{doublefree} , then,\lstinline{forged chunk} attack present in \refToSection{forgedchunk}. \lstinline{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \lstinline{larg bin attack} in \refToSection{lbattack}. The next attack is \lstinline{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attack introduces in \refToSection{thehouses}. In following \lstinline{House of mind} inroduce in \refToSubSection{housemind} ,\lstinline{House of force} inroduce in \refToSubSection{houseforce}, \lstinline{House of lore} inroduce in \refToSubSection{houselore}   , \lstinline{House of spirits} discues in \refToSubSection{housespirits}, \lstinline{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \lstinline{House of roman}, \lstinline{House of rabbit}, \lstinline{House of orange}, \lstinline{House of Einherjar} and \lstinline{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}.The last attack is \lstinline{tcach poisoning} intorduces in \refToSection{tchpoison}
-\glnote{you should use lstinline only for identifiers/function names; the names of techniques are better in emph}
+In \refToSection{useafterfree} we interduce \emph{use after free} as a classic heap vulnerability. Double \lstinline{free} attack disscus in \refToSection{doublefree} , then,\emph{forged chunk} attack present in \refToSection{forgedchunk}. \emph{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \emph{larg bin attack} in \refToSection{lbattack}. The next attack is \emph{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attack introduces in \refToSection{thehouses}. In following \emph{House of mind} inroduce in \refToSubSection{housemind} ,\emph{House of force} inroduce in \refToSubSection{houseforce}, \emph{House of lore} inroduce in \refToSubSection{houselore}   , \emph{House of spirits} discues in \refToSubSection{housespirits}, \emph{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \emph{House of roman}, \emph{House of rabbit}, \emph{House of orange}, \emph{House of Einherjar} and \emph{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}.The last attack is \emph{tcach poisoning} intorduces in \refToSection{tchpoison}
+\glnote{DONE-you should use lstinline only for identifiers/function names; the names of techniques are better in emph}
 
 \section{Use After Free-NOT COMPILITED}
 \label{sect:useafterfree}
@@ -1006,7 +1006,7 @@ Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a 
 \label{sect:ubattack}
 In previous sections, we saw how to implement an attack on \fb{}. Now, we want to demonstrate an attack on the \ub{}. As the name suggests, this attack abuses \ub{} to conduct the attack. The mechanism of this attack is to take control of the backward pointer of chunks in the \ub{}. This attack aims to modify a value; as a result, this attack can be combined with others.
 
-Let's start with an example and consider the following code. This code tries to write an address inside the heap area in the stack. In \refToSection{houseofroman}, we talk about using this type of vulnerability in a real attack.\glnote{Undefined reference; check the cross-references}
+This code tries to write an address inside the heap area in the stack. In \refToSubSection{houseofroman}, we talk about using this type of vulnerability in a real attack.\glnote{DONE-Undefined reference; check the cross-references}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long stack_var=0;
@@ -1105,7 +1105,7 @@ This attack works on \libc{} below 3.0.
 
 \section{Overlapping chunks}
 \label{sect:overlappingchunk}
-The goal is to have two chunks, writing data in one of them and overwriting the other one data. We discuss this attack on a sample, first let us start 3 chunk of memory:
+The goal is to have two chunks, writing data in one of them and overwriting the other one data. We discuss this attack on a sample, first we allocate 3 chunk of memory:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p1 = malloc(0x100 - 8);
@@ -1122,7 +1122,7 @@ Chunk(addr=0x555555559210, size=0x80, flags=)
  [0x0000555555559210 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 3333333333333333]
  \end{lstlisting}
 
- Now lets\glnote{``let us'', do not use contractions in formal writing} \freec{} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
+ After \glnote{done-``let us'', do not use contractions in formal writing} \freec{} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2).
@@ -1241,7 +1241,7 @@ public free(Void_t* mem){
  _int_free(ar_ptr, mem);
 }
  \end{lstlisting}
-As we mentioned, when the user requests a memory allocation \libc{} returns a pointer to the data section on the allocated chunk, however, to free chunk \libc{} needs a pointer to the beginning of the chunk. \lstinline{mem2chunk} responsible to convert mem pointer to chunk pointer by subtracting address from metadata size. Then this chunk passes to \lstinline{arena_for_chunk} macro. Take a look at the code:
+As we mentioned, when the user requests a memory allocation \libc{} returns a pointer to the data section on the allocated chunk, however, to free chunk \libc{} needs a pointer to the beginning of the chunk. \lstinline{mem2chunk} responsible to convert \lstinline{mem} pointer to chunk pointer by subtracting address from metadata size. Then this chunk passes to \lstinline{arena_for_chunk} macro. Take a look at the code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 #define HEAP_MAX_SIZE (1024*1024)
@@ -1267,7 +1267,7 @@ bck->fd = p;
 fwd->bk = p;
 \end{lstlisting}
 
-In the above code ‘p’ stands for the address of the attacker overflowed chunk, \lstinline{unsorted_chunks(av)} returns \lstinline{av->bin[0]} which is controlled by the attacker, as the result, \lstinline{bk->fd} overwrite ‘p’.
+In the above code \lstinline{p} stands for the address of the attacker overflowed chunk, \lstinline{unsorted_chunks(av)} returns \lstinline{av->bin[0]} which is controlled by the attacker, as the result, \lstinline{bk->fd} overwrite \lstinline{p}.
 
 \paragraph*{Fast bin}
 Consider following code of \fb{}
@@ -1286,7 +1286,7 @@ p->fd = *fb;
 }
 
  \end{lstlisting}
-The ideal way in this approach is to take control of fb, so, in the following line, fb overwrites on target. This scenario needs to bypass conditions too. This attack still works on the current version on \libc{}, so let us see a real sample from how2heap on the house of mind. Consider the following code:
+The ideal way in this approach is to take control of fb, so, in the following line, fb overwrites on target. This scenario needs to bypass conditions too. This attack still works on the current version on \libc{}. Consider the following code:
 \begin{lstlisting}[language=c,frame=tlrb]
 int HEAP_MAX_SIZE = 0x4000000;
 int MAX_SIZE = (128*1024) - 0x100;
@@ -1403,7 +1403,7 @@ Now, we have a pointer to the top chunk, all we have to do overwrite the size fi
 *(intptr_t *)((char *)ptr_top + sizeof(long)) = -1
 \end{lstlisting}
 
-If you check the \libc{} above code, you can see the \libc{} convert the size to (unsigned long), so, \-1 is the largest number. Now we put a big number on size, so, \mallocc{} doesn’t call \mmapc{} to get more memory from os, instead, it uses the top chunk. All we have to do now is allocate a chunk from the top chunk to right before our target, then, the second chunk is be our target:
+If you check the \libc{} above code, you can see the \libc{} convert the size to (unsigned long), so, \-1 is the largest number. Now we put a big number on size, so, \mallocc{} does not call \mmapc{} to get more memory from os, instead, it uses the top chunk. All we have to do now is allocate a chunk from the top chunk to right before our target, then, the second chunk is be our target:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long evil_size = (unsigned long)bss_var - sizeof(long)*4 - (unsigned long)ptr_top;
@@ -1448,7 +1448,7 @@ set_inuse_bit_at_offset(victim, nb);
 bck->fd = bin;
 \end{lstlisting}
 
-AS you can see if we have control over the victim bck pointer and bypass the security check, libc return our fake chunk on the next smallbin allocation. In other words, we can return a chunk to any address. Now we explain it in a real sample:
+AS you can see if we have control over the victim \lstinline{bck} pointer and bypass the security check, libc return our fake chunk on the next small bins allocation. In other words, we can return a chunk to any address. Now we explain it in a real sample:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  intptr_t* stack_buffer_1[4] = {0};
@@ -1467,7 +1467,7 @@ At first, we allocate a small chunk, then calculate the actual address of the ch
  stack_buffer_1[3] = (intptr_t*)stack_buffer_2;
  stack_buffer_2[2] = (intptr_t*)stack_buffer_1;
 \end{lstlisting}
-Now we forge a fake chunk, point the \lstinline{bck} pointer of \lstinline{buffer_1} to the victim, the fwd pointer of \lstinline{buffer_1} to \lstinline{buffer_2}, also, the bck pointer of \lstinline{buffer_2} to \lstinline{buffer_1}. In this way, we can bypass the \sbs{} security check.
+Now we forge a fake chunk, point the \lstinline{bck} pointer of \lstinline{buffer_1} to the victim, the fwd pointer of \lstinline{buffer_1} to \lstinline{buffer_2}, also, the \lstinline{bck} pointer of \lstinline{buffer_2} to \lstinline{buffer_1}. In this way, we can bypass the \sbs{} security check.
 \begin{lstlisting}[language=c,frame=tlrb]
 void *p5 = malloc(1000);
 free((void*)victim);
@@ -1484,7 +1484,7 @@ victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
  \caption{Heap layout}
  \label{fig:gdb2}
 \end{figure}
-After that, we need to abuse the vulnerability, so the bck pointer of the victim points to our controlled memory address.
+After that, we need to abuse the vulnerability, so the \lstinline{bck} pointer of the victim points to our controlled memory address.
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb3}}
  \caption{Heap layout}
@@ -1511,7 +1511,7 @@ bck = victim->bk;
 bin->bk = bck;
 \end{lstlisting}
 
-Now the last allocation returns a chunk at our controlled location at the stack, which is now inside the bin's bck pointer.``Figure~\ref{fig:gdb5}``
+Now the last allocation returns a chunk at our controlled location at the stack, which is now inside the bin's \lstinline{bck} pointer.``Figure~\ref{fig:gdb5}``
 
 \begin{figure}[h!]
 \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb5}}
@@ -1564,7 +1564,7 @@ To achieve this, we have to meet some security conditions. There is a check for 
 	\item Top chunk + size must be page align
 \end{enumerate}
 
-Now let's put it all together. Consider the following code:
+Now It is time to put it all together. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 char *p1, *p2;
@@ -1642,7 +1642,7 @@ The final result is the below code:
 io_list_all = top[2] + 0x9a8;
 \end{lstlisting}
 
-For the rest of the attack, we can use an \ub{} attack. As we mentioned before, in an \ub{} attack, we can overwrite the bk pointer with any address; in this case, we want to overwrite \lstinline{io_list_all} with the address of the \ub{}
+For the rest of the attack, we can use an \ub{} attack. As we mentioned before, in an \ub{} attack, we can overwrite the \lstinline{bk} pointer with any address; in this case, we want to overwrite \lstinline{io_list_all} with the address of the \ub{}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 top[3] = io_list_all - 0x10;
@@ -1656,7 +1656,7 @@ memcpy( ( char *) top, "/bin/sh\x00", 8);
 
 
 As we mentioned, the libc flushes all file pointers inside the \lstinline{io_list_all} link list, which currently overwrites with the address of the \ub{}.
-The goal is to gain control of execution with the help of fd pointers. In the real list, the next file pointer is located at \lstinline{base_address}+0x68, if we consider bins, the mentioned address is a \sbs{}[4] which keeps a chunk between 90 to 98. We can conclude, if we manipulate the top chunk size again and set the size of 97, on the next allocation with a smaller size, the heap manager checks chunks in the \ub{} and puts it into corresponding bins which are smallbin[4]. Also, if we check the source code, we can see this size check:
+The goal is to gain control of execution with the help of \lstinline{fd} pointers. In the real list, the next file pointer is located at \lstinline{base_address}+0x68, if we consider bins, the mentioned address is a \sbs{}[4] which keeps a chunk between 90 to 98. We can conclude, if we manipulate the top chunk size again and set the size of 97, on the next allocation with a smaller size, the heap manager checks chunks in the \ub{} and puts it into corresponding bins which are smallbin[4]. Also, if we check the source code, we can see this size check:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 if (__builtin_expect (victim->size <= 2 * SIZE_SZ, 0)
@@ -1692,11 +1692,11 @@ Finally, we trigger the attack by one allocation.
 \end{lstlisting}
 
 \subsection{The House of roman}
-\label{houseofroman}
-\label{subsect:houseroman}
-The main goal of this attack is to get shell access by point the FD pointer to \lstinline{malloc_hock} and write \emph{one-gadget} to \lstinline{malloc_hock} with a combination of \ub{} attack , \fb{}attack and Use after the free attack.
 
-The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}. \lstinline{malloc_hook} lets us modify the behavior of \lstinline{malloc} and \lstinline{free} with a hook function. To achieve this, we create a \fb{} chunk in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
+\label{subsect:houseofroman}
+The main goal of this attack is to get shell access by point the \lstinline{fd} pointer to \lstinline{malloc_hock} and write \emph{one-gadget} to \lstinline{malloc_hock} with a combination of \ub{} attack , \fb{}attack and Use after the free attack.
+
+The first step is to get a pointer inside \emph{\lstinline{malloc_hook}}. \lstinline{malloc_hook} provide ability to modify the behavior of \lstinline{malloc} and \lstinline{free} with a hook function. To achieve this, we create a \fb{} chunk in a way the \lstinline{fd} pointer points to \lstinline{malloc_hook}.
 \begin{lstlisting}[language=c,frame=tlrb]
 uint8_t* fastbin_victim = malloc(0x60); 
 malloc(0x80);
@@ -1752,7 +1752,7 @@ uint8_t* malloc_hook_chunk = malloc(0x60);
 First, we calculate the address of \lstinline{__malloc_hook}. We have an address inside libc, which keeps inside the \lstinline{fd} pointer of \lstinline{fake_libc_chunk}. We calculate the offset between the start of libc and \lstinline{main_arena+0x68}, which keep in the \lstinline{fd} pointer. In the next step, find the offset of \lstinline{__malloc_hook} inside the libc. The distance between these two offsets is 0xe8.
 We want to use  0x7f as a valid \fb{} chunk size; to do that, we subtract \lstinline{__malloc_hook} by 0X23. With two malloc \lstinline{fastbin_victim} and \lstinline{fake_libc_chunk} remove from \fb{}, the final malloc returns the \lstinline{malloc_hook_chunk}.
 
-As we talk before, the \ub{} attack let us write a value in a controlled location. At this stage , we use \ub{} attack in order to change the value inside \lstinline{malloc_hock} with the \lstinline{main_arena + 0x68}. 
+As we talk before, the \ub{} attack allow the attacker to write a value in a controlled location. At this stage , we use \ub{} attack in order to change the value inside \lstinline{malloc_hock} with the \lstinline{main_arena + 0x68}. 
 \begin{lstlisting}[language=c,frame=tlrb]
 uint8_t* unsorted_bin_ptr = malloc(0x80);
 malloc(0x30);
@@ -1914,7 +1914,7 @@ free(a);
 free(prev);
 \end{lstlisting}
 
-The result of the above is to consolidate the ‘prev’ chunk with the victim ‘a’\glnote{Again, use lstinline for identifiers, not single quotes; be consistent} ``Figure~\ref{fig:gdb11}``. Attention to the size and the address of the chunk:
+The result of the above is to consolidate the \lstinline{prev} chunk with the victim \lstinline{a}\glnote{done-Again, use lstinline for identifiers, not single quotes; be consistent} ``Figure~\ref{fig:gdb11}``. Attention to the size and the address of the chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Before:
@@ -1939,7 +1939,7 @@ malloc(0x100);
 free(a);
 \end{lstlisting}
 
-The above procedure has another result, too; now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the fd pointer pointing to the target, then two allocations. The last allocation has control over the target.``Figure~\ref{fig:gdb12}``
+The above procedure has another result, too; now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the \lstinline{fd} pointer pointing to the target, then two allocations. The last allocation has control over the target.``Figure~\ref{fig:gdb12}``
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *b = malloc(0x120);
@@ -1971,7 +1971,7 @@ Tcachebins[idx=7, size=0x90] count=2 Chunk(addr=0x555555559330, size=0x90, flags
 \end{lstlisting}
 
 The controller location in this sample is a variable inside the stack. In the next step, we allocate and free two chunks. We should mention, in newer versions of \libc{}, this chunk adds to \tch{}.
-In the second step we overwrite the fd pointer of chunk ‘b’:
+In the second step we overwrite the \lstinline{fd} pointer of chunk \lstinline{b}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 b[0] = (intptr_t)&stack_var;
