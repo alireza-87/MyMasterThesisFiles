@@ -2017,6 +2017,8 @@ Now, it's time to discuss how this vulnerability works. There is a loop inside t
 00AAAAAA\00AFBFED ...
 \end{lstlisting}
 
+The \lstinline{sudo} sanitizes every input. The function which sanitizes sudo arguments is \lstinline{parse_args}. This function adds another backsplash after special characters, so, It is impossible to have one backslash anymore, the exploitation would not work. The attackers were looking for a way to bypass \lstinline{pars_argc}. They understood if we pass \lstinline{-s} with \lstinline{sudoedit} instead of \lstinline{sudo}, the \lstinline{parse_argv} does not sanitize the input argument.
+
 \chapter{Conclusion}
 
 % \bibliographystyle{alphaurl}
