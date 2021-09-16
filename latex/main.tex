@@ -1994,7 +1994,24 @@ intptr_t *c = malloc(128);
 \glnote{I think it's better to present real-world cases in the introduction, as motivating examples of why this research is important}
 In this chapter we have a brief overview on some of the must new founded vulnerability inside \emph{sudo}.
 \section{Heap-Based Buffer Overflow in Sudo}
-Its great importance is not hidden from anyone, \lstinline{sudo} stood for \emph{supper user do}. As the name suggests , it is an application for \lstinline{unix-like} operating system which allow users to execute program under a root user privilege. The \lstinline{Qyalys} \footnote{\href{https://blog.qualys.com/vulnerabilities-threat-research/2021/01/26/cve-2021-3156-heap-based-buffer-overflow-in-sudo-baron-samedit}{\texttt{CVE-2021-3156}}}. researcher recently found a heap overflow vulnerability inside the \lstinline{sudo}. This vulnerability cause that a normal privilege user get root privileges without authorisation. sounds really dangerous especially when we know the vulnerability available in many major \lstinline{unix-like} operating system like \lstinline{MacOs}. First we discuss how they found it while no one else could for almost decades, then we introduced the technical detail about exploitation.
+Its great importance is not hidden from anyone, \lstinline{sudo} stood for \emph{supper user do}. As the name suggests, it is an application for \lstinline{unix-like} operating system which allows users to execute a program under a root user privilege. The \lstinline{Qyalys} \footnote{\href{https://blog.qualys.com/vulnerabilities-threat-research/2021/01/26/cve-2021-3156-heap-based-buffer-overflow-in-sudo-baron-samedit}{\texttt{CVE-2021-3156}}}. researcher recently found a heap overflow vulnerability inside the \lstinline{sudo}. This vulnerability causes that a normal privileged user gets root privileges without authorization. sounds dangerous especially when we know the vulnerability available in many major \lstinline{unix-like} operating systems like \lstinline{MacOs}. First, we discuss how they found it while no one else could for almost decades, then we introduced the technical detail about exploitation.
+
+Although it may not be entirely relevant to the topic of the thesis, the first question that arises is how this bug was discovered. Knowing this may help you to better understand the Sudo. Fuzzing is an automatic software testing that provides invalid input data to target programs to monitor program behavior. Afl stands for American fuzzer looper is a free fuzzer software that employs a genetic algorithm to generate the best unexpected input for the program. These two play an important role in found software vulnerability. We should consider Sudo is not just a normal program as the others, so, in order to test sudo some modification was needed. AFL read input data from a file and pass it as an argument, so, it would not fuzz argument by default. In order to fuzz the argument of a program a header file is provided by AFL developers.
+\begin{lstlisting}[language=c,frame=tlrb]
+/AFL/
+main(int ... argc){
+	AFL_INIT_ARGV()
+}
+\end{lstlisting}
+
+This function reads our fake argv from an input file, then, overwrites the real argv with our fake argv. Now we can fuzz the sudo and argv, however, it would not work. The header file that is used to fuzz argv has a buffer overflow, so, if we try to fuzz the sudo, we got a crash inside the AFL. There is another fork of AFL which name is AFLplusplus, this implementation has non of mentioned bugs.
+
+The path of the vulnerability of the sudo was through the sudoedit. The sudoedit is a symlink to actual sudo. As we now argv[0] hold the filename executable, so, when we execute the sudoedit, the first argument must be sudoedit itself. This is really important because the sudo has a check on the file name. The problems do not finish yet, sudo doesn't get the file name from argv[0] only, it uses getprogname if available. We have to remove this part from the sudo source code.
+
+Linux provides two different userId: the userId, the effective userId. A program like the Sudo uses setUid to set userId. If we execute a program with sudo, the program gets our normal userId like 1000 also gets effective userId as 0 because we need to execute it as the root user. If we fuzz the sudo with AFL in order to interact with setUid in the sudo, our fuzzer need to execute as root which runs sudo. In such a situation sudo might show different behavior because it's already root.
+
+After overcoming all of the mentioned problems, we can fuzz the sudo and found the problem. All of the mentioned problems were difficult to solve, so, we can mention no one did it before. That's the reason sudo overflow is hidden for almost a decade. The research team that found the vulnerability actually uses the code review to find the vulnerability.
+
 \chapter{Conclusion}
 
 % \bibliographystyle{alphaurl}
