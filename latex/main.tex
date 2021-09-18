@@ -847,6 +847,49 @@ In \refToSection{useafterfree} we interduce \emph{use after free} as a classic h
 
 \section{Use After Free-NOT COMPILITED}
 \label{sect:useafterfree}
+A program author uses a freed chunk mistakenly, this is where the use after free vulnerability occurs. Consider the following code snippets.
+
+\begin{lstlisting}[language=c,frame=tlrb]
+struct auth {
+  char name[32];
+  int auth;
+};
+struct auth *auth;
+char *service;
+int main(int argc, char **argv){
+  char line[128];
+  while(1) {
+    printf("[ auth = %p, service = %p ]\n", auth, service);
+    if(fgets(line, sizeof(line), stdin) == NULL) break;
+    if(strncmp(line, "auth ", 5) == 0) {
+      auth = malloc(sizeof(auth));
+      memset(auth, 0, sizeof(auth));
+      if(strlen(line + 5) < 31) {
+        strcpy(auth->name, line + 5);
+      }
+    }
+    if(strncmp(line, "reset", 5) == 0) {
+      free(auth);
+    }
+    if(strncmp(line, "service", 6) == 0) {
+      service = strdup(line + 7);
+    }
+    if(strncmp(line, "login", 5) == 0) {
+      if(auth->auth) {
+        printf("you have logged in already!\n");
+      } else {
+        printf("please enter your password\n");
+      }
+    }
+  }
+}
+\end{lstlisting}
+
+There is a loop inside the \lstinline{main} function that prints two pointers. The first one \lstinline{auth} is a pointer to a structure, the second one \lstinline{service} is a char pointer to string. In the following is a secure \lstinline{fgets} function that reads a line from the input. After that, we had 4 \lstinline{if} statements which compare the input by the following command.
+
+As we can see, the \lstinline{auth} command allocate the object , clear current data inside object , then copy whats come after \lstinline{auth} command to the \lstinline{auth->name}. The \lstinline{login} command checks if the value is in \lstinline{auth->auth}, it means that the user is logged in, otherwise it asks for the password. Our goal is set integer inside {auth->auth}.
+Despit the \lstinline{free} command release the \lstinline{auth} object, The pointer still points to heap,so , the next \lstinline{login} command still can use it. There is where \emph{use after free} occure.
+The \lstinline{service} command allocate memory for string inside the heap,so, in this case, we can use the \lstinline{service} command to overwrite the value inside \lstinline{auth->auth} after release it with \lstinline{free} command. When \lstinline{free} command release the memory , \lstinline{service} command use the same location to write data, then, the \lstinline{login} command use previously freed pointer to read data in a location which fill by \lstinline{service}.
 
 \section{Double Free}
 \label{sect:doublefree}
