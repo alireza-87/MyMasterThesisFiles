@@ -1818,7 +1818,7 @@ malloc((long long)shell);
 \end{lstlisting}
 \subsection{The House of Rabbit}
 \label{subsect:houserabbit}
-This attack used a \Fb{} and \lstinline{UAF} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call \mallocc{} inorder to consolidate, this chunk merge and split into \sbs{}. As a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
+This attack used a \Fb{} and \emph{uaf} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call \mallocc{} inorder to consolidate, this chunk merge and split into \sbs{}. As a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long *a = malloc(0x40);
@@ -1834,7 +1834,7 @@ free(b);
 a[-1]=0xa1;
 \end{lstlisting}
 
-Now if freed the chunks and use the UAF attack to change the size of the first one we have the below layout ``Figure~\ref{fig:gdb9}``.
+Now if freed the chunks and use the \emph{uaf} attack to change the size of the first one we have the below layout ``Figure~\ref{fig:gdb9}``.
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb8}}
@@ -1975,7 +1975,7 @@ Chunk(addr=0x555555559a10, size=0x220, flags=PREV_INUSE)
  \label{fig:gdb11}
 \end{figure}
 
-In the next step, with the help of UAF and double-free attack, we put back the victim in the \tch{}
+In the next step, with the help of \emph{uaf} and double-free attack, we put back the victim in the \tch{}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc(0x100);
