@@ -2068,6 +2068,10 @@ The next step is to abuse the overflow vulnerability to execute arbitrary code. 
 \lstinline{WhatsApp} is one of the most famous instant messenger Applications in the world. They have a cross platform instant messenger with \lstinline{end-to-end} encryption and more than one billion users. The security features of these messengers make it a popular choice among those who care about message security.
 A security researcher team has been found a vulnerability inside the \lstinline{whatsApp} image filter function. The vulnerability trigger by applying a filter on a crafted malicious image and send it back to the attacker. The researchers use \lstinline{afl-fuzzer} to generate different images as input files and caused \lstinline{whatsApp} to crash. Unlike the \lstinline{sudo} case, the researchers do not have the \lstinline{whatsApp} source code. They captured the crash log, then did reverse engineering to identify the source of the crash. In this case, a heap base \emph{out-of-bound} was the cause of vulnerability. The problem was that both source and destination were assumed to have the same size and \lstinline{ARGB} format with 4 bytes per pixel. An attacker craft an image with 1 byte per pixel, but, the function still reads 4 bytes per pixel that causes the \emph{out-of-bound} read vulnerability.
 
+\chapter{Previously Works}
+\section{HeapHopper}
+\section{Heap fang shui}
+\section{PTAuth}
 \chapter{Conclusion}
 
 % \bibliographystyle{alphaurl}
