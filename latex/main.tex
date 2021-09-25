@@ -97,7 +97,7 @@ Each of mentioned memory spaces has advantages and disadvantages; as a result, w
 Every platform has a way to interact with heap memory. Our work specifically on \emph{ \libc{}} memory allocator which drives from \emph{ptmalloc} heap implementations, which is itself derived from \emph{dlmalloc}, so, at first we want to discuss \libc{} allocations algorithms and Methods. 
 
 \chapter{Introduction to \libc{} Heap}
-
+\label{ch:introheap}
 In the following sections, we discuss how \libc{} manages heap memory space.
 The GNU C library, known as \libc{}, is GNU's implementation of the C standard library. \libc{} provides a wide variety of C standard functions and system call wrappers. \libc{} is not just one ``.so'' library file; instead, it contains many library files. The most famous \libc{} library is the C standard library or Libc. Libc provides macro, type, or function for tasks like memory management.
 Libc provide memory management functions like \mallocc, \callocc{} and \lstinline{free}. In C, there is two way to allocate memory; static allocation and automatic allocation\footnote{\href{https://renenyffenegger.ch/notes/development/languages/C-C-plus-plus/C/libc/alloc/index}{\texttt{https://renenyffenegger.ch}}}. The static one allocates in main memory and exists during the execution. Automatic variable allocates on the stack like function variable. \libc{} dynamicaly allocate memory; it allocates during the execution; also, dynamic variable size is unknown during the compile time. We work especially on libc dynamic memory management mechanism. Consider the following code as an allocation sample:
@@ -839,6 +839,7 @@ after that, we have to compile the source code
 Inside the gdb, we can set debug symbols directory. After waiting a while, we run the make command to make the \libc{}. The final result is the \libc{} and debugging symbols.
 
 \chapter{Heap Exploitation}
+\label{ch:heapexp}
 Implementation of the \libc{} has changed and improved over the past years, because of various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more versions.
 
 \glnote{spellcheck the document! And check the English: singulars/plurals etc}
@@ -2069,9 +2070,14 @@ The next step is to abuse the overflow vulnerability to execute arbitrary code. 
 A security researcher team has been found a vulnerability inside the \lstinline{whatsApp} image filter function. The vulnerability trigger by applying a filter on a crafted malicious image and send it back to the attacker. The researchers use \lstinline{afl-fuzzer} to generate different images as input files and caused \lstinline{whatsApp} to crash. Unlike the \lstinline{sudo} case, the researchers do not have the \lstinline{whatsApp} source code. They captured the crash log, then did reverse engineering to identify the source of the crash. In this case, a heap base \emph{out-of-bound} was the cause of vulnerability. The problem was that both source and destination were assumed to have the same size and \lstinline{ARGB} format with 4 bytes per pixel. An attacker craft an image with 1 byte per pixel, but, the function still reads 4 bytes per pixel that causes the \emph{out-of-bound} read vulnerability.
 
 \chapter{Previously Works}
+As we saw in the \refToChapter{introheap} and \refToChapter{heapexp}, the heap memory is very complex. Over the years, a lot of works has been done to make it more secure. In addition, many techniques have been used to exploit the weaknesses of its various implementations. In this section, we mention some of the previous work on heap exploitation. In \refToSection{heaphopper} we discuss heap hopper as a Framework to evaluate any heap implications, then in \refToSection{maze}, we introduced MAZE which is an Automatic heap fang Shui technique. In section \refToSection{ptauth} we discuss PTAuth.
+
 \section{HeapHopper}
-\section{Heap fang shui}
+\label{sect:heaphopper}
+\section{Maze}
+\label{sect:Maze}
 \section{PTAuth}
+\label{sect:ptauth}
 \chapter{Conclusion}
 
 % \bibliographystyle{alphaurl}
