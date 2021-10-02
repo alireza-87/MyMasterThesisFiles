@@ -1409,7 +1409,7 @@ free(fastbin_chunk);
 
 \subsection{The house of Force}
 \label{subsect:houseforce}
-The house of Force is the first attack of House of X, which we want to discuss.\glnote{It comes after the House of Mind, though\ldots} We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, \libc{} uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size? The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
+The house of Force is the second attack of House of X, which we want to discuss.\glnote{done-It comes after the House of Mind, though\ldots} We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, \libc{} uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size? The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */
 use_top:
@@ -1518,7 +1518,7 @@ free((void*)victim);
 void *p2 = malloc(1200);
 \end{lstlisting}
 
-To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{} ``Figure~\ref{fig:gdb2}``\glnote{don't use quotes for figures; just say something like ``as shown in\ldots'' or ''Figure\ldots shows\ldots}. In the following step, we allocate another chunk big enough, so, heap manager can't\glnote{no contractions} use the chunk inside an \ub{} or \sbs{}.
+To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{} as shown in Figure~\ref{fig:gdb2}\glnote{done-don't use quotes for figures; just say something like ``as shown in\ldots'' or ''Figure\ldots shows\ldots}. In the following step, we allocate another chunk big enough, so, heap manager can't\glnote{no contractions} use the chunk inside an \ub{} or \sbs{}.
 \begin{lstlisting}[language=c,frame=tlrb]
 victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
 \end{lstlisting}
@@ -1534,7 +1534,7 @@ After that, we need to abuse the vulnerability, so the \lstinline{bck} pointer o
  \caption{Heap layout}
  \label{fig:gdb3}
 \end{figure}
-The victim is not in the \ub{} anymore; instead, the heap manager moves it to the \sbs{} after allocation of p2 ``Figure~\ref{fig:gdb3}``. As we remember, the heap manager checks all of the chunks inside the \ub{}. If the size is not suitable for the current allocation, they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
+The victim is not in the \ub{} anymore; instead, the heap manager moves it to the \sbs{} after allocation of p2 ,we can see the result in Figure~\ref{fig:gdb3}. As we remember, the heap manager checks all of the chunks inside the \ub{}. If the size is not suitable for the current allocation, they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *p3 = malloc(0x100);
@@ -1547,7 +1547,7 @@ char *p4 = malloc(0x100);
 \label{fig:gdb4}
 \end{figure}
 
-Now we overwrite the victim \lstinline{bck} pointer also put the victim in the \sbs{}. The next allocation returns the victim from the \sbs{}; moreover, it write \lstinline{bck} pointer of the \lstinline{bin} in \lstinline{libc} to our controller location which is the \lstinline{bck} pointer of the \lstinline{victim} ``Figure~\ref{fig:gdb4}``.
+Now we overwrite the victim \lstinline{bck} pointer also put the victim in the \sbs{}. The next allocation returns the victim from the \sbs{}; moreover, it write \lstinline{bck} pointer of the \lstinline{bin} in \lstinline{libc} to our controller location which is the \lstinline{bck} pointer of the \lstinline{victim} as shown in Figure~\ref{fig:gdb4}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 bin = bin_at (av, idx);
@@ -1555,7 +1555,7 @@ bck = victim->bk;
 bin->bk = bck;
 \end{lstlisting}
 
-Now the last allocation returns a chunk at our controlled location at the stack, which is now inside the bin's \lstinline{bck} pointer.``Figure~\ref{fig:gdb5}``
+we can see in Figure~\ref{fig:gdb5} ,now the last allocation returns a chunk at our controlled location at the stack, which is now inside the bin's \lstinline{bck} pointer.
 
 \begin{figure}[h!]
 \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb5}}
@@ -1657,7 +1657,7 @@ Our goal is to make \lstinline{_IO_flush_all_lockp} call \lstinline{_IO_OVERFLOW
 
 The first thing is to calculate the address of \lstinline{_io_list_all} inside the libc. Currently, we have one freed chunk inside the \ub{}, the \lstinline{bk} and \lstinline{fd} pointer is pointed to the main arena of the heap. we can use this address to calculate the \lstinline{_io_list_all} address.
 
-With the help of \emph{blukat} \footnote{\href{https://libc.blukat.me}{\texttt{libc database}}} website, we can find the offset of \lstinline{_io_list_all} based on the \libc{} version. This sample use \libc{-2.23}, so we search inside we site for this specific \libc{} version ``Figure~\ref{fig:offset}``:
+With the help of \emph{blukat} \footnote{\href{https://libc.blukat.me}{\texttt{libc database}}} website, we can find the offset of \lstinline{_io_list_all} based on the \libc{} version. This sample use \libc{-2.23}, so we search inside we site for this specific \libc{} version. Please take look at Figure~\ref{fig:offset}:
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb6}}
@@ -1835,7 +1835,7 @@ free(b);
 a[-1]=0xa1;
 \end{lstlisting}
 
-Now if freed the chunks and use the \emph{uaf} attack to change the size of the first one we have the below layout ``Figure~\ref{fig:gdb9}``.
+Now if freed the chunks and use the \emph{uaf} attack to change the size of the first one we have the below layout as shown in Figure~\ref{fig:gdb9}.
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb8}}
@@ -1843,7 +1843,7 @@ Now if freed the chunks and use the \emph{uaf} attack to change the size of the 
   \label{fig:gdb8}
 \end{figure}
 
-Now with a single big allocation we have ``Figure~\ref{fig:gdb9}``.
+Now with a single big allocation we have Figure~\ref{fig:gdb9}.
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.12\textwidth]{gdb9}}
  \caption{\sbs{}}
@@ -1865,7 +1865,7 @@ if (!prev_inuse(p)) {
 	unlink (off, p, bck, fwd);
 }
  \end{lstlisting}
-If the \lstinline{prev_inuse} flag is zero, in the time of free function calls, it tries to merge the current chunk with the previous chunk. The calculation of merged chunk size is the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we mentioned, \libc{} share metadata at the end of the chunk with metadata at the beginning of the next chunk ``Figure~\ref{fig:gdb10}``.
+If the \lstinline{prev_inuse} flag is zero, in the time of free function calls, it tries to merge the current chunk with the previous chunk. The calculation of merged chunk size is the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we shown in Figure~\ref{fig:gdb10}, \libc{} share metadata at the end of the chunk with metadata at the beginning of the next chunk.
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb10}}
@@ -1958,7 +1958,7 @@ free(a);
 free(prev);
 \end{lstlisting}
 
-The result of the above is to consolidate the \lstinline{prev} chunk with the victim \lstinline{a}\glnote{done-Again, use lstinline for identifiers, not single quotes; be consistent} ``Figure~\ref{fig:gdb11}``. Attention to the size and the address of the chunk:
+The result of the above is to consolidate the \lstinline{prev} chunk with the victim \lstinline{a} as shown in Figure~\ref{fig:gdb11}\glnote{done-Again, use lstinline for identifiers, not single quotes; be consistent}. Attention to the size and the address of the chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Before:
@@ -1983,7 +1983,7 @@ malloc(0x100);
 free(a);
 \end{lstlisting}
 
-The above procedure has another result, too; now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the \lstinline{fd} pointer pointing to the target, then two allocations. The last allocation has control over the target.``Figure~\ref{fig:gdb12}``
+The above procedure has another result, too; now we have two chunks that overlap too. For the rest of the attack, we perform a \tch{} poisoning. First, define a victim and overwrite the \lstinline{fd} pointer pointing to the target, then two allocations. The last allocation has control over the target as shown in Figure~\ref{fig:gdb12}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *b = malloc(0x120);
