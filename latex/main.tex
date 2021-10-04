@@ -85,16 +85,17 @@
 
 \chapter{Introduction}
 
-An application has different types of memory space. Two must important are \emph{heap} and \emph{stack}. Usually, local variables stores in the stack; the stack may also pass the function's parameters. Unlike a stack, the heap is a memory used by applications to allocate memory during run time dynamically, which means an application can request memory and freed memory during execution. The data stored in a heap are accessible by all threads, so, It is important to handle it properly. There are some other differences between stack and heap too:
+An application has different types of memory space. Two must important are \emph{heap} and \emph{stack}. Usually, local variables stores in the stack; the stack may also pass the function's parameters. Applications use the heap to allocate memory during run time dynamically. That means an application can request memory and freed memory during execution. The data stored in a heap are accessible by all threads, so, It is important to handle it properly. There are some other differences between stack and heap too:
 \begin{itemize}
 	\item heap memory can become fragment, but Stack memory won't
 	\item heap can access to variable globally, but the stack can access to a local variable only
 	\item heap memory allocation perform by developers, but stack allocation perform by compilers
 	\item developer have to free heap's memory when they do not need it anymore, but we would not have to handle stack
 \end{itemize}
-Each of mentioned memory spaces has advantages and disadvantages; as a result, which one to use depends on the circumstances. If we need to handle data in LIFO format, then the stack is the better choice. As we mentioned, The input parameters of a function may send by the stack. In this way, the compiler does not have to free up memory after returning from the function because they automatically remove it. Also, Stack memory space is a better solution for local variable access.
+Each of mentioned memory spaces has advantages and disadvantages; as a result, which one to use depends on the circumstances. If we need to handle data in LIFO format, then the stack is the better choice. As we know, to pass parameters to a function, the caller function puts them inside the stack. In this way, the compiler does not have to free up memory after returning from the called function because they automatically remove it. Also, Stack memory space is a better solution for local variable access.
 
 Every platform has a way to interact with heap memory. Our work specifically on \emph{ \libc{}} memory allocator which drives from \emph{ptmalloc} heap implementations, which is itself derived from \emph{dlmalloc}, so, at first we want to discuss \libc{} allocations algorithms and Methods. 
+
 
 \chapter{Introduction to \libc{} Heap}
 \label{ch:introheap}
