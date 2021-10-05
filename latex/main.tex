@@ -192,7 +192,7 @@ pwndbg> p c
 $5 = (int *) 0x5555555592e0
 \end{lstlisting}
 
-As mentioned above, the returned address by \libc{} is not the address of chunk, but, the address of its data section. If we subtract these two numbers we can see a 16 bytes difference, which is used for metadata. If you look at the chunk data structure, there are two \lstinline{INTERNAL_SIZE_T} is used to keep the size of the chunk. The \libc{} documentation says that \lstinline{INTERNAL_SIZE_T} is the word-size used for internal bookkeeping of chunk sizes''. The default size is equal to \sizet{}. Now, if we take a look inside the memory:
+As mentioned above, the returned address by \libc{} is not the address of chunk, but, the address of its data section. We can see a 16 bytes difference by subtracting these two addresses used for metadata. If we look at the chunk data structure, there are two \lstinline{INTERNAL_SIZE_T} is used to keep the size of the chunk. The \libc{} documentation says that \lstinline{INTERNAL_SIZE_T} is the word-size used for internal bookkeeping of chunk sizes. The default size is equal to \sizet{}. Now, if we take a look inside the memory:
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/16xg 0x0000555555559290
