@@ -110,18 +110,18 @@ The above code statically allocates an array of twenty integers. In the mentione
 \begin{lstlisting}[language=c,frame=tlrb]
 int *array = (int*)malloc(20 * sizeof(int));
 \end{lstlisting}
-The above code computes the number of bytes required to store 20 integers in memory, then requests that number of bytes from \mallocc{}. Function \mallocc{} returns the pointer to that twenty integers in the memory. Sometimes \mallocc{} cannot allocate memory; in such a scenario, it returns a null pointer.
+The above code computes the number of bytes required to store 20 integers in memory, then requests that the necessary memory space from \mallocc{}. Function \mallocc{} returns the pointer to that twenty integers in the memory. Sometimes \mallocc{} cannot allocate memory; If \mallocc{} fails to assign the required memory, it returns a null pointer.
 \begin{lstlisting}[language=c,frame=tlrb]
 if (array == NULL) {
   fprintf(stderr, "failed");
   return -1;
 }
 \end{lstlisting}
-After we finish the job and do not need the array anymore, it is possible to release the memory with the \lstinline{free} function.
+After finishing work, we no longer need arrays, so, it is possible to release the memory with the \lstinline{free} function.
 \begin{lstlisting}[language=c,frame=tlrb]
 free(array);
 \end{lstlisting}
-The \mallocc{} does not clear the allocated memory, so it contains junk data. In order to allocate memory and zero it at the same time, it is possible to use the \callocc{} function.
+The \mallocc{} does not clear the allocated memory space, so it contains junk data. It is possible to use the \callocc{} function to allocate memory and reset it simultaneously.
 \begin{lstlisting}[language=c,frame=tlrb]
 int *array = calloc(10, sizeof(int));
 \end{lstlisting}
@@ -129,9 +129,9 @@ In the following, first, \emph{chunk} discuss as heap allocation memory units in
 
 \section{Chunk}
 \label{sect:chunk}
-Allocation and free are not the only job of the heap manager. The heap manager needs some mechanism to keep track of the previous allocation and free space.  To achieve this, the heap manager needs to store some metadata.  Moreover, the heap manager needs to align memory in 8 bytes for a 32-bit system and 16 bytes in a 64-bit system.
+Allocation and free are not the only job of the heap manager. The heap manager needs some mechanism to keep track of the previous allocation and free space. To achieve this, the heap manager needs to store some metadata. Moreover, the heap manager needs to align memory in 8 bytes for a 32-bit system and 16 bytes for a 64-bit system.
 
-This allocation metadata and padding are stored alongside the allocated memory, which \mallocc{} returns to the user. For this reason, the heap manager uses a data-structure called \emph{chunk}, each chunk is usually bigger than request memory allocation, because of metadata and alignment. When the user sends a request for memory allocation, the heap manager finds a chunk big enough for user data plus metadata, then, returns a pointer to the user's data section of the chunk. The code below shows the chunk data structure \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l1163}{\texttt{malloc.c}, line 1163}}:
+This allocation metadata and padding are stored next to the allocated memory, which \mallocc{} returns to the user. For this reason, the heap manager uses a data structure called \emph{chunk}. Due to the storage of metadata and alignment, each chunk is usually bigger than the requested memory size by the user. When the user sends a request for memory allocation, the heap manager finds a chunk big enough for user data plus metadata. After finding the appropriate space, it returns a pointer to the user data in the chunk. The code below shows the chunk data structure \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l1163}{\texttt{malloc.c}, line 1163}}:
 
 \begin{lstlisting}[language=c,frame=single]
 struct malloc_chunk {
