@@ -206,13 +206,13 @@ gef: x/16xg 0x0000555555559290
 0x555555559300:	0x0000000000000000	0x0000000000000000
 \end{lstlisting}
 
-In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation, which total allocation becomes 24 bytes. However, \libc{} must keep memory in 16-byte alignment; as a result, the final allocation is 32 bytes. Please look at the size field in an allocated chunk; we can see the size is not 32 but 33. The reason is that the three least significant bits are used for special purposes (we will dicuss those details later):
+In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory allocation, which total allocation becomes 24 bytes. However, \libc{} must keep memory in 16-byte alignment; as a result, the final allocation is 32 bytes. Please look at the size field in an allocated chunk; we can see the size is not 32 but 33. The reason is that the three least significant bits are used for special purposes:
 \begin{enumerate}
 	\item A (\lstinline{NON_MAIN_ARENA}): does the chunk belong to the main arena?
 	\item M (\lstinline{IS_MMAPPED}): was the chunk allocated through \mmapc{}?
 	\item P (\lstinline{PREV_INUSE}): is the previous chunk in use?
 \end{enumerate}
-Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the chunk as a place to keep pointer metadata in the free chunk. Take a look at heap after call \lstinline{free}:
+Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the free chunk as a place to keep pointer metadata. Take a look at heap after call \lstinline{free}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Free chunk
@@ -235,7 +235,7 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-Also, retake a look at inside memory; we can see, \libc{} keeps pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. The forward pointers point to some data about \tch{}, which discussed in \refToSubSection{tcache}.
+Take a look at inside memory; we can see, \libc{} keeps pointer information in chunk's data section. The current execution environment is \libc{-2.31}, the backward pointers point to the data section of the previously freed chunk. The forward pointers point to some data about \tch{}, which discussed in \refToSubSection{tcache}.
 
 \begin{lstlisting}[frame=tlrb]
 gef: x/16xg 0x0000555555559290
@@ -260,7 +260,7 @@ gef: x/16xg 0x0000555555559290
 \end{enumerate}
 
 \subsection{Allocation from Free Chunks}
-As we mentioned, previously freed chunks are the first place search by the heap manager. Heap manager tracks of freed chunks via some linked list call \emph{bins}. When a new allocation request arrives; the heap manager looks at bins to find a chunk big enough. If the chunk has the same size, then the heap manager returns it. Otherwise, if the chunk is larger than requested, then the heap manager split it. There are several different types of bins which we discuss later.
+As we mentioned, previously freed chunks are the first place search by the heap manager. Heap manager tracks of freed chunks via some linked list call \emph{bins}. The heap manager looks at bins to find a chunk big enough when an allocation is received. If the chunk has the same size, then the heap manager returns it. Otherwise, if the chunk is larger than requested, then the heap manager split it. There are several different types of bins which we discuss in \refToSection{bins}.
 
 \subsection{Allocation from Top Chunk}
 So what does happen if there is no suitable free chunks? In this situation, the heap manager checks the remaining space at the end of the heap, that is, the \emph{top chunk}. If there is enough space to create a chunk for the request, then it is created and returned.
