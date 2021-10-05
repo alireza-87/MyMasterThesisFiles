@@ -263,11 +263,11 @@ gef: x/16xg 0x0000555555559290
 As we mentioned, previously freed chunks are the first place search by the heap manager. Heap manager tracks of freed chunks via some linked list call \emph{bins}. The heap manager looks at bins to find a chunk big enough when an allocation is received. If the chunk has the same size, then the heap manager returns it. Otherwise, if the chunk is larger than requested, then the heap manager split it. There are several different types of bins which we discuss in \refToSection{bins}.
 
 \subsection{Allocation from Top Chunk}
-So what does happen if there is no suitable free chunks? In this situation, the heap manager checks the remaining space at the end of the heap, that is, the \emph{top chunk}. If there is enough space to create a chunk for the request, then it is created and returned.
+The next question that arises is that what does happen if there are no suitable free chunks. In this situation, the heap manager checks the remaining space at the end of the heap, that is, the \lstinline{top chunk}. The heap manager creates a fresh memory chunk from \lstinline{top chunk} If there is enough space.
 
 \subsection{Asking for more memory}
-Assume we do not have any suitable free chunk, and the request is bigger than the remaining space in the top chunk. In this case, the heap manager asks the Linux kernel for more memory. Now we have to discuss another system call \brkc. When a program executes, the heap manager calls \sbrkc, which used the \brkc system call. This system call allocates memory just after the program gets loaded.
-When the heap cannot be extended in this way, because the newly allocated region would collide with something else in the process's address space (e.g. a dynamic library), then the heap manager cannot allocate contiguous memory and calls \mmapc{} to allocate non-contiguous memory space.
+Assume we do not have any suitable free chunk, and the request is much bigger than the remaining space in the \lstinline{top chunk}. In this case, the heap manager asks the Linux kernel for more memory. Now we have to discuss another system call \brkc. When a program executes, the heap manager calls \sbrkc, which itself used the \brkc system call. This system call allocates memory just after the program gets loaded.
+The newly allocated region would collide with something else in the process's address space like a dynamic library; as a result, the heap memory area cannot be extended contiguously after a while. In such a scenario, the heap manager cannot allocate contiguous memory and calls \mmapc{} to devote non-contiguous memory space.
 
 \section{MMAP}
 \label{sect:mmap}
