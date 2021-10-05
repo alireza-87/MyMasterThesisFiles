@@ -181,7 +181,7 @@ Addr: 0x5555555592f0
 Size: 0x20d11
 \end{lstlisting}
 
-As you can see, after three allocations the heap has 4 chunks. The first three are requested by a user, the final chunk with a big size is the \emph{top chunk}. The top chunk is the remaining free space in the current heap. Now look at returned address by \libc{}:
+As you can see, the heap has four chunks after three memory allocations. The first three memory chunks are requested by the user. The last chunk with the big size is the \emph{top chunk}. The \lstinline{top chunk} is the remaining free space in the current heap. Now look at returned address by \libc{}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 pwndbg> p a
