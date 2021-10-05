@@ -148,9 +148,7 @@ struct malloc_chunk {
 typedef struct malloc_chunk* mchunkptr;
 \end{lstlisting}
 
-An allocated chunk data structure is \emph{different} than a free chunk. An allocated chunk has just the size field (\lstinline{mchunk_size}), while, a freed chunk has also pointers to find the next free chunk.
-\emph{The memory area used for these pointers overlaps user's data, returned by \mallocc{}}.
-Consider the following code which allocates 3 chunks of 8 bytes and free them after:
+An allocated chunk data structure is different than a free chunk. A dedicated memory chunk only has a field \lstinline{mchunk_size}, while, a freed chunk has pointers to find the next free piece. The memory area used for these pointers overlaps with the user's data. Consider the following code that allocates three chunks of 8 bytes and free them after:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int main(){
