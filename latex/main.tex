@@ -648,7 +648,7 @@ The rest of the usage located inside \lstinline{malloc_trim} and \lstinline{mall
 \chapter{Tools }
 Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depend on different platforms. These tools allow us to display any memory like stack and heap, disassemble binary code, execute and debug a binary program.
 
-We worked exclusively on \libc{} as the heap manager on the x86 machine, so the primary tool is \emph{gdb}, as explained in \refToSection{GDB}. In addition to gdb, we use some utilities like its extension \emph{GEF}, introduced in \refToSection{GEF}, and \emph{heappy}, discussed in \refToSection{heappy}, to have better memory visualization. \glnote{DONE-added references to (sub)sections} \emph{pwndbg} , introduce in \refToSection{PWNDBG} , to improve \lstinline{gdb} visualization ,  \emph{Libc Database}, discuss in \refToSection{LibcDatabase}, to have all necessary versions of \libc{} and related files. \emph{Patchelf}, discuse in \refToSection{Patchelf} to modify the dynamic loader and RPATH of executable files, also in \refToSection{DebugLibc} we discuss how to debug executable and library inside the \lstinline{gdb}.
+We worked exclusively on \libc{} as the heap manager on the x86 machine, so the primary tool is \emph{gdb}, as explained in \refToSection{GDB}. In addition to gdb, we use some utilities like its extension \emph{GEF}, introduced in \refToSection{GEF}, and \emph{heappy}, discussed in \refToSection{heappy}, to have better memory visualization. \glnote{DONE-added references to (sub)sections} \emph{pwndbg} , introduce in \refToSection{PWNDBG} , to improve \lstinline{gdb} visualization , \emph{Libc Database}, discuss in \refToSection{LibcDatabase}, to have all necessary versions of \libc{} and related files. \emph{Patchelf}, discuse in \refToSection{Patchelf} to modify the dynamic loader and RPATH of executable files, also in \refToSection{DebugLibc} we discuss how to debug executable and library inside the gdb.
 
 \glnote{DONE-you shoud list all sections here: heappy, libc db, patchelf, \ldots}
 
@@ -668,7 +668,7 @@ $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 \end{lstlisting}
 
 \subsubsection{heap}
-Gef has a lot of debugging tools; we focus on the heap utility of gef which call \emph{heap} .The heap command provide us information on \libc{} heap memory allocation. Syntax to the subcommands is straight forward:
+Gef has a lot of debugging tools; we focus on the heap utility of gef which is call \emph{heap}. The \lstinline{heap} command provides us information on \libc{} heap memory allocation. Syntax to the subcommands is straightforward:
 \begin{lstlisting}[frame=tlrb]
 gef: heap <sub_commands>
 \end{lstlisting}
@@ -714,7 +714,7 @@ gef: heap arenas
 \end{center}
 
 \paragraph*{\lstinline{heap bins} command}
-\libc{} use bins to keep track of freed chunks. Gef provides a sun command to visualize the state of all bins of a running application.
+\libc{} use bins to keep track of freed chunks. Gef provides a command to visualize the state of all bins of a running application.
 \begin{lstlisting}[frame=tlrb]
 gef: heap bins
 \end{lstlisting}
@@ -725,7 +725,7 @@ gef: heap bins
 
 \subsection{PWNDBG}\glnote{DONE-this tool is not mentioned at the beginning of the chapter! Please add it}
 \label{sect:PWNDBG}
-\emph{pwndbg} is a set of tools that aim at helping us during debugging with GDB. It works like a GEF by providing us with more tools to investigate a running program.
+pwndbg is a set of tools that aim at helping us during debugging with GDB. It works like a GEF by providing us with more tools to investigate a running program.
 To install pwndbg, clone the repository, then add it to the gdb initialization file:
 \begin{lstlisting}[frame=tlrb]
 cd ~/
