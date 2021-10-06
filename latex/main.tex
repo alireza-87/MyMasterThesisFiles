@@ -534,7 +534,7 @@ This function checks if the system supports \mmapc{} allocation and the requeste
 
 \section{calloc}
 \label{sect:calloc}
-\Callocc{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. \Callocc{} and \mallocc{} have one important difference. Unlike \mallocc{}, \callocc{} does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by \callocc{}, the heap manager will not use them. Instead, create a new chunk from the top chunk. Consider the following sample
+\Callocc{} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3365}{\texttt{malloc.c}, line 3365}} is another glib function used to allocate memory. \Callocc{} and \mallocc{} have one important difference. Unlike \mallocc{}, \callocc{} does not use \tch{}. If we have free chunks in \tch{}, then request a new memory by \callocc{}, the heap manager will not use them. Instead, return a suitable chunk inside bins or create a new chunk from the top chunk. Consider the following sample
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = malloc(8);
@@ -545,11 +545,11 @@ calloc(1,8);
 calloc(1,8);
 \end{lstlisting}
 
-If we look at the heap state after \callocc{}, we can see heap manager create new chunks from the top chunk and \tch{} chunks remain.
+If we look at the heap state after \callocc{}, we can see heap manager create new chunks from the top chunk and \tch{} chunks remain in the bin.
 
 \section{Alignment}
 \label{sect:alignment}
-As we mention, one of the heap manager's responsibilities is to keep memory in 16-byte alignment. In short form, the heap manager return aligned memory in the allocation phase, then, When a user calls free to request a chunk, the heap manager checks the alignment of memory for security reasons too. First, see the allocation part:
+As we mention, one of the heap manager's responsibilities is to keep memory in 16-byte alignment. The heap manager always returns an aligned memory chunk in the allocation phase, after that, In the memory release phase, the heap manager checks the alignment of memory for security reasons. First, see the allocation part:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 #define SIZE_SZ (sizeof(INTERNAL_SIZE_T))
@@ -560,7 +560,7 @@ As we mention, one of the heap manager's responsibilities is to keep memory in 1
 (((req) + SIZE_SZ + MALLOC_ALIGN_MASK < MINSIZE) ? MINSIZE: ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK)
 \end{lstlisting}
 
-\mallocc{} call request2size macro. This macro checks the request size, then return MINSIZE of allocation or an aligned allocation size. As we mentioned before, the heap manager saves some metadata alongside the user data, as the result, every chunk needs more space than the user requested also the allocation size cant be smaller than the minimum size. Now if we check the free function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}}:
+\mallocc{} call \lstinline{request2size} macro. This macro checks the request size, then return \lstinline{MINSIZE} of allocation or an aligned allocation size. As we mentioned before, the heap manager saves some metadata alongside the user data, as the result, every chunk needs more space than the user requested allocation size. Now if we check the free function \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4177}{\texttt{malloc.c}, line 4177}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 #define aligned_OK(m) (((unsigned long)(m) & MALLOC_ALIGN_MASK) == 0)
@@ -570,7 +570,8 @@ if (__glibc_unlikely (size < MINSIZE || !aligned_OK (size))){
 }
 \end{lstlisting}
 
-The free function checks if the size is bigger than the minimum allocation size; the chunk size must align too; otherwise, a memory corruption error rais.
+The \lstinline{free} function checks if the size is bigger than the minimum allocation size; the chunk size must align too; otherwise, a memory corruption error rais.
+
 \section{mallopt}
 \label{sect:mallopt}
 \lstinline{mallopt} is a function used to tune the behavior of \libc{} memory allocation methods like \mallocc{}. In the below, we mention the parameters list, which \lstinline{mallopt} can modify.
