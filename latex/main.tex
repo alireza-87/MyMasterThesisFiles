@@ -101,7 +101,7 @@ Every platform has a way to interact with heap memory. Our work specifically on 
 \label{ch:introheap}
 In the following sections, we discuss how \libc{} manages heap memory space.
 The GNU C library, known as \libc{}, is GNU's implementation of the C standard library. \libc{} provides a wide variety of C standard functions and system call wrappers. \libc{} is not just one \lstinline{.so} library file; instead, it contains many library files. The most famous \libc{} library is the C standard library or \lstinline{libc}. \lstinline{Libc} provides macro, type, or function for tasks like memory management.
-\lstinline{Libc} provide memory management functions like \mallocc, \callocc{} and \lstinline{free}. In C, there is two way to allocate memory; static allocation and automatic allocation\footnote{\href{https://renenyffenegger.ch/notes/development/languages/C-C-plus-plus/C/libc/alloc/index}{\texttt{https://renenyffenegger.ch}}}. The static one allocates in main memory and exists during the execution. Automatic variable allocates on the stack like function variable. \libc{} dynamically allocate memory; it allocates during the execution; also, dynamic variable size is unknown during the compile time. We work especially on \lstinline{libc} dynamic memory management mechanism. Consider the following code as an allocation sample:
+\lstinline{Libc} provide memory management functions like \mallocc, \callocc{} and \freec{}. In C, there is two way to allocate memory; static allocation and automatic allocation\footnote{\href{https://renenyffenegger.ch/notes/development/languages/C-C-plus-plus/C/libc/alloc/index}{\texttt{https://renenyffenegger.ch}}}. The static one allocates in main memory and exists during the execution. Automatic variable allocates on the stack like function variable. \libc{} dynamically allocate memory; it allocates during the execution; also, dynamic variable size is unknown during the compile time. We work especially on \lstinline{libc} dynamic memory management mechanism. Consider the following code as an allocation sample:
 \begin{lstlisting}[language=c,frame=tlrb]
 int array[20];
 \end{lstlisting}
@@ -117,7 +117,7 @@ if (array == NULL) {
   return -1;
 }
 \end{lstlisting}
-After finishing work, we no longer need arrays, so, it is possible to release the memory with the \lstinline{free} function.
+After finishing work, we no longer need arrays, so, it is possible to release the memory with the \freec{} function.
 \begin{lstlisting}[language=c,frame=tlrb]
 free(array);
 \end{lstlisting}
@@ -125,7 +125,7 @@ The \mallocc{} does not clear the allocated memory space, so it contains junk da
 \begin{lstlisting}[language=c,frame=tlrb]
 int *array = calloc(10, sizeof(int));
 \end{lstlisting}
-In the following, first, \emph{chunk} discuss as heap allocation memory units in \refToSection{chunk}, dynamic memory allocation steps introduce in \refToSection{memoryallocation}, then, introduce \emph{mmap} as one of the libc memory allocation methods in \refToSection{mmap}.  \emph{Arena} introduces in \refToSection{arena} as the main heap area space, then, \emph{Subheap} is discusses in \refToSection{subheaps}. The memory release procedure introduces in \refToSection{free} as the \lstinline{free} function. \emph{Bins} as the main structure of heap space manager by libc introduces in \refToSection{bin}. \lstinline{malloc} discusses in \refToSection{malloc}  as one of the libc functions for memory allocation, after that, in \refToSection{calloc} \lstinline{calloc} introduces as a second option.  In \refToSection{alignment} deals with memory alignment. \refToSection{mallopt} presents \emph{mallopt} as one of the libc functions to customize the behavior of \libc{} memory allocation. \emph{\lstinline{malloc_consolidate}} discuss in \refToSection{mallocconsolidate}  as a special version of \lstinline{free} function.
+In the following, first, \emph{chunk} discuss as heap allocation memory units in \refToSection{chunk}, dynamic memory allocation steps introduce in \refToSection{memoryallocation}, then, introduce \emph{mmap} as one of the libc memory allocation methods in \refToSection{mmap}.  \emph{Arena} introduces in \refToSection{arena} as the main heap area space, then, \emph{Subheap} is discusses in \refToSection{subheaps}. The memory release procedure introduces in \refToSection{free} as the \freec{} function. \emph{Bins} as the main structure of heap space manager by libc introduces in \refToSection{bins}. \mallocc{} discusses in \refToSection{malloc}  as one of the libc functions for memory allocation, after that, in \refToSection{calloc} \lstinline{calloc} introduces as a second option.  In \refToSection{alignment} deals with memory alignment. \refToSection{mallopt} presents \emph{mallopt} as one of the libc functions to customize the behavior of \libc{} memory allocation. \emph{\lstinline{malloc_consolidate}} discuss in \refToSection{mallocconsolidate}  as a special version of \freec{} function.
 
 \section{Chunk}
 \label{sect:chunk}
@@ -212,7 +212,7 @@ In the above allocation, we have 16 bytes of metadata plus 8 bytes of memory all
 	\item M (\lstinline{IS_MMAPPED}): was the chunk allocated through \mmapc{}?
 	\item P (\lstinline{PREV_INUSE}): is the previous chunk in use?
 \end{enumerate}
-Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the free chunk as a place to keep pointer metadata. Take a look at heap after call \lstinline{free}:
+Free chunks need more metadata to keep the pointer of the next and previous free chunks. To achieve this, \libc{} uses the data section of the free chunk as a place to keep pointer metadata. Take a look at heap after call \freec{}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Free chunk
@@ -271,7 +271,7 @@ The newly allocated region would collide with something else in the process's ad
 
 \section{MMAP}
 \label{sect:mmap}
-The heap manager uses \mmapc{} instead of \sbrkc to allocate large amounts of memory that is exceed a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}. By default, the \mmapc{} threshold is 128KB, then dynamically grows to 512KB \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l3263}{\texttt{malloc.c}, line 3263}} for 32-bit and 32MB for 64-bit systems.
+The heap manager uses \mmapc{} instead of \sbrkc to allocate large amounts of memory that is exceed a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \freec{}, these chunks are \lstinline{unmmap}. By default, the \mmapc{} threshold is 128KB, then dynamically grows to 512KB \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l3263}{\texttt{malloc.c}, line 3263}} for 32-bit and 32MB for 64-bit systems.
 
 \section{Arenas}
 \label{sect:arena}
@@ -295,7 +295,7 @@ Then, as the main heap is expanded by calling \sbrkc, the heap manager expands t
 
 \section{Free}
 \label{sect:free}
-By calling \lstinline{free}, the heap can free up the space. First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but \lstinline{free} needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. In the following, the heap manager checks if the chunk is \lstinline{mmap}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3104}{\texttt{malloc.c}, line 3104}}. When the chunk does not allocate by \lstinline{mmap}, the corresponding arena is found\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3124}{\texttt{malloc.c}, line 3124}} and \lstinline{_int_free}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3125}{\texttt{malloc.c}, line 3125}} calls. 
+By calling \freec{}, the heap can free up the space. First, it needs to calculate the chunk address from the user pointer. The user has a pointer to the user data section of the chunk, but \freec{} needs the actual address of the chunk, so, by subtracting the pointer address from metadata size, we can find the chunk address. In the following, the heap manager checks if the chunk is \lstinline{mmap}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3104}{\texttt{malloc.c}, line 3104}}. When the chunk does not allocate by \lstinline{mmap}, the corresponding arena is found\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3124}{\texttt{malloc.c}, line 3124}} and \lstinline{_int_free}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3125}{\texttt{malloc.c}, line 3125}} calls. 
 
 \begin{lstlisting}[language=c,frame=single]
  /* ... */
@@ -379,7 +379,7 @@ For chunks over 512 bytes (1024 bytes in 64-bit systems), the heap manager uses 
 The other difference is \lb{} needs to sort during the insertion of a chunk. As a result, \lb{} are slower than \sbs{}, however, \lb{} are typically used less than \sbs{} in real programs, so, this is not a big problem. \Lb{} uses double-linked lists like \sbs{}.
 
 \subsection{\Ub}
-In real programs, \lstinline{free} is often followed by an allocation of the same size. So, the heap manager introduced another optimization called \ub{}. In this optimization, the heap manager merges freed chunks with its neighbors and puts them inside a general bin called \ub{}, instead of finding the corresponding place in other bins.
+In real programs, \freec{} is often followed by an allocation of the same size. So, the heap manager introduced another optimization called \ub{}. In this optimization, the heap manager merges freed chunks with its neighbors and puts them inside a general bin called \ub{}, instead of finding the corresponding place in other bins.
 
 Then, when a new allocation request arrives, the heap manager iterates over the item in \ub{} and compares the requested size to each item. If an item is big enough to accommodate the request, then the heap manager returns it, otherwise, it moves the item to the corresponding bin. Consider following \mallocc{} code from \libc{} 2.23 \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;hb=ad372e296b6b944884f14fb5d8f3a6195bfba22b\#l3467}{\texttt{malloc.c}, line 3467}}:
 
@@ -401,7 +401,7 @@ The heap manager does not free up \fb{} chunks by do not set \lstinline{P-bit}. 
 
 \subsection{\Tch bins}
 \label{subsect:tcache}
-Since \libc{-2.26} \tch{} add as the last optimization in the heap manager. Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called ``race condition''. As we mentioned before, a simple strategy to overcome race conditions is ``lock''. The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \Tch{} speeds up the allocation by having per-threat bins for small chunks. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call \lstinline{free}; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}. \libc{} provide 64 \tch{}, each of which stores up to 7 chunks of the same size. 
+Since \libc{-2.26} \tch{} add as the last optimization in the heap manager. Usually, in a multi-thread process, resources like heap are share. A shared resource between threads can lead to a problem called ``race condition''. As we mentioned before, a simple strategy to overcome race conditions is ``lock''. The lock gave temporary ownership of resources to one threat. When the job of the first threat finishes, then the second one can proceed. The lock has a great cost because a program frequently uses the heap manager. The heap manager overcomes this problem by using a secondary arena for each threat until it hits the threshold; moreover, it uses \tch{} per-threat to reduce the cost of the lock. \Tch{} speeds up the allocation by having per-threat bins for small chunks. When a threat sends an allocation request, the first \tch{} of that threat checks for an available chunk. If \tch{} have a big enough chunk, then threat use it and do not need to wait for a heap lock. In the first sample, we can see chunks added to \tch{} after call \freec{}; however, If we execute the same code on \libc{-2.23}, we have a different result because it does not support \tch{}. \libc{} provide 64 \tch{}, each of which stores up to 7 chunks of the same size. 
 
 \begin{lstlisting}[frame=tlrb]
 Free chunk (tcache)
@@ -570,7 +570,7 @@ if (__glibc_unlikely (size < MINSIZE || !aligned_OK (size))){
 }
 \end{lstlisting}
 
-The \lstinline{free} function checks if the size is bigger than the minimum allocation size; the chunk size must align too; otherwise, a memory corruption error rais.
+The \freec{} function checks if the size is bigger than the minimum allocation size; the chunk size must align too; otherwise, a memory corruption error rais.
 
 \section{mallopt}
 \label{sect:mallopt}
@@ -843,7 +843,7 @@ Inside the gdb, we can set debug symbols directory. After waiting a while, we ru
 Implementation of the \libc{} has changed and improved over the past years, because of various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more versions.
 
 \glnote{spellcheck the document! And check the English: singulars/plurals etc}
-In \refToSection{useafterfree} we interduce \emph{use after free} as a classic heap vulnerability. Double \lstinline{free} attack disscus in \refToSection{doublefree} , then,\emph{forged chunk} attack present in \refToSection{forgedchunk}. \emph{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \emph{larg bin attack} in \refToSection{lbattack}. The next attack is \emph{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attack introduces in \refToSection{thehouses}. In following \emph{House of mind} inroduce in \refToSubSection{housemind} ,\emph{House of force} inroduce in \refToSubSection{houseforce}, \emph{House of lore} inroduce in \refToSubSection{houselore}   , \emph{House of spirits} discues in \refToSubSection{housespirits}, \emph{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \emph{House of roman}, \emph{House of rabbit}, \emph{House of orange}, \emph{House of Einherjar} and \emph{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}.The last attack is \emph{tcach poisoning} intorduces in \refToSection{tchpoison}
+In \refToSection{useafterfree} we interduce \emph{use after free} as a classic heap vulnerability. \emph{Double free} attack disscus in \refToSection{doublefree} , then,\emph{forged chunk} attack present in \refToSection{forgedchunk}. \emph{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \emph{larg bin attack} in \refToSection{lbattack}. The next attack is \emph{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attack introduces in \refToSection{thehouses}. In following \emph{House of mind} inroduce in \refToSubSection{housemind} ,\emph{House of force} inroduce in \refToSubSection{houseforce}, \emph{House of lore} inroduce in \refToSubSection{houselore}   , \emph{House of spirits} discues in \refToSubSection{housespirits}, \emph{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \emph{House of roman}, \emph{House of rabbit}, \emph{House of orange}, \emph{House of Einherjar} and \emph{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}.The last attack is \emph{tcach poisoning} intorduces in \refToSection{tchpoison}
 \glnote{DONE-you should use lstinline only for identifiers/function names; the names of techniques are better in emph}
 
 \section{Use After Free-NOT COMPILITED}
