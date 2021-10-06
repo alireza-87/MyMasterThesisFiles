@@ -291,7 +291,7 @@ The main heap arena is located just after where the program has been loaded and 
 
 The heap manager asks the kernel to reserve an area of memory for the \emph{subheap} by using \lstinline{mprotect}. Reserving does not allocate memory to subheap; it just tells the kernel: ``do not use this space''. Memory pages are requested with flags \lstinline{PROT_NONE} to achieve this goal.
 
-Then, as the main heap is expanded by calling \sbrkc, the heap manager expands the previously reserved area to subheap by calling \lstinline{mprotect} again, and changing the page flags to \lstinline{PROT_READ|PROT_WRITE}.
+Then, as the main heap is expanded by calling \sbrkc, the heap manager expands the previously reserved area to subheap by calling \lstinline{mprotect} again and changing the page flags to \lstinline{PROT_READ|PROT_WRITE}.
 
 \section{Free}
 \label{sect:free}
@@ -374,14 +374,14 @@ Now, we want to discuss how the heap manager recycles a chunk for a new allocati
 There are 62 \sbs{}, each of them stores chunks of a fixed size; as a result, each list is ``sorted by size'' automatically; also, storing and retrieving chunk from \sbs{} is fast. \Sbs{} holds chunks below 512 bytes in the 32-bit systems, and chunks below 1024 bytes in 64-bit systems, with a double-link list.
 
 \subsection{\Lb}
-For chunks over 512 bytes (1024 bytes in 64-bit systems), the heap manager uses another strategy called \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is that \lb{} use a size range instead of a fixed size for every bin. Every bin in the \lb{} stores chunks with a unique size range instead of fixed length, like in \sbs{}, in such a way that they do not overlap with each other.
+For chunks over 512 bytes (1024 bytes in 64-bit systems), the heap manager uses another strategy called \lb{}. There are 63 \lb{}. The main difference between small and \lb{} is that \lb{} uses a size range instead of a fixed size for every bin. Each \lb{} bin stores chunks with a unique size range instead of a fixed length. Like in \sbs{}, in such a way that they do not overlap with each other.
 
 The other difference is \lb{} needs to sort during the insertion of a chunk. As a result, \lb{} are slower than \sbs{}, however, \lb{} are typically used less than \sbs{} in real programs, so, this is not a big problem. \Lb{} uses double-linked lists like \sbs{}.
 
 \subsection{\Ub}
-In real programs, \lstinline{free} is often followed by an allocation of the same size. So, the heap manager introduced another optimization called \ub{}. In this optimization, the heap manager merges freed chunk with its neighbors and puts them inside a general bin called \ub{}, instead of finding the corresponding place in other bins.
+In real programs, \lstinline{free} is often followed by an allocation of the same size. So, the heap manager introduced another optimization called \ub{}. In this optimization, the heap manager merges freed chunks with its neighbors and puts them inside a general bin called \ub{}, instead of finding the corresponding place in other bins.
 
-Then, when a new allocation request arrives, the heap manager iterates over the item in \ub{}, and compares the requested size to each item. If an item is big enough to accomodate the request, then the heap manager returns it, otherwise it moves the item to the corresponding bin. Consider following \mallocc{} code from \libc{} 2.23 \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;hb=ad372e296b6b944884f14fb5d8f3a6195bfba22b\#l3467}{\texttt{malloc.c}, line 3467}}:
+Then, when a new allocation request arrives, the heap manager iterates over the item in \ub{} and compares the requested size to each item. If an item is big enough to accommodate the request, then the heap manager returns it, otherwise, it moves the item to the corresponding bin. Consider following \mallocc{} code from \libc{} 2.23 \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;hb=ad372e296b6b944884f14fb5d8f3a6195bfba22b\#l3467}{\texttt{malloc.c}, line 3467}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 for (;; ){
@@ -395,9 +395,9 @@ for (;; ){
 As we can see, \mallocc{} iterate over all items inside \ub{}. We can conclude that when the heap manager tries to find chunks in \ub{}, all of the \ub{} chunks move to corresponding bins.
 
 \subsection{\Fb}
-Each bin keeps recently freed chunks in a single-linked list. We have 10 \fb{}, each of them keeps just one chunk size. Chunks in \fb{} do not merge with neighbors; instead, \fb{} keeps them alive, so, if the program sends the same size request, then the heap manager can use these chunks.
+Each bin keeps recently freed chunks in a single-linked list. We have ten \fb{}, each of them kept just one chunk size. Chunks in \fb{} do not merge with neighbors; instead, \fb{} keeps them alive, as a result, if the program sends the same size request, the heap manager can use these chunks.
 
-The heap manager does not free up \fb{} chunks by do not set P-bit. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to 'flush 'memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate}.
+The heap manager does not free up \fb{} chunks by do not set \lstinline{P-bit}. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to ``flush'' memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate}.
 
 \subsection{\Tch bins}
 \label{subsect:tcache}
