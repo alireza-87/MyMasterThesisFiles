@@ -271,13 +271,13 @@ The newly allocated region would collide with something else in the process's ad
 
 \section{MMAP}
 \label{sect:mmap}
-The heap manager uses \mmapc{}, instead of \sbrkc, also for large memory allocations. That is, when the user requests a size larger than a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}ed. By default, the \mmapc{} threshold is 128KB, then dynamically grows to 512KB \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l3263}{\texttt{malloc.c}, line 3263}} for 32-bit and 32MB for 64-bit systems.
+The heap manager uses \mmapc{} instead of \sbrkc to allocate large amounts of memory that is exceed a certain threshold. Chunks metadata contain a special flag for these reasons, which indicate this chunk allocated off-heap via \mmapc{}. When the user releases the memory by calling \lstinline{free}, these chunks are \lstinline{unmmap}. By default, the \mmapc{} threshold is 128KB, then dynamically grows to 512KB \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;\#l3263}{\texttt{malloc.c}, line 3263}} for 32-bit and 32MB for 64-bit systems.
 
 \section{Arenas}
 \label{sect:arena}
-Concurrency is a challenge in multi-thread applications, and heap manager is not safe from this issue. There are many solutions to handle race conditions. In the early days, the heap manager used a simple global lock before every heap operation to synchronize access to shared data. However, this approach has a high cost. In multi-thread applications with heavy use of the heap this strategy leads to substantial performance issues because the heap needs to lock many times.
+Concurrency is a challenge in multi-thread applications, and heap manager is not safe from this issue. There are many solutions to handle race conditions. In the early days, the heap manager used a simple global lock before every heap operation to synchronize access to shared data. However, this approach has a high cost. In multi-threaded applications that use the heap memory heavily, this strategy leads to significant performance problems because it has to be locked many times.
 
-To improve the performance \emph{ptmalloc2} introduces a concept called \emph{arena}. Different threads may have their own arena, and each arena manages its chunks. As a result, threads can work simultaneously in the different arenas without the need to synchronize their access to a shared data structure.
+To improve the performance \emph{ptmalloc2} introduces a concept called \emph{arena}. Different threads may have their arena, and each arena manages its chunks. As a result, threads can work simultaneously in the different areas without the need to synchronize their access to a shared data structure.
 
 As we will see, each arena consists of one or more (sub)heaps, as detailed in \refToSection{subheaps}.
 
