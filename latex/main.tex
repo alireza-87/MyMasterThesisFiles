@@ -840,15 +840,15 @@ Inside the gdb, we can set debug symbols directory. After waiting a while, we ru
 
 \chapter{Heap Exploitation}
 \label{ch:heapexp}
-Implementation of the \libc{} has changed and improved over the past years, because of various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more versions.
+Implementation of the \libc{} has changed and improved over the past years, because of various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more \libc{'s} versions.
 
 \glnote{spellcheck the document! And check the English: singulars/plurals etc}
-In \refToSection{useafterfree} we interduce \emph{use after free} as a classic heap vulnerability. \emph{Double free} attack disscus in \refToSection{doublefree} , then,\emph{forged chunk} attack present in \refToSection{forgedchunk}. \emph{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \emph{larg bin attack} in \refToSection{lbattack}. The next attack is \emph{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attack introduces in \refToSection{thehouses}. In following \emph{House of mind} inroduce in \refToSubSection{housemind} ,\emph{House of force} inroduce in \refToSubSection{houseforce}, \emph{House of lore} inroduce in \refToSubSection{houselore}   , \emph{House of spirits} discues in \refToSubSection{housespirits}, \emph{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \emph{House of roman}, \emph{House of rabbit}, \emph{House of orange}, \emph{House of Einherjar} and \emph{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}.The last attack is \emph{tcach poisoning} intorduces in \refToSection{tchpoison}
+In \refToSection{useafterfree} we interduce \emph{use after free} as a classic heap vulnerability. \emph{Double free} attack disscus in \refToSection{doublefree} , then,\emph{forged chunk} attack present in \refToSection{forgedchunk}. \emph{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \emph{larg bin attack} in \refToSection{lbattack}. The next attack is \emph{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attacks introduces in \refToSection{thehouses}. In following \emph{House of mind} inroduce in \refToSubSection{housemind} ,\emph{House of force} inroduce in \refToSubSection{houseforce}, \emph{House of lore} inroduce in \refToSubSection{houselore}  , \emph{House of spirits} discues in \refToSubSection{housespirits}, \emph{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \emph{House of roman}, \emph{House of rabbit}, \emph{House of orange}, \emph{House of Einherjar} and \emph{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}. \emph{tcach poisoning} intorduces as last attack in \refToSection{tchpoison}
 \glnote{DONE-you should use lstinline only for identifiers/function names; the names of techniques are better in emph}
 
-\section{Use After Free-NOT COMPILITED}
+\section{Use After Free}
 \label{sect:useafterfree}
-A program author uses a freed chunk mistakenly, this is where the use after free vulnerability occurs. Consider the following code snippets.
+Improper use of a freed chunk memory is the reason for \emph{use after free} vulnerability. Consider the following code snippets.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct auth {
@@ -886,15 +886,17 @@ int main(int argc, char **argv){
 }
 \end{lstlisting}
 
-There is a loop inside the \lstinline{main} function that prints two pointers. The first one \lstinline{auth} is a pointer to a structure, the second one \lstinline{service} is a char pointer to string. In the following is a secure \lstinline{fgets} function that reads a line from the input. After that, we had 4 \lstinline{if} statements which compare the input by the following command.
+There is a loop inside the \lstinline{main} function that prints two pointers. The first one \lstinline{auth} is a pointer to a structure, the second one \lstinline{service} is a char pointer to a string. In the following, we have a secure \lstinline{fgets} function that reads a line from the input. After that, we had four \lstinline{if} statements that compare the input by the following command.
 
-As we can see, the \lstinline{auth} command allocate the object , clear current data inside object , then copy whats come after \lstinline{auth} command to the \lstinline{auth->name}. The \lstinline{login} command checks if the value is in \lstinline{auth->auth}, it means that the user is logged in, otherwise it asks for the password. Our goal is set integer inside {auth->auth}.
-Despit the \lstinline{free} command release the \lstinline{auth} object, The pointer still points to heap,so , the next \lstinline{login} command still can use it. There is where \emph{use after free} occure.
+As we can see, the \lstinline{auth} command allocate the object , clear current data inside object , then copy whats come after \lstinline{auth} command to the \lstinline{auth->name}. The \lstinline{login} command checks if we have a value in \lstinline{auth->auth}, it means that the user is logged in, otherwise it asks for the password. Our goal is set any value inside \lstinline{auth->auth}.
+
+Despit the \lstinline{free} command release the \lstinline{auth} object, The pointer still points to the memory location,so , the next \lstinline{login} command still can use it. There is where \emph{use after free} occure.
+
 The \lstinline{service} command allocate memory for string inside the heap,so, in this case, we can use the \lstinline{service} command to overwrite the value inside \lstinline{auth->auth} after release it with \lstinline{free} command. When \lstinline{free} command release the memory , \lstinline{service} command use the same location to write data, then, the \lstinline{login} command use previously freed pointer to read data in a location which fill by \lstinline{service}.
 
 \section{Double Free}
 \label{sect:doublefree}
-This is the first attack that we want to discuss, since it is used by other attacks too. What happens if an allocated chunk of data gets freed twice? In this situation, the heap data structure is corrupted and it leads to a memory \emph{leak} that an attacker can leverage. As we discussed before, after the user frees an allocated space, this chunk is added to a corresponding bin. In the simplest scenario in \libc{-2.23}, it is added to \fb{}. Consider the following sample code:
+What happens if an allocated chunk of data gets freed twice. Such a scenario leads to a corrupted heap data structure that an attacker can leverage. As we discussed before, A chunk is added to the corresponding bin after release by the user. In the simplest scenario in \libc{-2.23}, it is added to \fb{}. Consider the following sample code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 a = malloc(10); // 0xa04010
@@ -908,7 +910,7 @@ e = malloc(10); // 0xa04030
 f = malloc(10); // 0xa04010
 \end{lstlisting}
 
-At first, we requested 3 chunks of 10-bytes each. After that, we free \lstinline{a} and \lstinline{b} and, finally, \lstinline{a} again. You can see the fast bin structure after \lstinline{free} below step by step:
+At first, we requested 3 chunks of 10-bytes each. After that, we release \lstinline{a} and \lstinline{b} then, \lstinline{a} again. You can see the fast bin structure after \lstinline{free} below step by step:
 
 \begin{lstlisting}[frame=tlrb]
 head -> a -> tail
@@ -916,8 +918,8 @@ head -> b -> a -> tail
 head -> a -> b -> a -> tail
 \end{lstlisting}
 
-As you can see, we have \lstinline{a} twice in the \fb{} now.
-Why we freed \lstinline{b} in the middle? As one of the \fb{} security checks, if \lstinline{a} is doubly freed, the fast bin can detect that \lstinline{a} is on the top of the list right now, and the program is terminated by the heap manager. To bypass this \fb{} security check, it is mandatory to free another chunk in the middle. Then, three new chunks of data are allocated in the following. You can see the fast bin state below step-by-step during the second allocation:
+We have \lstinline{a} twice in the \fb{} now.
+The question may be raised why we freed \lstinline{b} in the middle. Releasing twice \lstinline{a} in a row activates one of the security checks \fb{}. After the first memory release, the \fb{} can detect that \lstinline{a} is at the top of the list now and end the program by sending an error. To bypass these security checks, it is mandatory to free another chunk in the middle. Then, three new chunks of data are allocated in the following. You can see the fast bin state below step-by-step during the second allocation:
 
 \begin{lstlisting}[frame=tlrb]
 head -> b -> a -> tail [ 'a' is returned ]
@@ -927,7 +929,7 @@ head -> tail [ 'a' is returned ]
 
 In the end, \lstinline{d} and \lstinline{f} point to the exactly same memory location. We should pay attention to both allocations having the same chunk size; otherwise, the heap manager creates a new chunk from the top chunk instead of returning \fb{} freed chunks.
 
-Currently, this method needs to be modified since \libc{-2.26} introduced the \tch{}. On the new \libc{}, freed chunks are added to the \tch{} instead of \fb{}, as the result, we need to do some modification to this attack. Consider the following code:
+Currently, this method needs to be modified since \libc{-2.26} introduced the \tch{}. On the new \libc{}, freed chunks are added to the \tch{} instead of \fb{}, as a result, we need to do some modifications to this attack. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *ptrs[8];
@@ -939,7 +941,7 @@ for (int i=0; i<7; i++) {
 }
 \end{lstlisting}
 
-A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of returning freed \tch{} chunks. The above code allocates seven chunks of 8 bytes, then free all of them. In the new version of \libc{}, all of these seven freed chunks goes to the \tch{}. The \Tch{} can keep up to 7 chunks. From this point, if we release other chunks, they are added to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \mallocc{} to allocate fresh chunks, the heap manager returns chunks from \tch{}; so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation an attacker could leverage \callocc{}, since that function does not use \tch{}, and \fb{} are free, so \callocc{} gets memory from the top chunk.
+A simple solution to add free chunks to \fb{} instead of \tch{} is to fill the \tch{}, in the following, create new chunks from the top chunk instead of returning freed \tch{} chunks. The above code allocates seven chunks of 8 bytes, then free all of them. In the new version of \libc{}, all of these seven freed chunks are added to the \tch{}. The \Tch{} can keep up to 7 chunks. From this point, if we release other chunks, they are added to \fb{} because \tch{} is full. Now we pull back to the original approach and allocate three new chunks. If we use \mallocc{} to allocate fresh chunks, the heap manager returns chunks from \tch{}; so, \tch{} becomes accessible again, and we can not implement the attack. In such a situation an attacker could leverage \callocc{}. As we mention in \refToSection{calloc} since \callocc{} does not use \tch{}, and \fb{} are free, so \callocc{} gets memory from the top chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int *a = calloc(1, 8);
@@ -947,7 +949,7 @@ int *b = calloc(1, 8);
 int *c = calloc(1, 8);
 \end{lstlisting}
 
-The result of the above code is 3 new chunks of allocated memory from the top chunk, while \tch{} is still full of freed chunks. In other words, we force the heap manager to allocate memory from the top chunk instead of using freed chunks. The above approach is used by other attacks to bypass the \tch{} policy too. The following steps are like the original approach, but using \callocc{}:
+The result of the above code is three new chunks of allocated memory from the top chunk, while \tch{} is still full of freed chunks. In other words, we force the heap manager to allocate memory from the top chunk instead of using freed chunks. The above approach is used by other attacks to bypass the \tch{} policy too. The following steps are like the original approach, but using \callocc{}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(a);
@@ -958,7 +960,7 @@ b = calloc(1, 8);
 c = calloc(1, 8);
 \end{lstlisting}
 
-In the previous example, we used small chunk allocation. What does it happen when we request a larger chunk? Consider the example below on \libc{-2.23}:
+In the previous example, we used small chunk allocation. What does it happen when we request a larger chunk. Consider the example below on \libc{-2.23}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void* p1 = malloc(0x40);
@@ -968,8 +970,8 @@ void* p3 = malloc(0x400);
 free(p1);
 \end{lstlisting}
 
-The third \mallocc{} ask for a significant memory allocation; this allocation triggers another method call \lstinline{malloc_consolidate} automatically. \Mallocc{} in this situation, consolidate chunks in the fast bin before continuing, then put the resulting merged chunks on the \ub{}.
-Such behavior is that we have another solution to bypass the fast bin double-free security check. It is possible to use \mallocc{} with a big size instead of freeing another chunk in the middle of two free. The third \mallocc{} moves a chunk from fast bin to the unsorted; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a double-free attack. In the final layout, we have \lstinline{p1} on both \fb{} and \ub{}. Moving \fb{} chunks to \ub{} by asking for a big size memory allocation is a simple approach used by other attack methods too.
+The third \mallocc{} asks for a significant memory allocation; this allocation triggers another method call \lstinline{malloc_consolidate} as we discuss in \refToSection{mallocconsolidate} . \Mallocc{} in this situation, consolidate chunks in the \fb{} before continuing, then put the resulting merged chunks on the \ub{}.
+Such behavior is that we have another solution to bypass the \fb{} double-free security check. It is possible to use \mallocc{} with a big size instead of freeing another chunk in the middle of two free. The third \mallocc{} moves a chunk from \fb{} to the \ub{}; as a result, when the second free request arrives, there is no chunk inside the \fb{}. We can implement a \emph{double-free} attack. In the final layout, we have \lstinline{p1} on both \fb{} and \ub{}. Moving \fb{} chunks to \ub{} by asking for a big size memory allocation is a simple approach used by other attack methods too.
 
 \section{Forged Chunk}
 \label{sect:forgedchunk}
