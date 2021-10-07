@@ -975,7 +975,7 @@ Such behavior is that we have another solution to bypass the \fb{} double-free s
 
 \section{Forged Chunk}
 \label{sect:forgedchunk}
-Freeing up a chunk does not prevent access to it because the pointer still exists in the application, so we can implement an attack on the heap data structure by controlling the pointer. The code below shows how we can return our forged chunk instead of a real heap chunk:
+Freeing up a chunk does not prevent access to its memory location because the pointer still exists in the application, as a result, we can implement an attack on the heap data structure by controlling the pointer. The code below shows how we can return our forged chunk instead of a real heap chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct forged_chunk {
@@ -1004,7 +1004,7 @@ malloc(10);   // Will return 0x219c010
 victim = malloc(10);  // Points to 0x7ffc6de966a0
 \end{lstlisting}
 
-In the first step, we allocate a memory \lstinline{a} with 10-byte size, also, create our fake chunk with size 0x20. Chunk size is essential. It must fall in \fb{} range because \fb{} has a security check on chunk size while removing it from the list.
+In the first step, we allocate a memory \lstinline{a} with 10-byte size, also, create our fake chunk with size 0x20. Chunk size is essential. It must fall in the \fb{} range because \fb{} has a security check on chunk size while removing it from the list.
 Now by calling \lstinline{free(a)}, the real chunk is put back in the \fb{}. As we tell, we free up space, but the pointer still points to chunk memory location. We make the forward pointer of freed chunk \lstinline{a} to point to our forged chunk. The current layout of the heap is like below now:
 
 \begin{lstlisting}[language=,frame=tlrb]
@@ -1012,16 +1012,16 @@ head -> a -> forged chunk -> undefined (forward of the forged chunk is holding
                                              the string "attacker's data")
 \end{lstlisting}
 
-In the following, by first allocating \lstinline{a} again, the heap manager returns the \lstinline{a} from the fast bin; following that, our forged chunk will be at the head, so a subsequent allocation returns it instead of a real chunk.
+In the following, by first allocating \lstinline{a} again, the heap manager returns the \lstinline{a} from the \fb{}; following that, our forged chunk will be at the head, so a subsequent allocation returns it instead of a real chunk.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> forged chunk -> undefined
 head -> undefined [ forged chunk is returned to the victim ]
 \end{lstlisting}
 
-Taking this into consideration, another allocation on \fb{} could raise a \emph{segmentation fault}, but also returning \emph{any value} the attacker chooses.
+Taking this into consideration, another allocation on \fb{} could raise a \emph{segmentation fault}.
 
-In the next sample we use double-free vulnerabilities in \libc{-2.23}; the below code is just an extended version of the Double Free attack which we examined. The extended version tricks \mallocc{} into returning a controlled memory location on the stack instead of a real chunk of the heap.
+In the next sample, we use \emph{double-free} vulnerabilities in \libc{-2.23}; the below code is just an extended version of the \emph{double-free} attack which we examined. The extended version tricks \mallocc{} into returning a controlled memory location on the stack instead of a real chunk of the heap.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long long stack_var;
@@ -1039,7 +1039,7 @@ malloc(8)
 malloc(8)
 \end{lstlisting}
 
-As describe in the first part, we allocate three chunks and free one of them twice to bypass the \fb{} security check as we mentioned before; as a result, we have twice \lstinline{a} in the \fb{} list and attack by modifying data at \lstinline{a}. There are two \mallocc{} on the following; the first one keep access to \lstinline{a} inside \lstinline{d} pointer, the second one simply remove the \lstinline{b} from top of the \fb{}, now we have one pointer to \lstinline{a} inside the program as \lstinline{d}; also, another \lstinline{a} at top of the heap, remember any change on \lstinline{a} inside the program could affect on \lstinline{a} at top of \fb{} too.
+As describe in the first part, we allocate three chunks and free one of them twice to bypass the \fb{} security check ; so, we have twice \lstinline{a} in the \fb{} list and attack by modifying data at \lstinline{a}. There are two \mallocc{} on the following; the first one keep access to \lstinline{a} inside \lstinline{d} pointer, the second one simply remove the \lstinline{b} from top of the \fb{}, now we have one pointer to \lstinline{a} inside the program as \lstinline{d}; also, another \lstinline{a} at top of the heap, remember any change on \lstinline{a} inside the program could affect on \lstinline{a} at top of \fb{} too.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 head -> a
