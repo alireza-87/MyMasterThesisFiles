@@ -1137,7 +1137,7 @@ p1[3] = (size_t)((&target)-4);
 size_t *g4 = malloc(0x438);
 \end{lstlisting}
 
-The last step is to allocate a bigger chunk, so, \lstinline{p2} moves to a larger chunk. When \lstinline{p2} move to large chunk, the heap manager write the address of \lstinline{p2} inside \lstinline{p1->bk_nextsize->fd_nextsize} as the code of \libc{} show \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3843}{\texttt{malloc.c}, line 3843}}:
+The last step is to allocate a bigger chunk, so, \lstinline{p2} moves to the \lb{} . When \lstinline{p2} move to \lb{}, the heap manager write the address of \lstinline{p2} inside \lstinline{p1->bk_nextsize->fd_nextsize} as the code of \libc{} show \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3843}{\texttt{malloc.c}, line 3843}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 fwd = bck;
