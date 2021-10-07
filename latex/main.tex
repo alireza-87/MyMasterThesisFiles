@@ -1151,7 +1151,7 @@ This attack works on \libc{} below 3.0.
 
 \section{Overlapping chunks}
 \label{sect:overlappingchunk}
-The goal is to have two chunks, writing data in one of them and overwriting the other one data. We discuss this attack on a sample, first we allocate 3 chunk of memory:
+The goal is to have two chunks, writing data in one of them and overwriting the other one data. We discuss this attack on a sample, first, we allocate 3 chunks of memory:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p1 = malloc(0x100 - 8);
@@ -1168,7 +1168,7 @@ Chunk(addr=0x555555559210, size=0x80, flags=)
  [0x0000555555559210 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 3333333333333333]
  \end{lstlisting}
 
- After \glnote{done-``let us'', do not use contractions in formal writing} \freec{} the second chunk, As we discuss, This chunk add to the \ub{} at first, then, It can be used for future allocation:
+ After \glnote{done-``let us'', do not use contractions in formal writing} release the second chunk, As we discuss, This chunk adds to the \ub{} at first, then, It can be used for future allocation:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2).
@@ -1207,7 +1207,7 @@ unsorted_bins[0]: fw=0x555555559100, bk=0x555555559100
  Chunk(addr=0x555555559110, size=0x180, flags=PREV_INUSE)
  \end{lstlisting}
 
-As you remember, currently, p2 located at the \ub{}, also, we change the size of p2, so, the heap manager return p2 when receives an allocation request, as the result, p2 has overlap with previous chunks:
+As you remember, currently, \lstinline{p2} is located at the \ub{}, also, we change the size of \lstinline{p2}, so, the heap manager return \lstinline{p2} when receives an allocation request, as the result, \lstinline{p2} has overlap with the previous chunks:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 p4 = malloc(evil_region_size);
@@ -1231,8 +1231,8 @@ gef: p p3
 $14 = (intptr_t *) 0x555555559210
  \end{lstlisting}
 
-As you can see, p3 is not in the list of chunks anymore, however, the pointer still accessible inside the application. Now the p3 and p4 have overlap, so, write data on one of them overwrite the other one data
-What happened if the chunk size was so big? As we mentioned, the system uses \mmapc{} in this scenario. Take consider the following code:
+As you can see, \lstinline{p3} is not in the list of chunks anymore, however, the pointer is still accessible inside the application. Now the \lstinline{p3} and \lstinline{p4} have overlap, so, write data on one of them overwrite the other one data
+What happened if the chunk size was so big. As we mentioned, the system uses \mmapc{} in this scenario. Take consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 int* ptr1 = malloc(0x10);
@@ -1260,13 +1260,13 @@ gef: p top_ptr
 $3 = (long long *) 0x7ffff7ef2010
  \end{lstlisting}
 
-Like the previous one, we change the size of the last chunk. The new chunk size is the sum of the size of \lstinline{chunk_3} and \lstinline{chunk_2}; as a result, the unmmap freezes both areas.
+Like the previous one, we change the size of the last chunk. The new chunk size is the sum of the size of \lstinline{chunk_3} and \lstinline{chunk_2}; as a result, the unmmap release both areas.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(mmap_chunk_3)
  \end{lstlisting}
 
-In this stage, if we allocate a new big chunk, this new big chunk has overlap with \lstinline{chunk_2} which just has been unmmap without call unmmap directly; as a result, we can write on the chunk2 area with the help of our new chunk.
+In this stage, if we allocate a new big chunk, this new big chunk has overlap with \lstinline{chunk_2} which just has been unmmap without call unmmap directly; as a result, we can write on the \lstinline{chunk2} area with the help of our new chunk.
 
 \section{The Houses}
 \label{sect:thehouses}
