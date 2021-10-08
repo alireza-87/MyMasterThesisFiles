@@ -1270,7 +1270,7 @@ In this stage, if we allocate a new big chunk, this new big chunk has overlap wi
 
 \section{The Houses}
 \label{sect:thehouses}
-It is time to talk about the House of \emph{something} families' attack. In 2004 the authors of \libc{} published a series of patches over \mallocc{} to prevent previous attacks on heap manager. In late 2004 a person issued a paper \emph{The Malloc Maleficarum}, over the internet. ``It is for this reason, a small suggestion of impossibility, that I present the Malloc Maleficarum'' As they said. The name came from a 14-century book written by a Catholic clergyman on witchcraft, cool:)
+It is time to talk about the \emph{House of XXX} families attack. In 2004 the authors of \libc{} published a series of patches over \mallocc{} to prevent previous attacks on heap manager. In late 2004 a person issued a paper \emph{The Malloc Maleficarum}\footnote{\href{http://phrack.org/issues/66/10.html}{\texttt{The Malloc Maleficarum}}}, over the internet. ``It is for this reason, a small suggestion of impossibility, that I present the Malloc Maleficarum'' As they said. The name came from a 14-century book written by a Catholic clergyman on witchcraft.
 
 \subsection{The House of Mind}
 \label{subsect:housemind}
@@ -1300,7 +1300,7 @@ As we mentioned, when the user requests a memory allocation \libc{} returns a po
 
 When a \lstinline{non_main} arena heap creates, the first thing that goes into this heap is \lstinline{heap_stricture}, this structure contains a field call \lstinline{ar_ptr}, In the above code \lstinline{ar_ptr} stands for arena for this heap, also, as you remember there is a bit in the size field which stands for \lstinline{non_main_arena}. Since the attacker has control of the size field, can control chunk threats as the main arena or \lstinline{non_main} arena. We can conclude, if the \lstinline{non_main_arena} is set, then \lstinline{chunk_non_main_arena} return true,as the result \lstinline{ar_ptr} in \freec{} function is set to \lstinline{heap_for_ptr(ptr)->ar_ptr}.
 This attack works by manipulating the heap in a way a fake \lstinline{ar_ptr} supply to \lstinline{_init_free}; as a result, an arbitrary overwrite happen. The Attacker has to allocate enough memory until it reaches \lstinline{non_main_arena} where he has control over arena data. Max heap size is 1024*1024 plus 512kb of padding, so max allocation never is more than 1MB.
-We saw It possible to hijack the \lstinline{heap_info} and supply an arbitrary \lstinline{ar_ptr} value, so, what value should we use for \lstinline{ar_ptr}? We have two options on that:
+We saw It possible to hijack the \lstinline{heap_info} and supply an arbitrary \lstinline{ar_ptr} value, so, what value should we use for \lstinline{ar_ptr}. We have two options on that:
 
 \paragraph*{Large area of memory}
 Use a large area of memory then \ub{} link code overwrite the target for us. There is some condition and security check, if we can bypass them all the following code of \ub{} do the real job:
@@ -1332,7 +1332,7 @@ p->fd = *fb;
 }
 
  \end{lstlisting}
-The ideal way in this approach is to take control of fb, so, in the following line, fb overwrites on target. This scenario needs to bypass conditions too. This attack still works on the current version on \libc{}. Consider the following code:
+The ideal way in this approach is to take control of \fb{}, so, in the following line, \fb{} overwrites on target. This scenario needs to bypass conditions too. This attack still works on the current version on \libc{}. Consider the following code:
 \begin{lstlisting}[language=c,frame=tlrb]
 int HEAP_MAX_SIZE = 0x4000000;
 int MAX_SIZE = (128*1024) - 0x100;
@@ -1358,7 +1358,7 @@ uint64_t new_arena_value = (((uint64_t) target_chunk) + HEAP_MAX_SIZE) & ~(HEAP_
 uint64_t* fake_heap_info = (uint64_t*) new_arena_value;
 \end{lstlisting}
 
-The next step as we told, the location of fake arena is located at an offset of the heap so we have to allocate fake chunks until reach the fake new arena:
+The fake arena is located in an offset of the heap, as a result, we need to allocate chunks until reach the fake arena.
 \begin{lstlisting}[language=c,frame=tlrb]
 uint64_t* user_mem = malloc(MAX_SIZE);
 while((long long)user_mem < new_arena_value){
@@ -1367,13 +1367,13 @@ while((long long)user_mem < new_arena_value){
 }
 \end{lstlisting}
 
-As we told, this approach use the \fb{} approach, so, we need a chunk in range of the \fb{} chunk, also, a pointer to chunk:
+As we told, this approach uses the \fb{} approach, so, we need a chunk in range of the \fb{} chunk, also, a pointer to chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 uint64_t* fastbin_chunk = malloc(0x50)
 uint64_t* chunk_ptr = fastbin_chunk - 2
 \end{lstlisting}
-This file work on \libc{-2.31} which support \tch{} as the first mechanism, so, like \lstinline{fastbin_dup}, all we need is to fill up the \tch{} to force the heap manager role back to the \fb{}
+This file work on \libc{-2.31} which support \tch{} as the first mechanism, so, like \lstinline{double free} in \refToSection{doublefree}, all we need is to fill up the \tch{} to force the heap manager role back to the \fb{}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 uint64_t* tcache_chunks[7];
