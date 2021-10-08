@@ -1411,7 +1411,7 @@ free(fastbin_chunk);
 
 \subsection{The house of Force}
 \label{subsect:houseforce}
-The house of Force is the second attack of House of X, which we want to discuss.\glnote{done-It comes after the House of Mind, though\ldots} We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, \libc{} uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size? The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
+The house of Force is the second attack of House of XXX, which we want to discuss.\glnote{done-It comes after the House of Mind, though\ldots} We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, \libc{} uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size. The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */
 use_top:
@@ -1430,14 +1430,14 @@ use_top:
 	   return p;
 }
 \end{lstlisting}
-As you can see in the first step \libc{} compares the requested chunk size and top chunk size, as the result, the first step is to set a large value in top chunk size to bypass this step, cheating \libc{} to use this space. The following code Is \lstinline{hose_of_force} sample from how2heap:
+As you can see in the first step \libc{} compares the requested chunk size and top chunk size, as the result, the first step is to set a large value in top chunk size to bypass this step, cheating \libc{} to use this space. The following code Is \lstinline{hose_of_force} sample from how2heap\footnote{\href{https://github.com/shellphish/how2heap/blob/master/glibc_2.23/house_of_force.c}{\texttt{house\_of\_force.c}}}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *p1 = malloc(256);
 int real_size = malloc_usable_size(p1);
 \end{lstlisting}
 
-The first line allocates a big chunk of data from heap memory, so the memory becomes divided into two parts: The allocated part, the top chunk. \lstinline{real_size} is the size of the data section in the chunk. We need to overwrite the top chunk size; to do that, we need a pointer to the top chunk first. The top chunk located at the following address:
+The first line allocates a big chunk of data from heap memory, so the memory becomes divided into two parts: The allocated part, the top chunk. \lstinline{real_size} is the size of the data section in the chunk. We need to overwrite the top chunk size; to do that, we need a pointer to the top chunk first. The top chunk is located at the following address:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 intptr_t *ptr_top = (intptr_t *) ((char *)p1 + real_size - sizeof(long));
@@ -1449,7 +1449,7 @@ Now, we have a pointer to the top chunk, all we have to do overwrite the size fi
 *(intptr_t *)((char *)ptr_top + sizeof(long)) = -1
 \end{lstlisting}
 
-If you check the \libc{} above code, you can see the \libc{} convert the size to (unsigned long), so, \-1 is the largest number. Now we put a big number on size, so, \mallocc{} does not call \mmapc{} to get more memory from os, instead, it uses the top chunk. All we have to do now is allocate a chunk from the top chunk to right before our target, then, the second chunk is be our target:
+If you check the \libc{} above code, you can see the \libc{} convert the size to \lstinline{unsigned long}, so, \-1 is the largest number. Now we put a big number on size, so, \mallocc{} does not call \mmapc{} to get more memory from os, instead, it uses the top chunk. All we have to do now is allocate a chunk from the top chunk to right before our target, then, the second chunk is be our target:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long evil_size = (unsigned long)bss_var - sizeof(long)*4 - (unsigned long)ptr_top;
@@ -1462,7 +1462,7 @@ The above code calculates the distance between the top chunk beginning and the t
 void* ctr_chunk = malloc(100);
 \end{lstlisting}
 
-This chunk points to our target, so, with one simple strum we can overwrite the value:
+This chunk points to our target, so, with one simple \lstinline{strcpy} we can overwrite the value:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 strcpy(ctr_chunk, "YEAH!!!");
