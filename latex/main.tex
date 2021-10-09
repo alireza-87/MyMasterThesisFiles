@@ -1494,7 +1494,7 @@ set_inuse_bit_at_offset(victim, nb);
 bck->fd = bin;
 \end{lstlisting}
 
-AS you can see if we have control over the victim \lstinline{bck} pointer and bypass the security check, libc return our fake chunk on the next small bins allocation. In other words, we can return a chunk to any address. Now we explain it in a real sample:
+As we can see, if we have control over the victim \lstinline{bck} pointer and bypass the security check, \libc{} returns our fake chunk on the next \sbs{} allocation. In other words, we can return a chunk to any address. Now we explain it in a real sample from how2heap\footnote{\href{https://github.com/shellphish/how2heap/blob/master/glibc_2.23/house_of_lore.c}{\texttt{house\_of\_lore.c}}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
  intptr_t* stack_buffer_1[4] = {0};
@@ -1513,14 +1513,16 @@ At first, we allocate a small chunk, then calculate the actual address of the ch
  stack_buffer_1[3] = (intptr_t*)stack_buffer_2;
  stack_buffer_2[2] = (intptr_t*)stack_buffer_1;
 \end{lstlisting}
-Now we forge a fake chunk, point the \lstinline{bck} pointer of \lstinline{buffer_1} to the victim, the fwd pointer of \lstinline{buffer_1} to \lstinline{buffer_2}, also, the \lstinline{bck} pointer of \lstinline{buffer_2} to \lstinline{buffer_1}. In this way, we can bypass the \sbs{} security check.
+Now we forge a fake chunk, point the \lstinline{bck} pointer of \lstinline{buffer_1} to the victim, the \lstinline{fwd} pointer of \lstinline{buffer_1} to \lstinline{buffer_2}, also, the \lstinline{bck} pointer of \lstinline{buffer_2} to \lstinline{buffer_1}. In this way, we can bypass the \sbs{} security check.
+
+
 \begin{lstlisting}[language=c,frame=tlrb]
 void *p5 = malloc(1000);
 free((void*)victim);
 void *p2 = malloc(1200);
 \end{lstlisting}
 
-To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by freeing the victim, it moves to the \ub{} as shown in Figure~\ref{fig:gdb2}\glnote{done-don't use quotes for figures; just say something like ``as shown in\ldots'' or ''Figure\ldots shows\ldots}. In the following step, we allocate another chunk big enough, so, heap manager can't\glnote{no contractions} use the chunk inside an \ub{} or \sbs{}.
+To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by release the victim, it moves to the \ub{} as shown in Figure~\ref{fig:gdb2}\glnote{done-don't use quotes for figures; just say something like ``as shown in\ldots'' or ''Figure\ldots shows\ldots}. In the following step, we allocate another chunk big enough, so, heap manager can not\glnote{no contractions} use the chunk inside an \ub{} or \sbs{}.
 \begin{lstlisting}[language=c,frame=tlrb]
 victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
 \end{lstlisting}
@@ -1536,7 +1538,7 @@ After that, we need to abuse the vulnerability, so the \lstinline{bck} pointer o
  \caption{Heap layout}
  \label{fig:gdb3}
 \end{figure}
-The victim is not in the \ub{} anymore; instead, the heap manager moves it to the \sbs{} after allocation of p2 ,we can see the result in Figure~\ref{fig:gdb3}. As we remember, the heap manager checks all of the chunks inside the \ub{}. If the size is not suitable for the current allocation, they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
+The victim is not in the \ub{} anymore; instead, the heap manager moves it to the \sbs{} after allocation of \lstinline{p2} ,we can see the result in Figure~\ref{fig:gdb3}. As we mention in \refToSection{malloc}, the heap manager checks all of the chunks inside the \ub{}. If the size is not suitable for the current allocation, they move to the corresponding bin. In other words, we force the heap manager to move the victim from the \ub{} to the \sbs{}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 void *p3 = malloc(0x100);
