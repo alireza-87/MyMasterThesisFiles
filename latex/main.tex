@@ -1590,13 +1590,13 @@ a = &fake_chunks[2];
 free(a);
 \end{lstlisting}
 
-The result of such an action is, our fake chunk is at the top of the bin, so the next \mallocc{} return to the attacker's controlled location.
+The result of such an action is, our fake chunk is at the top of the bin, so the next \mallocc{} returns to the attacker's controlled location.
 
 \subsection{The House of Orange}
 \label{subsect:houseorange}
 The house of orange is different from previous attacks. As we remember, in the previous attack, we use \mallocc{} and free to abuse libc vulnerability, but, In the house of orange, we do not use the \freec{} function at all. In other words, we force the heap manager to free a chunk of the heap without calling the \freec{} function. The final layout of this attack is a combination of \ub{} attacks; also, in the end, we gain shell access.
 
-At first, there is one chunk in the application called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation; As we mentioned before, when a request has arrived, the heap manager first checks the bins. If there is no suitable chunk in the bins, the heap manager tries to create a new chunk from the top chunk, so what happens if the requested chunk size is bigger than the top chunk? There are two scenarios for such a situation: if the requested size is smaller than 0x21000, extend the top chunk; otherwise, use \mmapc{}. If we can make the heap manager extend instead of \mmapc{}, the old top chunk is inserted into an \ub{} without calling the free function.
+At first, there is one chunk in the application called the top chunk with the size of 0x21000. The top chunk becomes smaller after allocation. As we mentioned before, when a request has arrived, the heap manager first checks the bins. If there is no suitable chunk in the bins, the heap manager tries to create a new chunk from the top chunk, so what happens if the requested chunk size is bigger than the top chunk. There are two scenarios for such a situation: if the requested size is smaller than 0x21000, extend the top chunk; otherwise, use \mmapc{}. If we can make the heap manager extend instead of \mmapc{}, the old top chunk is inserted into an \ub{} without calling the free function.
 
 To achieve this, we have to meet some security conditions. There is a check for the top chunk inside the libc.
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1628,9 +1628,9 @@ top[1] = 0xc01;
 p2= malloc(0x1000);
 \end{lstlisting}
 
-Now, we have to change the top chunk size in a way to meet security checks. By set 0xc00 + \lstinline{Prev_flag}, we can bypass the security check. At least, we request a chunk more significant than the top chunk size. In this situation, the heap manager creates a new top chunk where the old one has ended, then calls the free function to free the old top chunk, so the old one moves to an \ub{}.
+Now, we have to change the top chunk size in a way to meet security checks. By set 0xc00 + \lstinline{Prev_flag}, we can bypass the security check. At least, we request a chunk more significant than the top chunk size. In this situation, the heap manager creates a new top chunk where the old one has ended, then calls the free function to release the old top chunk, so the old one moves to an \ub{}.
 
-The first part of the attack finished, now, It's time to talk about \libc{} file structure and abort routine before continuing to the second phase. What's happen if \libc{} detected corruption inside the heap structure? When libc detects any memory corruption, it call the Abort routing automatically. Abort routine flush all file pointers in memory by calling \lstinline{_IO_flush_all_lockp}. Consider a part of code:
+The first part of the attack finished, in the following, It's time to talk about \libc{} file structure and \emph{abort} routine before continuing to the second phase. What's happen if \libc{} detected corruption inside the heap structure. When libc detects any memory corruption, it calls the \emph{abort} routing automatically. \emph{Abort} routine flush all file pointers in memory by calling \lstinline{_IO_flush_all_lockp}. Consider a part of code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE *fp;
@@ -1646,7 +1646,7 @@ while (fp != NULL)
 	 && _IO_OVERFLOW (fp, EOF) == EOF)
 \end{lstlisting}
 
-As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the \lstinline{io_file} object. When libc allocate a new file structure and \lstinline{fopen} return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus}, if we take a look at \libc{} code we have:
+As you can see, libc keeps file pointers inside \lstinline{_io_list_all}, so, in the corruption situation, all pointers be flush by the use of the \lstinline{io_file} object. When \libc{} allocate a new file structure and \lstinline{fopen} return the pointer, the actual internal structure inside the \libc{} is \lstinline{io_file_plus}, if we take a look at \libc{} code we have:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 struct _IO_FILE_plus{
@@ -1679,7 +1679,8 @@ Now we have the offset of \lstinline{io_list_all} inside \libc{}, in the next st
 
 
 
-However, this address cannot be calculated in the real-time execution because we do not have the \libc{} address. As we mention, the backward and forward pointer of the freed chunk is a point to heap main arena; also, the offset between the main arena and \lstinline{io_list_all} always fixes; as a result, we can calculate this offset now and use it in real execution
+However, this address cannot be calculated in the real-time execution because we do not have the \libc{} address. As we mention, the backward and forward pointer of the freed chunk point to the heap main arena; also, the offset between the main arena and \lstinline{io_list_all} always fixes; as a result, we can calculate this offset now and use it in real execution
+
 \begin{lstlisting}[language=c,frame=tlrb]
 0x7FFFF7DD2520-0x7ffff7dd1b78 = 0x9a8 - > the offset of io_list_all from main arena
 \end{lstlisting}
@@ -1703,7 +1704,7 @@ memcpy( ( char *) top, "/bin/sh\x00", 8);
 \end{lstlisting}
 
 
-As we mentioned, the libc flushes all file pointers inside the \lstinline{io_list_all} link list, which currently overwrites with the address of the \ub{}.
+As we mentioned, the \libc{} flushes all file pointers inside the \lstinline{io_list_all} link list, which currently overwrites with the address of the \ub{}.
 The goal is to gain control of execution with the help of \lstinline{fd} pointers. In the real list, the next file pointer is located at \lstinline{base_address}+0x68, if we consider bins, the mentioned address is a \sbs{}[4] which keeps a chunk between 90 to 98. We can conclude, if we manipulate the top chunk size again and set the size of 97, on the next allocation with a smaller size, the heap manager checks chunks in the \ub{} and puts it into corresponding bins which are smallbin[4]. Also, if we check the source code, we can see this size check:
 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1714,7 +1715,7 @@ if (__builtin_expect (victim->size <= 2 * SIZE_SZ, 0)
 \end{lstlisting}
 
 
-During iteration over chunks inside the \ub{}, the libc checks the size of the chunk; if the size is smaller than \lstinline{MINSIZE}, then the abort procedure called, and an attack happens.
+During iteration over chunks inside the \ub{}, the libc checks the size of the chunk; if the size is smaller than \lstinline{MINSIZE}, then the abort procedure is called, and an attack happens.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 top[1] = 0x61;
@@ -1797,8 +1798,8 @@ malloc(0x60);
 uint8_t* malloc_hook_chunk = malloc(0x60);
 \end{lstlisting}
 
-First, we calculate the address of \lstinline{__malloc_hook}. We have an address inside libc, which keeps inside the \lstinline{fd} pointer of \lstinline{fake_libc_chunk}. We calculate the offset between the start of libc and \lstinline{main_arena+0x68}, which keep in the \lstinline{fd} pointer. In the next step, find the offset of \lstinline{__malloc_hook} inside the libc. The distance between these two offsets is 0xe8.
-We want to use  0x7f as a valid \fb{} chunk size; to do that, we subtract \lstinline{__malloc_hook} by 0X23. With two malloc \lstinline{fastbin_victim} and \lstinline{fake_libc_chunk} remove from \fb{}, the final malloc returns the \lstinline{malloc_hook_chunk}.
+First, we calculate the address of \lstinline{__malloc_hook}. We have an address inside \libc{}, which keeps inside the \lstinline{fd} pointer of \lstinline{fake_libc_chunk}. We calculate the offset between the start of libc and \lstinline{main_arena+0x68}, which keep in the \lstinline{fd} pointer. In the next step, find the offset of \lstinline{__malloc_hook} inside the libc. The distance between these two offsets is 0xe8.
+We want to use 0x7f as a valid \fb{} chunk size; to do that, we subtract \lstinline{__malloc_hook} by 0X23. With two malloc \lstinline{fastbin_victim} and \lstinline{fake_libc_chunk} remove from \fb{}, the final malloc returns the \lstinline{malloc_hook_chunk}.
 
 As we talk before, the \ub{} attack allow the attacker to write a value in a controlled location. At this stage , we use \ub{} attack in order to change the value inside \lstinline{malloc_hock} with the \lstinline{main_arena + 0x68}. 
 \begin{lstlisting}[language=c,frame=tlrb]
@@ -1823,7 +1824,7 @@ malloc((long long)shell);
 \end{lstlisting}
 \subsection{The House of Rabbit}
 \label{subsect:houserabbit}
-This attack used a \Fb{} and \emph{uaf} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call \mallocc{} inorder to consolidate, this chunk merge and split into \sbs{}. As a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
+This attack used a \Fb{} and \emph{uaf} attack to forge a fake heap chunk for feature uses. As we mentioned before, every fast bin keeps a single size chunk with a single linked list. What happens if we change a chunk inside the \fb{}? In allocation, \fb{} detects the abnormal size so aborts the allocation. If we force the heap manager to call \mallocc{} in order to consolidate, this chunk merge and split into \sbs{}. As a result, we have two valid but forged chunks in a \sbs{} which overlap which other. Consider the following code:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long *a = malloc(0x40);
@@ -1858,7 +1859,7 @@ As we can see, now we have two valid forged chunks inside the \sbs{} which have 
 
 \subsection{The House of Einherjar}
 \label{subsect:houseein}
-In this attack, the goal is to force \mallocc{} to return a chunk in any given address by use of the free function. Consider the free function:
+In this attack, the goal is to force \mallocc{} to return a chunk in any given address by use of the \freec{} function. Consider the free function:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 /* consolidate backward */
@@ -1869,7 +1870,7 @@ if (!prev_inuse(p)) {
 	unlink (off, p, bck, fwd);
 }
  \end{lstlisting}
-If the \lstinline{prev_inuse} flag is zero, in the time of free function calls, it tries to merge the current chunk with the previous chunk. The calculation of merged chunk size is the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we shown in Figure~\ref{fig:gdb10}, \libc{} share metadata at the end of the chunk with metadata at the beginning of the next chunk.
+If the \lstinline{prev_inuse} flag is zero, in the time of free function calls, it tries to merge the current chunk with the previous chunk. The calculation of merged chunk size is the size of the current chunk and the previous chunk. Before continue we have to mention the basis of the attack. As we showed in Figure~\ref{fig:gdb10}, \libc{} shares metadata at the end of the chunk with metadata at the beginning of the next chunk.
 
 \begin{figure}[h!]
  \makebox[\textwidth][c]{\includegraphics[height=0.3\textwidth]{gdb10}}
@@ -1947,7 +1948,7 @@ intptr_t *a = malloc(0x100);
 malloc(0x10);
 \end{lstlisting}
 
-As we mention, we need to fill up \tch{}, so, we perform the free function on the 7 chunks, as the result, heap manager force to use the \ub{} and other bins:
+As we mention, we need to fill up \tch{}, so, we perform the \freec{} function on the 7 chunks, as the result, heap manager forces to use the \ub{} and other bins:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 for(int i=0; i<7; i++){
@@ -1955,7 +1956,7 @@ for(int i=0; i<7; i++){
 }
 \end{lstlisting}
 
-Now the tcahe is full. We perform the free function on the \lstinline{prev} and \lstinline{a}.
+Now the \tch{} is full. We perform the free function on the \lstinline{prev} and \lstinline{a}.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(a);
@@ -1980,7 +1981,7 @@ Chunk(addr=0x555555559a10, size=0x220, flags=PREV_INUSE)
  \label{fig:gdb11}
 \end{figure}
 
-In the next step, with the help of \emph{uaf} and double-free attack, we put back the victim in the \tch{}
+In the next step, with the help of \emph{use after free} and \emph{double-free} attacks, we put back the victim in the \tch{}
 
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc(0x100);
@@ -2033,7 +2034,7 @@ Now, as you can see in the final layout of \tch{}, the previous chunk is not val
 \begin{lstlisting}[language=c,frame=tlrb]
 [ 0x555555559330 -> 0x7fffffffdee8 ]
 \end{lstlisting}
-In the final step with one allocation, we can remove top chunk from the \tch{}, so, the next allocation return our controller location (the size must be the same):
+In the final step with one allocation, we can remove the top chunk from the \tch{}, so, the next allocation returns our controller location (the size must be the same):
 \begin{lstlisting}[language=c,frame=tlrb]
 malloc(128)
 intptr_t *c = malloc(128);
