@@ -395,7 +395,7 @@ for (;; ){
 As we can see, \mallocc{} iterate over all items inside \ub{}. We can conclude that when the heap manager tries to find chunks in \ub{}, all of the \ub{} chunks move to corresponding bins.
 
 \subsection{\Fb}
-Each bin keeps recently freed chunks in a single-linked list. We have ten \fb{}, each of them kept just one chunk size. Chunks in \fb{} do not merge with neighbors; instead, \fb{} keeps them alive, as a result, if the program sends the same size request, the heap manager can use these chunks.
+\Fb{}\footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=ee87ddbbf9c3b8da9f0f6daa84b42b0a6a859fe0;hb=3de512be7ea6053255afed6154db9ee31d4e557a\#l1564}{\texttt{malloc.c}, line 1564}} is an optimization on top of the previously mentioned bins. Each bin keeps recently freed chunks in a single-linked list. We have ten \fb{}, each of them kept just one chunk size. Chunks in \fb{} do not merge with neighbors; instead, \fb{} keeps them alive, as a result, if the program sends the same size request, the heap manager can use these chunks.
 
 The heap manager does not free up \fb{} chunks by do not set \lstinline{P-bit}. Of course, this strategy has a downside too. The memory of the process becomes full or fragment after a while; to overcome this issue heap manager needs to ``flush'' memory from time to time. There is not any periodic job to flushing \fb{}, instead, \libc{} uses another variant of free function call \lstinline{malloc_consolidate}.
 
