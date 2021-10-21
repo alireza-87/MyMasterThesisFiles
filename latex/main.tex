@@ -648,9 +648,7 @@ The rest of the usage located inside \lstinline{malloc_trim} and \lstinline{mall
 \chapter{Tools }
 Tracking and watching memory without proper tools is almost impossible. There is a wide variety of debugging tools that depend on different platforms. These tools allow us to display any memory like stack and heap, disassemble binary code, execute and debug a binary program.
 
-We worked exclusively on \libc{} as the heap manager on the x86 machine, so the primary tool is \emph{gdb}~\cite{gdb}, as explained in \refToSection{GDB}. In addition to gdb, we use some utilities like its extension \emph{GEF}~\cite{gef}, introduced in \refToSection{GEF}, and \emph{heappy}~\cite{heappy}, discussed in \refToSection{heappy}, to have better memory visualization. \glnote{DONE-added references to (sub)sections} \emph{pwndbg}~\cite{pwndbg} , introduce in \refToSection{PWNDBG} , to improve gdb visualization , \emph{Libc Database}~\cite{libcdatabase}, discuss in \refToSection{LibcDatabase}, to have all necessary versions of \libc{} and related files. \emph{Patchelf}~\cite{patchelf}, discuse in \refToSection{Patchelf} to modify the dynamic loader and RPATH of executable files, also in \refToSection{DebugLibc} we discuss how to debug executable and library inside the gdb.
-
-\glnote{DONE-you shoud list all sections here: heappy, libc db, patchelf, \ldots}
+We worked exclusively on \libc{} as the heap manager on the x86 machine, so the primary tool is \emph{gdb}~\cite{gdb}, as explained in \refToSection{GDB}. In addition to gdb, we use some utilities like its extension \emph{GEF}~\cite{gef}, introduced in \refToSection{GEF}, and \emph{heappy}~\cite{heappy}, discussed in \refToSection{heappy}, to have better memory visualization. \emph{pwndbg}~\cite{pwndbg} , introduce in \refToSection{PWNDBG} , to improve gdb visualization , \emph{Libc Database}~\cite{libcdatabase}, discuss in \refToSection{LibcDatabase}, to have all necessary versions of \libc{} and related files. \emph{Patchelf}~\cite{patchelf}, discuse in \refToSection{Patchelf} to modify the dynamic loader and RPATH of executable files, also in \refToSection{DebugLibc} we discuss how to debug executable and library inside the gdb.
 
 \section{GDB}
 \label{sect:GDB}
@@ -674,7 +672,6 @@ gef: heap <sub_commands>
 \end{lstlisting}
 
 \paragraph*{\lstinline{heap chunks} command}
-\glnote{DONE-I'd use paragraph* (that is, with the star) to avoid something like 3.1.1.1.1}
 
 Display all heap chunks:
 \begin{lstlisting}[frame=tlrb]
@@ -685,7 +682,6 @@ gef: heap chunks
 \includegraphics[height=0.2\textwidth]{gdb14}
 \end{center}
 
-\glnote{DONE-I'd remove the floating figures/references and simply include the graphics between begin-center/end-center, see the latex}
 % \begin{figure}[h!]
 % \makebox[\textwidth][c]{\includegraphics[height=0.2\textwidth]{gdb14}}
 % \caption{heap chunks}
@@ -693,7 +689,7 @@ gef: heap chunks
 % \end{figure}
 
 \paragraph*{\lstinline{heap chunk} command}
-This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.\glnote{ok-for closing quotes you should use two single-quote characters: ''; please change everywhere}
+This command provides information on a chunk like the size and pointer. Provide the address of the chunk data section to the command.
 \begin{lstlisting}[frame=tlrb]
 gef: heap chunk <LOCATION>
 \end{lstlisting}
@@ -703,7 +699,7 @@ gef: heap chunk <LOCATION>
 \end{center}
 
 \paragraph*{\lstinline{heap arenas} command}
-As we mentioned in \refToSection{subheaps}\glnote{DONE-this is mentioned in another chapter, in cases like this, it's better to add a reference to the other section}, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.
+As we mentioned in \refToSection{subheaps}, a multi-thread application has many arenas, not just one. Gef proves a sun command to retrieve the information of all arena.
 
 \begin{lstlisting}[frame=tlrb]
 gef: heap arenas
@@ -723,7 +719,7 @@ gef: heap bins
 \includegraphics[height=0.2\textwidth]{gdb17}
 \end{center}
 
-\subsection{PWNDBG}\glnote{DONE-this tool is not mentioned at the beginning of the chapter! Please add it}
+\subsection{PWNDBG}
 \label{sect:PWNDBG}
 pwndbg is a set of tools that aim at helping us during debugging with GDB. It works like a GEF by providing us with more tools to investigate a running program.
 To install pwndbg, clone the repository, then add it to the gdb initialization file:
@@ -737,7 +733,6 @@ Like gdb, it provides some commands to monitor the heap state. Unlike gef, it do
 
 \paragraph*{\lstinline{heap} command}
 This command provides information about allocated and freed chunks, also the top chunk.
-\glnote{DONE-same thing as before, regarding the figures}
 
 \begin{center}
 \includegraphics[height=0.4\textwidth]{gdb18}
@@ -842,9 +837,7 @@ Inside the gdb, we can set debug symbols directory. After waiting a while, we ru
 \label{ch:heapexp}
 Implementation of the \libc{} has changed and improved over the past years, because of various exploitation methods proposed. In this chapter, we discuss must famous heap exploitation techniques. How exploitation works entirely depends on the heap implementation; as a result, some methods work on a specific version of \libc{}. We discussed each technique in one or more \libc{'s} versions.
 
-\glnote{spellcheck the document! And check the English: singulars/plurals etc}
 In \refToSection{useafterfree} we interduce \emph{use after free} as a classic heap vulnerability. \emph{Double free} attack disscus in \refToSection{doublefree} , then,\emph{forged chunk} attack present in \refToSection{forgedchunk}. \emph{unsorted bin attack} discuss in \refToSection{ubattack} as an vulnerbility in \ub{} , moreover, vulnerbility in \lb{} present as \emph{larg bin attack} in \refToSection{lbattack}. The next attack is \emph{overlapping chunk} which introduce in \refToSection{overlappingchunk}. The Houses series attacks introduces in \refToSection{thehouses}. In following \emph{House of mind} inroduce in \refToSubSection{housemind} ,\emph{House of force} inroduce in \refToSubSection{houseforce}, \emph{House of lore} inroduce in \refToSubSection{houselore}  , \emph{House of spirits} discues in \refToSubSection{housespirits}, \emph{House of orange} inroduce in \refToSubSection{houseorange}, And respectively \emph{House of roman}, \emph{House of rabbit}, \emph{House of orange}, \emph{House of Einherjar} and \emph{House of botcake} discuesses in \refToSubSection{houseroman}, \refToSubSection{houserabbit}, \refToSubSection{houseein} and \refToSubSection{housebotcake}. \emph{tcach poisoning} intorduces as last attack in \refToSection{tchpoison}. We also should mention, the POC(Proof-of-concept) files used to discuss attacks are provided by how2heap~\cite{how2heap} repository.
-\glnote{DONE-you should use lstinline only for identifiers/function names; the names of techniques are better in emph}
 
 \section{Use After Free}
 \label{sect:useafterfree}
@@ -1052,7 +1045,7 @@ Now, all we have to do is remove \lstinline{a} from the top of the \fb{} with a 
 \label{sect:ubattack}
 In previous sections, we saw how to implement an attack on \fb{}. Now, we want to demonstrate an attack on the \ub{}. As the name suggests, this attack abuses \ub{} to conduct the attack. The mechanism of this attack is to take control of the backward pointer of chunks in the \ub{}. This attack aims to modify a value; as a result, this attack can be combined with others.
 
-This code tries to write an address inside the heap area in the stack. In \refToSubSection{houseofroman}, we talk about using this type of vulnerability in a real attack.\glnote{DONE-Undefined reference; check the cross-references}
+This code tries to write an address inside the heap area in the stack. In \refToSubSection{houseofroman}, we talk about using this type of vulnerability in a real attack.
 
 \begin{lstlisting}[language=c,frame=tlrb]
 unsigned long stack_var=0;
@@ -1168,7 +1161,7 @@ Chunk(addr=0x555555559210, size=0x80, flags=)
  [0x0000555555559210 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 3333333333333333]
  \end{lstlisting}
 
- After \glnote{done-``let us'', do not use contractions in formal writing} release the second chunk, As we discuss, This chunk adds to the \ub{} at first, then, It can be used for future allocation:
+ After release the second chunk, As we discuss, This chunk adds to the \ub{} at first, then, It can be used for future allocation:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 free(p2).
@@ -1411,7 +1404,7 @@ free(fastbin_chunk);
 
 \subsection{The house of Force}
 \label{subsect:houseforce}
-The house of Force is the second attack of House of XXX, which we want to discuss.\glnote{done-It comes after the House of Mind, though\ldots} We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, \libc{} uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size. The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
+The house of Force is the second attack of House of XXX, which we want to discuss. We talk about the top chunk and the way \libc{} manages it. As we mentioned, when there is no suitable free chunk for ongoing allocation requests, \libc{} uses the top chunk as free space and creates a chunk from scratch. So what happens if we have control over top chunk size. The goal of this attack is to use this vulnerability to write a value in an arbitrary address. Consider the following code from \libc{-2.23} \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l4087}{\texttt{malloc.c}, line 4087}}:
 \begin{lstlisting}[language=c,frame=tlrb]
  /* ... */
 use_top:
@@ -1522,7 +1515,7 @@ free((void*)victim);
 void *p2 = malloc(1200);
 \end{lstlisting}
 
-To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by release the victim, it moves to the \ub{} as shown in Figure~\ref{fig:gdb2}\glnote{done-don't use quotes for figures; just say something like ``as shown in\ldots'' or ''Figure\ldots shows\ldots}. In the following step, we allocate another chunk big enough, so, heap manager can not\glnote{no contractions} use the chunk inside an \ub{} or \sbs{}.
+To prevent merging the top chunk with a small one during \freec{} we allocate a big chunk on top of the heap. After that by release the victim, it moves to the \ub{} as shown in Figure~\ref{fig:gdb2}. In the following step, we allocate another chunk big enough, so, heap manager can use the chunk inside an \ub{} or \sbs{}.
 \begin{lstlisting}[language=c,frame=tlrb]
 victim[1] = (intptr_t)stack_buffer_1; // victim->bk is pointing to stack
 \end{lstlisting}
@@ -1963,7 +1956,7 @@ free(a);
 free(prev);
 \end{lstlisting}
 
-The result of the above is to consolidate the \lstinline{prev} chunk with the victim \lstinline{a} as shown in Figure~\ref{fig:gdb11}\glnote{done-Again, use lstinline for identifiers, not single quotes; be consistent}. Attention to the size and the address of the chunk:
+The result of the above is to consolidate the \lstinline{prev} chunk with the victim \lstinline{a} as shown in Figure~\ref{fig:gdb11}. Attention to the size and the address of the chunk:
 
 \begin{lstlisting}[language=c,frame=tlrb]
 Before:
@@ -2040,7 +2033,6 @@ malloc(128)
 intptr_t *c = malloc(128);
 \end{lstlisting}
 \chapter{In real world}
-\glnote{done-I think it's better to present real-world cases in the introduction, as motivating examples of why this research is important}
 In the \refToChapter{introheap} we talk about heap, then, In \refToChapter{heapexp} we introduce various type of attack on \libc{} heap. The question may arise when the heap memory can be used as an option to attack the system in the real world. To answer this question, we examine several attacks on the heap and their obstacles and problems. In \refToSection{sudoexp} we Introduce one of the most recent attacks on the \emph{sudo}, then, In \refToSection{whatsappexp} we discuss an attack on one of the most famous messenger.
 
 \section{Heap-Based Buffer Overflow in Sudo}
