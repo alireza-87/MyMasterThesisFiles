@@ -1,7 +1,7 @@
 \documentclass{masterthesis}
 \usepackage{listings}
 \usepackage{xcolor}
-\usepackage{hyperref} % links
+
 \usepackage{graphicx}
 \usepackage{xspace}
 \setlength {\marginparwidth}{2cm}
@@ -66,6 +66,8 @@
 \newcommand{\refToChapter}[1]{Chapter~\ref{ch:#1}\xspace}
 \newcommand{\refToSection}[1]{Section~\ref{sect:#1}\xspace}
 \newcommand{\refToSubSection}[1]{Subsection~\ref{subsect:#1}\xspace}
+\usepackage{color}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue,citecolor=blue,filecolor=blue,urlcolor=blue]{hyperref}
 
 \graphicspath{ {./images/} }
 
