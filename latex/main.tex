@@ -1059,18 +1059,21 @@ p[1]=(unsigned long)(&stack_var-2);
 //------------------------------------
 malloc(400);
 \end{lstlisting}
- At the first line, we define our target \lstinline{stack_var} where we want to write the address. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top chunk; otherwise, when we release \lstinline{p} the heap manager merges it with the top chunk automatically. Finally, we have to write our target address in the backward pointer of \lstinline{p}. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list; in \mallocc{}, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3738}{\texttt{malloc.c}, line 3738}}:
+ At the first line, we define our target \lstinline{stack_var} where we want to write the address. On the second and third lines, we allocate two memory chunks from the heap. The second allocation needs to keep a distance from the top chunk; otherwise, when we release \lstinline{p} , it insert into \ub{} automatically. Finally, we have to write our target address in the backward pointer of \lstinline{p}. Now, the heap manager does the rest. As we mentioned before \ub{} uses a double linked list, so, when the heap manager tries to remove a chunk from this double-link list, the backward pointer must be rewritten to remove a chunk from the list; in \mallocc{}, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=d20d5955db4d814b73a5b1829d1bc7874c94024d;hb=ab30899d880f9741a409cbc0d7a28399bdac21bf\#l3516}{\texttt{malloc.c}, line 3516}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
+/* ... */
 unsorted_chunks (av)->bk = bck;
 bck->fd = unsorted_chunks (av);
+/* ... */
 \end{lstlisting}
 
-The last \mallocc{} tries to allocate 400 bytes of memory, so the heap manager checks the \ub{} to find a fair chunk of memory. Also, move the \ub{} chunk to corresponding bins. If we check the \mallocc{} source code, we can see \mallocc{} checks every item to achieve this goal. At first, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3728}{\texttt{malloc.c}, line 3728}} :
+The last \mallocc{} tries to allocate 400 bytes of memory, so the heap manager checks the \ub{} to find a fair chunk of memory. Also, move the \ub{} chunk to corresponding bins. If we check the \mallocc{} source code, we can see \mallocc{} checks every item to achieve this goal. At first, we have such a code \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=d20d5955db4d814b73a5b1829d1bc7874c94024d;hb=ab30899d880f9741a409cbc0d7a28399bdac21bf\#l3470}{\texttt{malloc.c}, line 3470}} :
 \begin{lstlisting}[language=c,frame=tlrb]
-
+/* ... */
 while ((victim = unsorted_chunks (av)->bk) != unsorted_chunks (av)){
 bck = victim->bk;
+/* ... */
 \end{lstlisting}
 Variable \lstinline{av} is the arena, \lstinline{unsorted_chunks (av)} is the head of the \ub{}, and \lstinline{victim} is our current item. You can see, \mallocc{} checks items from the head of the \ub{} and removes them one by one. Putting it all together:
 
@@ -1086,8 +1089,10 @@ Now it is clear that if we control the backward pointer, then, we can write data
 In the recent versions of \libc{} the following check was added to prevent this attack \footnote{\href{https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=f7cd29bc2f93e1082ee77800bd64a4b2a2897055;hb=9ea3686266dca3f004ba874745a4087a89682617\#l3785}{\texttt{malloc.c}, line 3785}}:
 
 \begin{lstlisting}[language=c,frame=tlrb]
+/* ... */
 if (__glibc_unlikely (bck->fd != victim))
 	malloc_printerr ('malloc(): corrupted unsorted chunks 3');
+/* ... */	
 \end{lstlisting}
 
 \section{\Lb{} attack}
