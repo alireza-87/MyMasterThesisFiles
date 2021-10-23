@@ -1147,7 +1147,7 @@ victim->bk_nextsize = fwd->fd->bk_nextsize;
 fwd->fd->bk_nextsize = victim->bk_nextsize->fd_nextsize = victim;
  \end{lstlisting}
 
-This attack works on \libc{} below 3.0.
+This attack works on current versions of \libc{} too.
 
 \section{Overlapping chunks}
 \label{sect:overlappingchunk}
