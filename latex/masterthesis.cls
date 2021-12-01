@@ -47,7 +47,7 @@
 
 \DeclareOption{final}{\renewcommand{\degreetext}{
     MSc  Computer  Science\\
-    \small Data  Science  and  Engineering Curriculum}}
+    \small Software  Security  and  Engineering Curriculum}}
 
 \DeclareOption{centerchapter,centrechapter}
    {\renewcommand{\@chapteralignment}{\centering}}
