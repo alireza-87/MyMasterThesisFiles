@@ -211,7 +211,7 @@ int main()
       https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#3717
     */
 
-    top[1] = 0x61;
+    top[1] = 0x61; 
 
     /*
       Now comes the part where we satisfy the constraints on the fake file pointer
